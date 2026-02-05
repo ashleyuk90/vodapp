@@ -12,9 +12,10 @@ If the Android app does **not** send a `profile_id`, the server automatically us
 
 - **New**: `GET /api/profiles` to list profiles and active profile.
 - **New**: `POST /api/profiles_select` to set active profile.
+- **New**: `POST /api/profiles_add` to create a profile.
+- **New**: `POST /api/profiles_remove` to delete a profile.
 - **New**: `max_content_rating` profile field (UK rating limit).
 - **Updated**: Playback history is now stored **per profile**.
-- **Updated**: `watch_list` supports optional `profile_id` for per-profile lists.
 - **Optional**: Add `profile_id` to playback endpoints to override active profile.
 
 ---
@@ -64,13 +65,58 @@ profile_id=12
 
 ---
 
-## 3. Playback History (Per Profile)
+## 3. Add Profile
+
+**Endpoint:** `POST /api/profiles_add`
+
+**Request Body:**
+```
+name=Kids
+pin=1234
+max_content_rating=12
+auto_skip_intro=1
+auto_skip_credits=1
+autoplay_next=1
+```
+
+**Notes:**
+- `name` is required.
+- If `max_content_rating` is provided, `pin` is required.
+- New profile becomes the active profile automatically.
+
+---
+
+## 4. Remove Profile
+
+**Endpoint:** `POST /api/profiles_remove`
+
+**Request Body:**
+```
+profile_id=12
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "deleted_profile_id": 12,
+  "active_profile_id": 10
+}
+```
+
+**Notes:**
+- Last remaining profile cannot be deleted.
+- Profile must belong to the logged-in user.
+
+---
+
+## 5. Playback History (Per Profile)
 
 Playback progress now keys by `(user_id, profile_id, video_id)` instead of `(user_id, video_id)`.
 
 If `profile_id` is omitted, the server uses the **active profile**.
 
-### 3.1 Save Progress
+### 5.1 Save Progress
 **Endpoint:** `POST /api/progress`
 
 **Request Body (optional `profile_id`):**
@@ -81,14 +127,14 @@ paused=0
 profile_id=12
 ```
 
-### 3.2 Resume Time
+### 5.2 Resume Time
 **Endpoint:** `GET /api/details?id=123`
 
 **Optional:** `&profile_id=12`
 
 Response fields like `resume_time` will reflect the selected profile.
 
-### 3.3 Library/Search Results
+### 5.3 Library/Search Results
 **Endpoints:**  
 `GET /api/library`  
 `GET /api/search`
@@ -97,16 +143,17 @@ Response fields like `resume_time` will reflect the selected profile.
 
 ---
 
-## 4. Recommended Android Flow
+## 6. Recommended Android Flow
 
 1. **Login** → store session cookie.
 2. **GET /api/profiles** → show profile picker.
-3. **POST /api/profiles_select** → set active profile.
-4. **Playback / progress** calls (optionally include `profile_id`).
+3. Optional: **POST /api/profiles_add** if creating a new profile.
+4. **POST /api/profiles_select** → set active profile.
+5. **Playback / progress** calls (optionally include `profile_id`).
 
 ---
 
-## 5. Compatibility Notes
+## 7. Compatibility Notes
 
 - Existing Android clients **continue working** without changes.
 - If the app does not send `profile_id`, playback progress is saved under the **active profile** (default profile after login).
@@ -114,7 +161,7 @@ Response fields like `resume_time` will reflect the selected profile.
 
 ---
 
-## 6. Optional Enhancements
+## 8. Optional Enhancements
 
 If the Android app wants to expose preferences:
 - `auto_skip_intro`

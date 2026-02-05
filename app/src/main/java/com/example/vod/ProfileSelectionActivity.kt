@@ -2,11 +2,18 @@ package com.example.vod
 
 import android.content.Intent
 import android.graphics.Color
+import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
+import android.text.InputType
+import android.view.Gravity
 import android.view.KeyEvent
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.view.WindowManager
+import android.view.inputmethod.EditorInfo
+import android.view.inputmethod.InputMethodManager
+import android.widget.EditText
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
@@ -93,7 +100,7 @@ class ProfileSelectionActivity : AppCompatActivity() {
         loadProfiles()
     }
 
-    private fun loadProfiles() {
+    private fun loadProfiles(allowAutoSelect: Boolean = true) {
         // Check network
         if (!NetworkUtils.isNetworkAvailable(this)) {
             showError(getString(R.string.profile_load_error))
@@ -113,9 +120,12 @@ class ProfileSelectionActivity : AppCompatActivity() {
 
                     if (response.status == "success" && response.profiles.isNotEmpty()) {
                         activity.profiles = response.profiles
+                        response.profiles.find { it.id == response.activeProfileId }?.let { activeProfile ->
+                            ProfileManager.setActiveProfile(activeProfile)
+                        }
 
                         // Check for default profile and auto-login (unless explicitly skipped)
-                        if (!activity.skipAutoLogin) {
+                        if (allowAutoSelect && !activity.skipAutoLogin) {
                             val defaultProfileId = ProfileManager.getDefaultProfileId()
                             if (defaultProfileId != null) {
                                 val defaultProfile = response.profiles.find { it.id == defaultProfileId }
@@ -127,8 +137,8 @@ class ProfileSelectionActivity : AppCompatActivity() {
                             }
                         }
 
-                        // If only one profile, auto-select it
-                        if (response.profiles.size == 1) {
+                        // If only one profile, auto-select it unless this picker was explicitly opened
+                        if (allowAutoSelect && response.profiles.size == 1 && !activity.skipAutoLogin) {
                             activity.selectProfile(response.profiles.first())
                         } else {
                             activity.showProfiles(response.profiles)
@@ -183,7 +193,8 @@ class ProfileSelectionActivity : AppCompatActivity() {
             profiles = profiles,
             colors = profileColors,
             onProfileClick = { profile -> selectProfile(profile) },
-            onProfileLongClick = { profile -> showProfileOptions(profile) }
+            onProfileLongClick = { profile -> showProfileOptions(profile) },
+            onCreateProfileClick = { onCreateProfileClicked() }
         )
 
         // Focus first profile
@@ -192,40 +203,222 @@ class ProfileSelectionActivity : AppCompatActivity() {
         }
     }
 
+    private fun onCreateProfileClicked() {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_create_profile, null)
+        val input = dialogView.findViewById<EditText>(R.id.etProfileName).apply {
+            inputType = InputType.TYPE_CLASS_TEXT or InputType.TYPE_TEXT_FLAG_CAP_WORDS
+            maxLines = 1
+            setSingleLine(true)
+        }
+        val btnCancel = dialogView.findViewById<MaterialButton>(R.id.btnCreateProfileCancel)
+        val btnCreate = dialogView.findViewById<MaterialButton>(R.id.btnCreateProfileCreate)
+
+        val dialog = AlertDialog.Builder(this)
+            .setView(dialogView)
+            .create()
+
+        dialog.setOnShowListener {
+            dialog.window?.let { window ->
+                window.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+                window.setLayout(
+                    (resources.displayMetrics.widthPixels * 0.86f).toInt(),
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+                )
+                window.setGravity(Gravity.TOP or Gravity.CENTER_HORIZONTAL)
+                window.attributes = window.attributes.apply {
+                    y = resources.getDimensionPixelSize(R.dimen.create_profile_dialog_top_offset)
+                }
+                window.setSoftInputMode(
+                    WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE or
+                        WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE
+                )
+            }
+
+            btnCancel.setOnClickListener {
+                dialog.dismiss()
+            }
+
+            val submitCreate = {
+                val profileName = input.text?.toString()?.trim().orEmpty()
+                if (profileName.isBlank()) {
+                    input.error = getString(R.string.profile_name_required)
+                    input.requestFocus()
+                } else {
+                    dialog.dismiss()
+                    createProfile(profileName)
+                }
+            }
+
+            btnCreate.setOnClickListener {
+                submitCreate()
+            }
+
+            input.setOnEditorActionListener { _, actionId, _ ->
+                if (actionId == EditorInfo.IME_ACTION_DONE) {
+                    submitCreate()
+                    true
+                } else {
+                    false
+                }
+            }
+
+            input.requestFocus()
+            val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
+            imm.showSoftInput(input, InputMethodManager.SHOW_IMPLICIT)
+        }
+
+        dialog.show()
+    }
+
+    private fun createProfile(profileName: String) {
+        if (!NetworkUtils.isNetworkAvailable(this)) {
+            Toast.makeText(this, R.string.error_network, Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        showLoading()
+        val weakActivity = WeakReference(this)
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val response = NetworkClient.api.addProfile(profileName)
+
+                withContext(Dispatchers.Main) {
+                    val activity = weakActivity.get() ?: return@withContext
+                    val createdProfile = response.profile
+
+                    if (response.status == "success" && createdProfile != null) {
+                        ProfileManager.setActiveProfile(createdProfile)
+                        Toast.makeText(
+                            activity,
+                            activity.getString(R.string.profile_created, createdProfile.name),
+                            Toast.LENGTH_SHORT
+                        ).show()
+                        activity.proceedToMain()
+                    } else {
+                        Toast.makeText(
+                            activity,
+                            response.message ?: activity.getString(R.string.profile_create_error),
+                            Toast.LENGTH_SHORT
+                        ).show()
+                        activity.loadProfiles(allowAutoSelect = false)
+                    }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    weakActivity.get()?.let { activity ->
+                        ErrorHandler.handleNetworkError(
+                            activity,
+                            e,
+                            activity.getString(R.string.profile_create_error)
+                        )
+                        activity.loadProfiles(allowAutoSelect = false)
+                    }
+                }
+            }
+        }
+    }
+
     /**
      * Show profile options dialog (set/remove as default).
      */
     private fun showProfileOptions(profile: Profile) {
         val isDefault = ProfileManager.isDefaultProfile(profile.id)
-        
-        val options = if (isDefault) {
-            arrayOf(getString(R.string.remove_default))
+
+        val optionLabels = mutableListOf<String>()
+        val optionActions = mutableListOf<() -> Unit>()
+
+        if (isDefault) {
+            optionLabels += getString(R.string.remove_default)
+            optionActions += {
+                ProfileManager.clearDefaultProfile()
+                Toast.makeText(this, R.string.default_profile_cleared, Toast.LENGTH_SHORT).show()
+                rvProfiles.adapter?.notifyDataSetChanged()
+            }
         } else {
-            arrayOf(getString(R.string.set_as_default))
+            optionLabels += getString(R.string.set_as_default)
+            optionActions += {
+                ProfileManager.setDefaultProfileId(profile.id)
+                Toast.makeText(
+                    this,
+                    getString(R.string.default_profile_set, profile.name),
+                    Toast.LENGTH_SHORT
+                ).show()
+                rvProfiles.adapter?.notifyDataSetChanged()
+            }
         }
-        
+
+        if (profiles.size > 1) {
+            optionLabels += getString(R.string.delete_profile_action)
+            optionActions += { confirmDeleteProfile(profile) }
+        }
+
         AlertDialog.Builder(this)
             .setTitle(profile.name)
-            .setItems(options) { _, which ->
-                when (which) {
-                    0 -> {
-                        if (isDefault) {
+            .setItems(optionLabels.toTypedArray()) { _, which ->
+                optionActions.getOrNull(which)?.invoke()
+            }
+            .show()
+    }
+
+    private fun confirmDeleteProfile(profile: Profile) {
+        AlertDialog.Builder(this)
+            .setTitle(R.string.delete_profile_action)
+            .setMessage(getString(R.string.delete_profile_confirm, profile.name))
+            .setNegativeButton(android.R.string.cancel, null)
+            .setPositiveButton(R.string.delete_profile_action) { _, _ ->
+                deleteProfile(profile)
+            }
+            .show()
+    }
+
+    private fun deleteProfile(profile: Profile) {
+        if (!NetworkUtils.isNetworkAvailable(this)) {
+            Toast.makeText(this, R.string.error_network, Toast.LENGTH_SHORT).show()
+            return
+        }
+
+        showLoading()
+        val weakActivity = WeakReference(this)
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val response = NetworkClient.api.removeProfile(profile.id)
+
+                withContext(Dispatchers.Main) {
+                    val activity = weakActivity.get() ?: return@withContext
+                    if (response.status == "success") {
+                        if (ProfileManager.isDefaultProfile(profile.id)) {
                             ProfileManager.clearDefaultProfile()
-                            Toast.makeText(this, R.string.default_profile_cleared, Toast.LENGTH_SHORT).show()
-                        } else {
-                            ProfileManager.setDefaultProfileId(profile.id)
-                            Toast.makeText(
-                                this,
-                                getString(R.string.default_profile_set, profile.name),
-                                Toast.LENGTH_SHORT
-                            ).show()
                         }
-                        // Refresh adapter to update default indicator
-                        rvProfiles.adapter?.notifyDataSetChanged()
+                        Toast.makeText(
+                            activity,
+                            activity.getString(R.string.profile_deleted, profile.name),
+                            Toast.LENGTH_SHORT
+                        ).show()
+                        activity.loadProfiles(allowAutoSelect = false)
+                    } else {
+                        Toast.makeText(
+                            activity,
+                            response.message ?: activity.getString(R.string.profile_delete_error),
+                            Toast.LENGTH_SHORT
+                        ).show()
+                        activity.loadProfiles(allowAutoSelect = false)
+                    }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    weakActivity.get()?.let { activity ->
+                        ErrorHandler.handleNetworkError(
+                            activity,
+                            e,
+                            activity.getString(R.string.profile_delete_error)
+                        )
+                        activity.loadProfiles(allowAutoSelect = false)
                     }
                 }
             }
-            .show()
+        }
     }
 
     private fun selectProfile(profile: Profile) {
@@ -285,20 +478,43 @@ class ProfileSelectionActivity : AppCompatActivity() {
         private val profiles: List<Profile>,
         private val colors: List<String>,
         private val onProfileClick: (Profile) -> Unit,
-        private val onProfileLongClick: (Profile) -> Unit
-    ) : RecyclerView.Adapter<ProfileAdapter.ProfileViewHolder>() {
+        private val onProfileLongClick: (Profile) -> Unit,
+        private val onCreateProfileClick: () -> Unit
+    ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
-        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ProfileViewHolder {
+        private val viewTypeProfile = 0
+        private val viewTypeCreateProfile = 1
+
+        override fun getItemViewType(position: Int): Int {
+            return if (position < profiles.size) viewTypeProfile else viewTypeCreateProfile
+        }
+
+        override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): RecyclerView.ViewHolder {
             val view = LayoutInflater.from(parent.context)
                 .inflate(R.layout.item_profile, parent, false)
-            return ProfileViewHolder(view)
+
+            return if (viewType == viewTypeProfile) {
+                ProfileViewHolder(view)
+            } else {
+                CreateProfileViewHolder(view)
+            }
         }
 
-        override fun onBindViewHolder(holder: ProfileViewHolder, position: Int) {
-            holder.bind(profiles[position], colors[position % colors.size])
+        override fun onBindViewHolder(holder: RecyclerView.ViewHolder, position: Int) {
+            when (holder) {
+                is ProfileViewHolder -> holder.bind(profiles[position], colors[position % colors.size])
+                is CreateProfileViewHolder -> holder.bind()
+            }
         }
 
-        override fun getItemCount(): Int = profiles.size
+        override fun getItemCount(): Int = profiles.size + 1
+
+        private fun requestFocusAt(position: Int) {
+            rvProfiles.smoothScrollToPosition(position)
+            rvProfiles.post {
+                rvProfiles.findViewHolderForAdapterPosition(position)?.itemView?.requestFocus()
+            }
+        }
 
         inner class ProfileViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
             private val viewAvatarBg: View = itemView.findViewById(R.id.viewAvatarBg)
@@ -360,15 +576,73 @@ class ProfileSelectionActivity : AppCompatActivity() {
                     when (keyCode) {
                         KeyEvent.KEYCODE_DPAD_RIGHT -> {
                             if (position == profiles.size - 1) {
-                                // Wrap to first
-                                rvProfiles.findViewHolderForAdapterPosition(0)?.itemView?.requestFocus()
+                                // Move from last profile to create profile tile
+                                requestFocusAt(profiles.size)
                                 return@setOnKeyListener true
                             }
                         }
                         KeyEvent.KEYCODE_DPAD_LEFT -> {
                             if (position == 0) {
-                                // Wrap to last
-                                rvProfiles.findViewHolderForAdapterPosition(profiles.size - 1)?.itemView?.requestFocus()
+                                // Wrap to create profile tile
+                                requestFocusAt(itemCount - 1)
+                                return@setOnKeyListener true
+                            }
+                        }
+                    }
+                    false
+                }
+            }
+        }
+
+        inner class CreateProfileViewHolder(itemView: View) : RecyclerView.ViewHolder(itemView) {
+            private val viewAvatarBg: View = itemView.findViewById(R.id.viewAvatarBg)
+            private val txtInitial: TextView = itemView.findViewById(R.id.txtInitial)
+            private val txtProfileName: TextView = itemView.findViewById(R.id.txtProfileName)
+            private val txtRatingLimit: TextView = itemView.findViewById(R.id.txtRatingLimit)
+            private val imgLock: View = itemView.findViewById(R.id.imgLock)
+
+            fun bind() {
+                txtInitial.text = "+"
+                txtProfileName.text = getString(R.string.create_profile)
+                txtRatingLimit.isVisible = true
+                txtRatingLimit.text = getString(R.string.create_profile_hint)
+                imgLock.isVisible = false
+                viewAvatarBg.background.setTint(Color.parseColor("#2A2A2A"))
+
+                itemView.setOnClickListener {
+                    onCreateProfileClick()
+                }
+
+                itemView.setOnLongClickListener {
+                    onCreateProfileClick()
+                    true
+                }
+
+                itemView.setOnFocusChangeListener { v, hasFocus ->
+                    if (hasFocus) {
+                        AnimationHelper.scaleUp(v, Constants.FOCUS_SCALE_MEDIUM)
+                    } else {
+                        AnimationHelper.scaleDown(v)
+                    }
+                    v.elevation = if (hasFocus) Constants.FOCUS_ELEVATION else Constants.DEFAULT_ELEVATION
+                }
+
+                itemView.setOnKeyListener { _, keyCode, event ->
+                    if (event.action != KeyEvent.ACTION_DOWN) return@setOnKeyListener false
+
+                    val position = bindingAdapterPosition
+                    if (position == RecyclerView.NO_POSITION) return@setOnKeyListener false
+
+                    when (keyCode) {
+                        KeyEvent.KEYCODE_DPAD_RIGHT -> {
+                            if (position == itemCount - 1) {
+                                requestFocusAt(0)
+                                return@setOnKeyListener true
+                            }
+                        }
+                        KeyEvent.KEYCODE_DPAD_LEFT -> {
+                            if (position == 0) {
+                                requestFocusAt(itemCount - 1)
                                 return@setOnKeyListener true
                             }
                         }

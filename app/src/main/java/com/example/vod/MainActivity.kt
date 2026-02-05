@@ -80,6 +80,7 @@ class MainActivity : AppCompatActivity() {
     // Search Filters
     private lateinit var chipGroupType: ChipGroup
     private lateinit var chipGroupGenre: ChipGroup
+    private lateinit var chipAll: Chip
     private lateinit var chipMovies: Chip
     private lateinit var chipSeries: Chip
     private lateinit var chipClearFilters: Chip
@@ -124,6 +125,12 @@ class MainActivity : AppCompatActivity() {
     private var firstLibraryButton: View? = null
     private var isSideMenuCollapsed = false
     private var isPhone = false
+    private var isSearchOverlayFocusLocked = false
+    private var previousFocusedViewBeforeSearch: WeakReference<View>? = null
+    private var sideMenuDescendantFocusabilityBeforeSearch = ViewGroup.FOCUS_BEFORE_DESCENDANTS
+    private var dashboardDescendantFocusabilityBeforeSearch = ViewGroup.FOCUS_BEFORE_DESCENDANTS
+    private var gridDescendantFocusabilityBeforeSearch = ViewGroup.FOCUS_BEFORE_DESCENDANTS
+    private var fragmentDescendantFocusabilityBeforeSearch: Int? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -161,6 +168,7 @@ class MainActivity : AppCompatActivity() {
         // Initialize filter chips
         chipGroupType = findViewById(R.id.chipGroupType)
         chipGroupGenre = findViewById(R.id.chipGroupGenre)
+        chipAll = findViewById(R.id.chipAll)
         chipMovies = findViewById(R.id.chipMovies)
         chipSeries = findViewById(R.id.chipSeries)
         chipClearFilters = findViewById(R.id.chipClearFilters)
@@ -195,6 +203,7 @@ class MainActivity : AppCompatActivity() {
         setupPhoneSideMenu()
         setupSideMenuToggle()
         setupAlphabetBar()
+        setupSearchFocusNavigation()
 
         // Keep scroll snapshot up-to-date while scrolling
         libraryGridView.addOnScrollListener(object : RecyclerView.OnScrollListener() {
@@ -232,7 +241,7 @@ class MainActivity : AppCompatActivity() {
             override fun handleOnBackPressed() {
                 when {
                     layoutSearchOverlay.isVisible -> {
-                        layoutSearchOverlay.visibility = View.GONE
+                        closeSearchOverlay(restoreFocus = true)
                     }
                     sideMenu.isGone -> {
                         captureGridStateFromCurrentFocus()
@@ -558,16 +567,156 @@ class MainActivity : AppCompatActivity() {
 
     private fun toggleSearch() {
         if (layoutSearchOverlay.isVisible) {
-            layoutSearchOverlay.visibility = View.GONE
-            dashboardView.requestFocus()
+            closeSearchOverlay(restoreFocus = true)
         } else {
-            layoutSearchOverlay.isVisible = true
-            sideMenu.visibility = View.VISIBLE
-            sideMenu.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_YES
-            editSearch.requestFocus()
-            val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
-            imm.showSoftInput(editSearch, InputMethodManager.SHOW_IMPLICIT)
+            openSearchOverlay()
         }
+    }
+
+    private fun setupSearchFocusNavigation() {
+        editSearch.nextFocusDownId = R.id.chipAll
+
+        val topRowChipIds = intArrayOf(
+            R.id.chipAll,
+            R.id.chipMovies,
+            R.id.chipSeries,
+            R.id.chipClearFilters
+        )
+
+        topRowChipIds.forEach { chipId ->
+            findViewById<Chip>(chipId)?.nextFocusUpId = R.id.editSearch
+        }
+
+        findViewById<Chip>(R.id.chipAll)?.nextFocusDownId = R.id.chipAction
+        findViewById<Chip>(R.id.chipMovies)?.nextFocusDownId = R.id.chipComedy
+        findViewById<Chip>(R.id.chipSeries)?.nextFocusDownId = R.id.chipDrama
+        findViewById<Chip>(R.id.chipClearFilters)?.nextFocusDownId = R.id.chipHorror
+
+        val allFilterChipIds = intArrayOf(
+            R.id.chipAll,
+            R.id.chipMovies,
+            R.id.chipSeries,
+            R.id.chipAction,
+            R.id.chipComedy,
+            R.id.chipDrama,
+            R.id.chipHorror,
+            R.id.chipSciFi,
+            R.id.chipAnimation,
+            R.id.chipClearFilters
+        )
+
+        allFilterChipIds.forEach { chipId ->
+            findViewById<Chip>(chipId)?.nextFocusUpId = R.id.editSearch
+        }
+        updateSearchChipVerticalFocusTargets()
+
+        editSearch.setOnKeyListener { _, keyCode, event ->
+            if (event.action == KeyEvent.ACTION_DOWN && keyCode == KeyEvent.KEYCODE_DPAD_DOWN) {
+                chipAll.requestFocus()
+                return@setOnKeyListener true
+            }
+            false
+        }
+    }
+
+    private fun updateSearchChipVerticalFocusTargets() {
+        findViewById<Chip>(R.id.chipAction)?.nextFocusUpId = R.id.chipAll
+        findViewById<Chip>(R.id.chipComedy)?.nextFocusUpId = R.id.chipMovies
+        findViewById<Chip>(R.id.chipDrama)?.nextFocusUpId = R.id.chipSeries
+        findViewById<Chip>(R.id.chipSciFi)?.nextFocusUpId = R.id.chipSeries
+        findViewById<Chip>(R.id.chipAnimation)?.nextFocusUpId = R.id.chipSeries
+
+        val horrorUpId = if (chipClearFilters.visibility == View.VISIBLE) {
+            R.id.chipClearFilters
+        } else {
+            R.id.chipSeries
+        }
+        findViewById<Chip>(R.id.chipHorror)?.nextFocusUpId = horrorUpId
+    }
+
+    private fun openSearchOverlay() {
+        if (layoutSearchOverlay.isVisible) return
+
+        previousFocusedViewBeforeSearch = currentFocus?.let { WeakReference(it) }
+        lockBackgroundFocusForSearch()
+
+        layoutSearchOverlay.isVisible = true
+        layoutSearchOverlay.bringToFront()
+        layoutSearchOverlay.requestFocus()
+
+        editSearch.post {
+            editSearch.requestFocus()
+            editSearch.setSelection(editSearch.text.length)
+        }
+
+        val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
+        imm.showSoftInput(editSearch, InputMethodManager.SHOW_IMPLICIT)
+    }
+
+    private fun closeSearchOverlay(restoreFocus: Boolean) {
+        if (!layoutSearchOverlay.isVisible && !isSearchOverlayFocusLocked) return
+
+        val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
+        imm.hideSoftInputFromWindow(editSearch.windowToken, 0)
+
+        layoutSearchOverlay.isVisible = false
+        unlockBackgroundFocusFromSearch()
+
+        if (restoreFocus) {
+            val restored = previousFocusedViewBeforeSearch?.get()?.let { view ->
+                if (view.isAttachedToWindow && view.visibility == View.VISIBLE && view.isFocusable) {
+                    view.requestFocus()
+                } else {
+                    false
+                }
+            } ?: false
+
+            if (!restored) {
+                if (layoutGridContainer.isVisible) {
+                    libraryGridView.requestFocus()
+                } else {
+                    btnMenuSearch.requestFocus()
+                }
+            }
+        }
+
+        previousFocusedViewBeforeSearch = null
+    }
+
+    private fun lockBackgroundFocusForSearch() {
+        if (isSearchOverlayFocusLocked) return
+
+        sideMenuDescendantFocusabilityBeforeSearch = sideMenu.descendantFocusability
+        dashboardDescendantFocusabilityBeforeSearch =
+            (dashboardView as? ViewGroup)?.descendantFocusability ?: ViewGroup.FOCUS_BEFORE_DESCENDANTS
+        gridDescendantFocusabilityBeforeSearch = layoutGridContainer.descendantFocusability
+        fragmentDescendantFocusabilityBeforeSearch =
+            (supportFragmentManager.findFragmentById(R.id.fragment_container)?.view as? ViewGroup)?.descendantFocusability
+
+        sideMenu.descendantFocusability = ViewGroup.FOCUS_BLOCK_DESCENDANTS
+        (dashboardView as? ViewGroup)?.descendantFocusability = ViewGroup.FOCUS_BLOCK_DESCENDANTS
+        layoutGridContainer.descendantFocusability = ViewGroup.FOCUS_BLOCK_DESCENDANTS
+        (supportFragmentManager.findFragmentById(R.id.fragment_container)?.view as? ViewGroup)?.descendantFocusability =
+            ViewGroup.FOCUS_BLOCK_DESCENDANTS
+
+        isSearchOverlayFocusLocked = true
+    }
+
+    private fun unlockBackgroundFocusFromSearch() {
+        if (!isSearchOverlayFocusLocked) return
+
+        sideMenu.descendantFocusability = sideMenuDescendantFocusabilityBeforeSearch
+        (dashboardView as? ViewGroup)?.descendantFocusability = dashboardDescendantFocusabilityBeforeSearch
+        layoutGridContainer.descendantFocusability = gridDescendantFocusabilityBeforeSearch
+
+        val fragmentView = supportFragmentManager.findFragmentById(R.id.fragment_container)?.view as? ViewGroup
+        val savedFocusability = fragmentDescendantFocusabilityBeforeSearch
+        if (fragmentView != null && savedFocusability != null) {
+            fragmentView.descendantFocusability = savedFocusability
+        }
+
+        fragmentDescendantFocusabilityBeforeSearch = null
+        isSearchOverlayFocusLocked = false
     }
 
     private fun loadFragment(fragment: Fragment) {
@@ -580,7 +729,7 @@ class MainActivity : AppCompatActivity() {
         currentLibId = -2
         dashboardView.visibility = View.GONE
         layoutGridContainer.visibility = View.GONE
-        layoutSearchOverlay.visibility = View.GONE
+        closeSearchOverlay(restoreFocus = false)
         sideMenu.visibility = View.VISIBLE
         sideMenu.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_YES
         highlightMenu(btnMenuWatchLater)
@@ -616,6 +765,36 @@ class MainActivity : AppCompatActivity() {
         AnimationHelper.applyOpenTransition(this)
     }
 
+    private fun openPlayer(videoId: Int, resumeTime: Long) {
+        val intent = Intent(this, PlayerActivity::class.java)
+        intent.putExtra("VIDEO_ID", videoId)
+        intent.putExtra("RESUME_TIME", resumeTime)
+        startActivity(intent)
+        AnimationHelper.applyOpenTransition(this)
+    }
+
+    private fun openPlayer(video: VideoItem) {
+        val seekSeconds = if (video.continueFromSeconds > 0) {
+            video.continueFromSeconds
+        } else {
+            video.resume_time
+        }
+        openPlayer(video.getPlaybackTargetId(), seekSeconds)
+    }
+
+    private fun openContinueWatchingItem(video: VideoItem) {
+        val isEpisodeFromContinueRow =
+            video.isEpisodeType() ||
+                (video.resumeEpisodeId ?: 0) > 0 ||
+                (!video.seriesTitle.isNullOrBlank() && !video.isSeriesType())
+
+        if (isEpisodeFromContinueRow) {
+            openPlayer(video)
+        } else {
+            openDetails(video)
+        }
+    }
+
     private fun setupSearchLogic() {
         editSearch.setOnEditorActionListener { _, actionId, event ->
             if (actionId == EditorInfo.IME_ACTION_SEARCH ||
@@ -629,7 +808,7 @@ class MainActivity : AppCompatActivity() {
 
                 val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
                 imm.hideSoftInputFromWindow(editSearch.windowToken, 0)
-                layoutSearchOverlay.visibility = View.GONE
+                closeSearchOverlay(restoreFocus = false)
                 return@setOnEditorActionListener true
             }
             false
@@ -673,15 +852,32 @@ class MainActivity : AppCompatActivity() {
         // Show clear button only if genre filter is active (type "All" is ok)
         val hasGenreFilter = currentFilters.genre != null
         val hasTypeFilter = currentFilters.type != null
-        chipClearFilters.visibility = if (hasGenreFilter || hasTypeFilter) View.VISIBLE else View.GONE
+        val shouldShowClear = hasGenreFilter || hasTypeFilter
+
+        // Prevent focus trap when clear chip disappears while focused
+        if (!shouldShowClear && chipClearFilters.visibility == View.VISIBLE && chipClearFilters.hasFocus()) {
+            if (!chipAll.requestFocus()) {
+                editSearch.requestFocus()
+            }
+        }
+
+        chipClearFilters.visibility = if (shouldShowClear) View.VISIBLE else View.GONE
+        updateSearchChipVerticalFocusTargets()
     }
     
     private fun clearAllFilters() {
+        // Move focus off the clear chip before it gets hidden
+        if (chipClearFilters.hasFocus()) {
+            if (!chipAll.requestFocus()) {
+                editSearch.requestFocus()
+            }
+        }
+
         // Select "All" chip instead of clearing completely
-        findViewById<com.google.android.material.chip.Chip>(R.id.chipAll)?.isChecked = true
+        chipAll.isChecked = true
         chipGroupGenre.clearCheck()
         currentFilters = SearchFilters()
-        chipClearFilters.visibility = View.GONE
+        updateClearFiltersVisibility()
     }
 
     private fun performSearch(query: String, filters: SearchFilters = SearchFilters()) {
@@ -1064,6 +1260,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun loadDashboard() {
+        closeSearchOverlay(restoreFocus = false)
+
         // Check network before loading dashboard
         if (!NetworkUtils.isNetworkAvailable(this)) {
             ErrorHandler.showError(this, "No internet connection")
@@ -1079,7 +1277,6 @@ class MainActivity : AppCompatActivity() {
 
         dashboardView.visibility = View.VISIBLE
         layoutGridContainer.visibility = View.GONE
-        layoutSearchOverlay.visibility = View.GONE
         sideMenu.visibility = View.VISIBLE
         sideMenu.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_YES
 
@@ -1113,7 +1310,7 @@ class MainActivity : AppCompatActivity() {
                             activity.rvContinue.adapter = LibraryAdapter(
                                 response.continueWatching.toMutableList(),
                                 isHorizontal = true
-                            ) { activity.openDetails(it) }
+                            ) { activity.openContinueWatchingItem(it) }
                         } else {
                             activity.rvContinue.visibility = View.GONE
                             activity.lblContinue.visibility = View.GONE
@@ -1150,6 +1347,8 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun fetchLibrary(libId: Int, title: String) {
+        closeSearchOverlay(restoreFocus = false)
+
         // Check network before loading library
         if (!NetworkUtils.isNetworkAvailable(this)) {
             ErrorHandler.showError(this, "No internet connection")
@@ -1170,7 +1369,6 @@ class MainActivity : AppCompatActivity() {
 
         dashboardView.isGone = true
         layoutGridContainer.isVisible = true
-        layoutSearchOverlay.isGone = true
         sideMenu.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_YES
 
         // Clear existing data visual reset
@@ -1356,6 +1554,7 @@ class LibraryAdapter(
         private val txtRating: TextView = itemView.findViewById(R.id.txtRatingBadge)
         private val txtRuntime: TextView = itemView.findViewById(R.id.txtRuntime)
         private val playbackProgress: ProgressBar = itemView.findViewById(R.id.playbackProgress)
+        private val seriesWatchIndicator: ImageView = itemView.findViewById(R.id.seriesWatchIndicator)
 
         fun bind(video: VideoItem, onClick: (VideoItem) -> Unit) {
             val displayTitle = if (!video.seriesTitle.isNullOrEmpty()) video.seriesTitle else video.title
@@ -1365,15 +1564,37 @@ class LibraryAdapter(
             val formattedRating = RatingUtils.formatImdbRating(video.rating) ?: "5.0"
             txtRating.text = "★ $formattedRating"
 
-            val progressPercent = if (video.resume_time > 0 && video.total_duration > 0) {
-                (video.resume_time.toDouble() / video.total_duration.toDouble() * 100).toInt()
-            } else 0
-            
-            if (progressPercent > 0) {
-                playbackProgress.visibility = View.VISIBLE
-                playbackProgress.progress = progressPercent
-            } else {
+            val progressPercent = when {
+                video.progressPercent > 0 -> video.progressPercent.coerceIn(0, 100)
+                video.resume_time > 0 && video.total_duration > 0 ->
+                    (video.resume_time.toDouble() / video.total_duration.toDouble() * 100).toInt()
+                else -> 0
+            }
+
+            val normalizedType = video.normalizedType()
+                .replace("-", "_")
+                .replace(" ", "_")
+            val isMovie = normalizedType == "movie"
+            val isSeriesLikeContent = video.isSeriesType() ||
+                video.isEpisodeType() ||
+                (!video.seriesTitle.isNullOrBlank() && !isMovie)
+            val hasSeriesWatchActivity = video.resume_time > 0 || progressPercent > 0
+
+            if (isSeriesLikeContent) {
                 playbackProgress.visibility = View.GONE
+                seriesWatchIndicator.visibility = if (hasSeriesWatchActivity) View.VISIBLE else View.GONE
+            } else {
+                seriesWatchIndicator.visibility = View.GONE
+                playbackProgress.progressDrawable = ContextCompat.getDrawable(
+                    itemView.context,
+                    R.drawable.bg_progress_bar
+                )
+                if (progressPercent > 0) {
+                    playbackProgress.visibility = View.VISIBLE
+                    playbackProgress.progress = progressPercent
+                } else {
+                    playbackProgress.visibility = View.GONE
+                }
             }
 
             if (video.runtime > 0) {
@@ -1397,8 +1618,9 @@ class LibraryAdapter(
                 year = video.year,
                 rating = formattedRating,
                 quality = video.quality,
-                hasProgress = progressPercent > 0,
-                progressPercent = progressPercent
+                hasProgress = isMovie && progressPercent > 0,
+                progressPercent = progressPercent,
+                hasEpisodeProgress = isSeriesLikeContent && hasSeriesWatchActivity
             )
 
             itemView.isFocusable = true

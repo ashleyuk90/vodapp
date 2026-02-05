@@ -6,12 +6,16 @@ import com.google.gson.annotations.SerializedName
 data class ApiResponse<T>(
     val status: String = "",
     val message: String? = null,
-    val data: T? = null
+    val data: T? = null,
+    @SerializedName("user") val user: T? = null,
+    @SerializedName("csrf_token") val csrfToken: String? = null,
+    @SerializedName("account_expiry") val accountExpiry: String? = null
 )
 
 data class User(
     val id: Int = 0,
-    val username: String = ""
+    val username: String = "",
+    @SerializedName("expiry_date") val expiryDate: String? = null
 )
 
 data class VideoItem(
@@ -47,8 +51,19 @@ data class VideoItem(
     val genres: String? = null,
     val director: String? = null,
     val starring: String? = null,
+    @SerializedName("season") val seasonNumber: Int = 0,
+    @SerializedName("episode") val episodeNumber: Int = 0,
     val resume_time: Long = 0L,
     val total_duration: Long = 0L,
+    @SerializedName("progress_percent") val progressPercent: Int = 0,
+    @SerializedName("can_resume") val canResume: Boolean = false,
+    @SerializedName(
+        value = "resume_episode_id",
+        alternate = ["episode_id", "resume_video_id", "play_video_id"]
+    )
+    val resumeEpisodeId: Int? = null,
+    @SerializedName("continue_from_seconds") val continueFromSeconds: Long = 0L,
+    @SerializedName("continue_from_hms") val continueFromHms: String? = null,
 
     @SerializedName("has_subtitles") val hasSubtitles: Boolean = false,
     @SerializedName("subtitle_url") val subtitleUrl: String? = null,
@@ -60,6 +75,32 @@ data class VideoItem(
     @SerializedName("intro_marker") val introMarker: ContentMarker? = null,
     @SerializedName("credits_marker") val creditsMarker: ContentMarker? = null
 ) {
+    fun normalizedType(): String = type?.trim()?.lowercase().orEmpty()
+
+    fun isEpisodeType(): Boolean {
+        val normalized = normalizedType()
+            .replace("-", "_")
+            .replace(" ", "_")
+        return normalized == "episode" ||
+            normalized.contains("episode")
+    }
+
+    fun isSeriesType(): Boolean {
+        val normalized = normalizedType()
+            .replace("-", "_")
+            .replace(" ", "_")
+        if (isEpisodeType()) return false
+        return normalized == "series" ||
+            normalized == "show" ||
+            normalized == "tv" ||
+            normalized == "tv_show" ||
+            normalized == "tvshow" ||
+            normalized.contains("series") ||
+            normalized.contains("show")
+    }
+
+    fun getPlaybackTargetId(): Int = resumeEpisodeId ?: id
+
     fun getDisplayImage(): String {
         return when {
             !posterUrl.isNullOrEmpty() -> posterUrl
@@ -85,6 +126,10 @@ data class EpisodeItem(
     val episode: Int = 1,
     val plot: String? = null,
     val runtime: Int = 0,
+    val resume_time: Long = 0L,
+    val total_duration: Long = 0L,
+    val progress_percent: Int = 0,
+    val can_resume: Boolean = false,
     @SerializedName("poster_path") val posterPath: String? = null,
     val next_episode: NextEpisode? = null
 )
@@ -230,6 +275,26 @@ data class ProfilesResponse(
 data class ProfileSelectResponse(
     val status: String = "",
     @SerializedName("active_profile_id") val activeProfileId: Int = 0
+)
+
+/**
+ * Response from POST /api/profiles_add endpoint.
+ */
+data class ProfileAddResponse(
+    val status: String = "",
+    val profile: Profile? = null,
+    @SerializedName("active_profile_id") val activeProfileId: Int = 0,
+    val message: String? = null
+)
+
+/**
+ * Response from POST /api/profiles_remove endpoint.
+ */
+data class ProfileRemoveResponse(
+    val status: String = "",
+    @SerializedName("deleted_profile_id") val deletedProfileId: Int = 0,
+    @SerializedName("active_profile_id") val activeProfileId: Int = 0,
+    val message: String? = null
 )
 
 // ===== Search Filters =====

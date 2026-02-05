@@ -12,46 +12,47 @@ import java.net.CookiePolicy
 // 1. The API Interface
 interface ApiService {
     @FormUrlEncoded
-    @POST("api.php?action=login")
+    @POST("api/login")
     suspend fun login(
         @Field("username") user: String,
         @Field("password") pass: String
     ): ApiResponse<User>
 
-    @GET("api.php?action=library")
+    @GET("api/library")
     suspend fun getLibrary(
         @Query("lib_id") libId: Int,
         @Query("page") page: Int,
         @Query("profile_id") profileId: Int? = null
     ): LibraryResponse
 
-    @GET("api.php?action=get_libraries")
+    @GET("api/get_libraries")
     suspend fun getLibraries(): LibraryListResponse
 
-    @GET("api.php?action=play")
+    @GET("api/play")
     suspend fun getStreamInfo(@Query("id") id: Int): ApiResponse<PlayResponse>
 
-    @GET("api.php?action=details")
+    @GET("api/details")
     suspend fun getDetails(
         @Query("id") id: Int,
         @Query("profile_id") profileId: Int? = null
     ): DetailsResponse
 
     @FormUrlEncoded
-    @POST("api.php?action=progress")
+    @POST("api/progress")
     suspend fun syncProgress(
         @Field("id") id: Int,
         @Field("time") time: Long,
         @Field("paused") paused: Int,
+        @Field("buffer_seconds") bufferSeconds: Int? = null,
         @Field("profile_id") profileId: Int? = null
     ): ProgressResponse
 
-    @GET("api.php?action=dashboard")
+    @GET("api/dashboard")
     suspend fun getDashboard(
         @Query("profile_id") profileId: Int? = null
     ): DashboardResponse
 
-    @GET("api.php?action=search")
+    @GET("api/search")
     suspend fun search(
         @Query("query") query: String,
         @Query("profile_id") profileId: Int? = null,
@@ -63,21 +64,21 @@ interface ApiService {
     ): LibraryResponse
 
     @FormUrlEncoded
-    @POST("api.php?action=watch_list_add")
+    @POST("api/watch_list_add")
     suspend fun addToWatchList(@Field("video_id") videoId: Int): ApiResponse<Any>
 
     @FormUrlEncoded
-    @POST("api.php?action=watch_list_remove")
+    @POST("api/watch_list_remove")
     suspend fun removeFromWatchList(@Field("video_id") videoId: Int): ApiResponse<Any>
 
-    @GET("api.php?action=watch_list")
+    @GET("api/watch_list")
     suspend fun getWatchList(
         @Query("page") page: Int = 1,
         @Query("profile_id") profileId: Int? = null
     ): WatchListResponse
 
     // Using @Query map to handle optional parameters like video_id, page, search
-    @GET("api.php?action=watch_list")
+    @GET("api/watch_list")
     suspend fun getWatchListStatus(@Query("video_id") videoId: Int): WatchStatusResponse
 
     // ===== Profile Endpoints =====
@@ -86,7 +87,7 @@ interface ApiService {
      * Get all profiles for the current user.
      * Returns list of profiles and the currently active profile ID.
      */
-    @GET("api.php?action=profiles")
+    @GET("api/profiles")
     suspend fun getProfiles(): ProfilesResponse
 
     /**
@@ -94,16 +95,37 @@ interface ApiService {
      * All subsequent playback history will be saved under this profile.
      */
     @FormUrlEncoded
-    @POST("api.php?action=profiles_select")
+    @POST("api/profiles_select")
     suspend fun selectProfile(
         @Field("profile_id") profileId: Int
     ): ProfileSelectResponse
+
+    /**
+     * Create a new profile for the current user.
+     * New profile becomes active server-side on success.
+     */
+    @FormUrlEncoded
+    @POST("api/profiles_add")
+    suspend fun addProfile(
+        @Field("name") name: String
+    ): ProfileAddResponse
+
+    /**
+     * Delete one of the current user's profiles.
+     */
+    @FormUrlEncoded
+    @POST("api/profiles_remove")
+    suspend fun removeProfile(
+        @Field("profile_id") profileId: Int
+    ): ProfileRemoveResponse
 }
 
 // 2. The Client Builder
 object NetworkClient {
     // URL loaded from BuildConfig - configure in build.gradle.kts per build type
     private val BASE_URL: String = BuildConfig.BASE_URL
+    @Volatile
+    private var csrfToken: String? = null
 
     // Global Cookie Manager to hold the PHP Session
     val cookieManager = CookieManager().apply {
@@ -112,6 +134,26 @@ object NetworkClient {
 
     private val okHttpClient = OkHttpClient.Builder()
         .cookieJar(JavaNetCookieJar(cookieManager))
+        .addInterceptor { chain ->
+            val request = chain.request()
+            val endpoint = request.url.pathSegments.lastOrNull()
+            val isPathLoginRequest = endpoint?.equals("login", ignoreCase = true) == true
+            val isLegacyQueryLoginRequest =
+                request.url.queryParameter("action")?.equals("login", ignoreCase = true) == true
+            val isLoginRequest = isPathLoginRequest || isLegacyQueryLoginRequest
+            val shouldAttachCsrf = request.method.equals("POST", ignoreCase = true) && !isLoginRequest
+            val token = csrfToken?.takeIf { it.isNotBlank() }
+
+            val requestWithSecurity = if (shouldAttachCsrf && token != null) {
+                request.newBuilder()
+                    .header("X-CSRF-Token", token)
+                    .build()
+            } else {
+                request
+            }
+
+            chain.proceed(requestWithSecurity)
+        }
         // Only log in debug builds to prevent credential exposure
         .addInterceptor(HttpLoggingInterceptor().apply {
             level = if (BuildConfig.DEBUG) {
@@ -132,4 +174,10 @@ object NetworkClient {
         .addConverterFactory(GsonConverterFactory.create())
         .build()
         .create(ApiService::class.java)
+
+    fun updateCsrfToken(token: String?) {
+        csrfToken = token?.takeIf { it.isNotBlank() }
+    }
+
+    fun getCsrfToken(): String? = csrfToken
 }

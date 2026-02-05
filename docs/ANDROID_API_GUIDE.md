@@ -16,9 +16,11 @@ https://yourdomain.com/api/
 User-Agent: YourAppName/1.0 (Android; okhttp/4.9.0)
 Content-Type: application/x-www-form-urlencoded
 Cookie: PHPSESSID=session_id_here
+X-CSRF-Token: <csrf_token_from_login>    # Required for mutating endpoints on current app versions
 ```
 
 **Note:** The server detects Android clients via `okhttp` or `ExoPlayer` in the User-Agent for optimized subtitle format delivery (SRT instead of WebVTT).
+As of **February 5, 2026**, legacy Android clients that do not send `X-CSRF-Token` are still temporarily supported when they match legacy Android User-Agent patterns (`okhttp`/`ExoPlayer`).
 
 ---
 
@@ -60,22 +62,34 @@ client.newCall(request).execute().use { response ->
 ```json
 {
   "status": "success",
-  "message": "Login successful",
   "user": {
     "id": 1,
     "username": "admin",
-    "role": "admin"
-  }
+    "role": "admin",
+    "expiry_date": "2026-12-31 23:59:59"
+  },
+  "csrf_token": "your_csrf_token_here",
+  "account_expiry": "2026-12-31 23:59:59"
 }
 ```
+
+`account_expiry` is optional and only present when the server has an expiry configured for that account.
 
 **Response (Error):**
 ```json
 {
   "status": "error",
-  "message": "Invalid username or password"
+  "message": "Invalid credentials"
 }
 ```
+
+Store `csrf_token` from login and include it on all mutating POST endpoints:
+- `/api/watch_list_add`
+- `/api/watch_list_remove`
+- `/api/progress`
+- `/api/profiles_select`
+- `/api/profiles_add`
+- `/api/profiles_remove`
 
 ### 2. Session Management
 
@@ -100,6 +114,166 @@ val client = OkHttpClient.Builder()
     .build()
 ```
 
+### 3. CSRF Token for Mutation Endpoints
+
+```kotlin
+data class LoginSession(
+    val phpSessionId: String,
+    val csrfToken: String?
+)
+
+// On login success, save both PHPSESSID and csrf_token
+val body = JSONObject(response.body?.string() ?: "{}")
+val csrfToken = body.optString("csrf_token").ifBlank { null }
+```
+
+Use this helper for mutating requests:
+
+```kotlin
+private fun Request.Builder.addMutationSecurity(csrfToken: String?): Request.Builder {
+    if (!csrfToken.isNullOrBlank()) {
+        header("X-CSRF-Token", csrfToken)
+    }
+    return this
+}
+```
+
+Backward compatibility:
+- Older Android app versions that do not send CSRF are still accepted for now when using legacy Android User-Agent patterns (`okhttp`/`ExoPlayer`).
+- New and updated app versions should always send `X-CSRF-Token`.
+- Server-side hardening toggle: set `ALLOW_LEGACY_ANDROID_API_MUTATIONS=false` to enforce token-only mutation requests.
+
+---
+
+## Profiles API
+
+### List Profiles
+
+**Endpoint:** `GET /api/profiles`
+
+**Response:**
+```json
+{
+  "status": "success",
+  "active_profile_id": 12,
+  "profiles": [
+    {
+      "id": 12,
+      "name": "Default",
+      "max_content_rating": null,
+      "max_rating": null,
+      "auto_skip_intro": false,
+      "auto_skip_credits": false,
+      "autoplay_next": true,
+      "has_pin": false
+    }
+  ]
+}
+```
+
+### Select Active Profile
+
+**Endpoint:** `POST /api/profiles_select`
+
+**Request Body:**
+```
+profile_id=12
+```
+
+### Add Profile
+
+**Endpoint:** `POST /api/profiles_add`
+
+**Request Body:**
+```
+name=Kids
+pin=1234
+max_content_rating=12
+auto_skip_intro=1
+auto_skip_credits=1
+autoplay_next=1
+```
+
+**Parameters:**
+- `name` (required): Profile display name.
+- `pin` (optional): Profile PIN. Required if using `max_content_rating`.
+- `max_content_rating` (optional): UK rating limit (`U`, `PG`, `12`, `12A`, `15`, `18`, `R18`).
+- `max_rating` (optional): Legacy IMDb limit (float 0-10).
+- `auto_skip_intro` (optional): `1` or `0`.
+- `auto_skip_credits` (optional): `1` or `0`.
+- `autoplay_next` (optional): `1` or `0` (defaults to `1` if omitted).
+
+**Android Example:**
+```kotlin
+val formBody = FormBody.Builder()
+    .add("name", "Kids")
+    .add("pin", "1234")
+    .add("max_content_rating", "12")
+    .add("auto_skip_intro", "1")
+    .add("auto_skip_credits", "1")
+    .add("autoplay_next", "1")
+    .build()
+
+val request = Request.Builder()
+    .url("$baseUrl/profiles_add")
+    .post(formBody)
+    .addMutationSecurity(csrfToken)
+    .build()
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "profile": {
+    "id": 15,
+    "name": "Kids",
+    "max_content_rating": "12",
+    "max_rating": null,
+    "auto_skip_intro": true,
+    "auto_skip_credits": true,
+    "autoplay_next": true,
+    "has_pin": true
+  },
+  "active_profile_id": 15
+}
+```
+
+### Remove Profile
+
+**Endpoint:** `POST /api/profiles_remove`
+
+**Request Body:**
+```
+profile_id=15
+```
+
+**Android Example:**
+```kotlin
+val formBody = FormBody.Builder()
+    .add("profile_id", profileId.toString())
+    .build()
+
+val request = Request.Builder()
+    .url("$baseUrl/profiles_remove")
+    .post(formBody)
+    .addMutationSecurity(csrfToken)
+    .build()
+```
+
+**Response:**
+```json
+{
+  "status": "success",
+  "deleted_profile_id": 15,
+  "active_profile_id": 12
+}
+```
+
+**Failure behavior:**
+- Returns `400` if trying to delete the last remaining profile.
+- Returns `404` if profile does not belong to the logged-in user.
+
 ---
 
 ## Watch Later API
@@ -122,6 +296,7 @@ val formBody = FormBody.Builder()
 val request = Request.Builder()
     .url("$baseUrl/watch_list_add")
     .post(formBody)
+    .addMutationSecurity(csrfToken) // send token when available
     .build()
 
 client.newCall(request).execute().use { response ->
@@ -161,6 +336,7 @@ val formBody = FormBody.Builder()
 val request = Request.Builder()
     .url("$baseUrl/watch_list_remove")
     .post(formBody)
+    .addMutationSecurity(csrfToken) // send token when available
     .build()
 
 client.newCall(request).execute().use { response ->
@@ -286,12 +462,20 @@ client.newCall(request).execute().use { response ->
 ### Watch Later Manager Class
 
 ```kotlin
-class WatchLaterManager(private val baseUrl: String) {
+class WatchLaterManager(
+    private val baseUrl: String,
+    private val csrfTokenProvider: () -> String? = { null }
+) {
     private val client = OkHttpClient.Builder()
         .cookieJar(PersistentCookieJar())
         .build()
     
     private val json = MediaType.get("application/json; charset=utf-8")
+
+    private fun Request.Builder.addMutationSecurity(): Request.Builder {
+        csrfTokenProvider()?.takeIf { it.isNotBlank() }?.let { header("X-CSRF-Token", it) }
+        return this
+    }
     
     suspend fun addToWatchLater(videoId: Int): Result<String> = withContext(Dispatchers.IO) {
         try {
@@ -302,6 +486,7 @@ class WatchLaterManager(private val baseUrl: String) {
             val request = Request.Builder()
                 .url("$baseUrl/watch_list_add")
                 .post(formBody)
+                .addMutationSecurity()
                 .build()
             
             client.newCall(request).execute().use { response ->
@@ -326,6 +511,7 @@ class WatchLaterManager(private val baseUrl: String) {
             val request = Request.Builder()
                 .url("$baseUrl/watch_list_remove")
                 .post(formBody)
+                .addMutationSecurity()
                 .build()
             
             client.newCall(request).execute().use { response ->
@@ -533,9 +719,52 @@ class WatchLaterActivity : AppCompatActivity() {
 
 ## Other Essential Endpoints for Android
 
+### Continue Watching Feed
+
+**Endpoint:** `GET /api/dashboard`
+
+Use `continue_watching[].continue_from_seconds` as the exact seek target for resume playback.
+
+```kotlin
+suspend fun getContinueWatching(): Result<List<ContinueWatchingItem>> = withContext(Dispatchers.IO) {
+    try {
+        val request = Request.Builder()
+            .url("$baseUrl/dashboard")
+            .get()
+            .build()
+
+        client.newCall(request).execute().use { response ->
+            val json = JSONObject(response.body?.string() ?: "")
+            val items = mutableListOf<ContinueWatchingItem>()
+            val arr = json.optJSONArray("continue_watching") ?: JSONArray()
+            for (i in 0 until arr.length()) {
+                val row = arr.getJSONObject(i)
+                items.add(
+                    ContinueWatchingItem(
+                        id = row.getInt("id"),
+                        title = row.optString("title"),
+                        mediaType = row.optString("type", "movie"),
+                        continueFromSeconds = row.optInt("continue_from_seconds", row.optInt("resume_time", 0)),
+                        continueFromHms = row.optString("continue_from_hms")
+                    )
+                )
+            }
+            Result.success(items)
+        }
+    } catch (e: Exception) {
+        Result.failure(e)
+    }
+}
+```
+
+When starting playback, seek to `continueFromSeconds * 1000L` on the player.
+Use `mediaType` (`movie` or `episode`) for UI badges or routing behavior.
+
 ### Get Video Details
 
 **Endpoint:** `GET /api/details?id=123`
+
+Add `profile_id` as a query parameter when you need episode progress for a non-active profile.
 
 ```kotlin
 suspend fun getVideoDetails(videoId: Int): Result<VideoDetail> = withContext(Dispatchers.IO) {
@@ -552,16 +781,33 @@ suspend fun getVideoDetails(videoId: Int): Result<VideoDetail> = withContext(Dis
             val creditsMarker = video.optJSONObject("credits_marker")
             val creditsDuration = creditsMarker?.optInt("credits_duration_seconds")
             val creditsEndOffset = creditsMarker?.optInt("credits_end_offset_seconds")
+            val episodesArray = video.optJSONArray("episodes") ?: JSONArray()
+            val episodes = mutableListOf<EpisodeProgress>()
+            for (i in 0 until episodesArray.length()) {
+                val ep = episodesArray.getJSONObject(i)
+                episodes.add(
+                    EpisodeProgress(
+                        id = ep.getInt("id"),
+                        season = ep.optInt("season", 1),
+                        episode = ep.optInt("episode", 1),
+                        title = ep.optString("title"),
+                        resumeTime = ep.optInt("resume_time", 0),
+                        totalDuration = ep.optInt("total_duration", 0),
+                        progressPercent = ep.optInt("progress_percent", 0),
+                        canResume = ep.optBoolean("can_resume", false)
+                    )
+                )
+            }
             Result.success(VideoDetail(
                 id = video.getInt("id"),
                 title = video.getString("title"),
                 plot = video.optString("plot"),
                 posterUrl = video.optString("poster_url"),
                 fullPath = video.getString("full_path"),
+                resumeTime = video.optInt("resume_time", 0),
+                episodes = episodes,
                 introStart = introMarker?.optInt("start_seconds"),
                 introEnd = introMarker?.optInt("end_seconds"),
-                creditsStart = creditsMarker?.optInt("start_seconds"),
-                creditsEnd = creditsMarker?.optInt("end_seconds"),
                 creditsDurationSeconds = creditsDuration,
                 creditsEndOffsetSeconds = creditsEndOffset
                 // ... other fields
@@ -575,12 +821,14 @@ suspend fun getVideoDetails(videoId: Int): Result<VideoDetail> = withContext(Dis
 
 **Notes:**
 - `intro_marker` / `credits_marker` are optional. They are only present for series episodes when markers exist.
-- `content_rating` may be returned (UK-mapped rating such as U/PG/12/12A/15/18/R18) and can be displayed in the details metadata pills.
-- For **intro markers**: use `start_seconds` and `end_seconds` directly.
-- For **credits markers**: use `credits_duration_seconds` + `credits_end_offset_seconds` to compute:
-  - `creditsStart = videoDuration - creditsEndOffsetSeconds - creditsDurationSeconds`
-  - `creditsEnd = videoDuration - creditsEndOffsetSeconds`
-- The app's `ContentMarker` model includes a helper method `getCreditsStartSeconds(videoDurationSeconds)` that performs this calculation.
+- `intro_marker` uses `start_seconds` / `end_seconds`.
+- For credits, use `credits_duration_seconds` + `credits_end_offset_seconds` and compute:
+  `creditsEnd = playerDuration - creditsEndOffsetSeconds`, `creditsStart = creditsEnd - creditsDurationSeconds`.
+- For series details, each `video.episodes[]` item includes:
+  - `resume_time` (seconds watched for this episode on active/requested profile)
+  - `total_duration` (seconds)
+  - `progress_percent` (0-100)
+  - `can_resume` (`true` when `resume_time > 60`)
 
 ### Update Progress
 
@@ -591,14 +839,15 @@ suspend fun updateProgress(videoId: Int, position: Int, isPaused: Boolean = fals
     withContext(Dispatchers.IO) {
         try {
             val formBody = FormBody.Builder()
-                .add("video_id", videoId.toString())
-                .add("position", position.toString())
-                .add("is_paused", if (isPaused) "1" else "0")
+                .add("id", videoId.toString())
+                .add("time", position.toString())
+                .add("paused", if (isPaused) "1" else "0")
                 .build()
             
             val request = Request.Builder()
                 .url("$baseUrl/progress")
                 .post(formBody)
+                .addMutationSecurity(csrfToken) // send token when available
                 .build()
             
             client.newCall(request).execute().use { response ->
@@ -689,10 +938,20 @@ All API responses follow this structure:
 - `200 OK` - Success
 - `400 Bad Request` - Missing/invalid parameters
 - `401 Unauthorized` - Not authenticated
-- `403 Forbidden` - Insufficient permissions
+- `403 Forbidden` - Insufficient permissions, PIN required, or CSRF validation failed
 - `404 Not Found` - Resource not found
+- `405 Method Not Allowed` - Incorrect HTTP method (for POST-only mutation endpoints)
 - `429 Too Many Requests` - Rate limit exceeded
 - `500 Internal Server Error` - Server error
+
+For restricted playback (`GET /api/play`), clients may receive:
+```json
+{
+  "status": "error",
+  "message": "PIN required",
+  "code": "pin_required"
+}
+```
 
 ---
 
@@ -709,6 +968,7 @@ curl -X POST http://localhost:8000/api/login \
 # Add to watch later
 curl -X POST http://localhost:8000/api/watch_list_add \
   -d "video_id=123" \
+  -H "X-CSRF-Token: <csrf_token_from_login>" \
   -b cookies.txt
 
 # Check watch later status
@@ -736,7 +996,7 @@ curl http://localhost:8000/api/watch_list?page=1 \
 
 ## Rate Limiting
 
-- Default: 60 requests per minute per endpoint
+- Default: 120 requests per minute per endpoint
 - Exceeded limit returns HTTP 429
 - Implement exponential backoff in Android app
 
@@ -772,6 +1032,10 @@ private suspend fun <T> retryWithBackoff(
 | `/api/watch_list_remove` | POST | Remove from watch later |
 | `/api/watch_list` | GET | Get watch later list / check status |
 | `/api/progress` | POST | Update playback progress |
+| `/api/profiles` | GET | List profiles |
+| `/api/profiles_select` | POST | Set active profile |
+| `/api/profiles_add` | POST | Create profile |
+| `/api/profiles_remove` | POST | Delete profile |
 | `/api/details` | GET | Get video details |
 | `/api/library` | GET | Get library videos |
 | `/api/get_libraries` | GET | Get all libraries |

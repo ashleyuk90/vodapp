@@ -10,7 +10,11 @@ import androidx.appcompat.app.AppCompatActivity
 import com.example.vod.utils.AnimationHelper
 import com.example.vod.utils.Constants
 import androidx.appcompat.widget.SwitchCompat
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKey
 import com.example.vod.utils.OrientationUtils
+import java.text.SimpleDateFormat
+import java.util.Locale
 
 class PlaybackPreferencesActivity : AppCompatActivity() {
 
@@ -22,6 +26,8 @@ class PlaybackPreferencesActivity : AppCompatActivity() {
     private lateinit var switchAutoSkipIntro: SwitchCompat
     private lateinit var switchAutoSkipCredits: SwitchCompat
     private lateinit var switchAutoplayNext: SwitchCompat
+    private lateinit var layoutAccountExpiry: LinearLayout
+    private lateinit var txtAccountExpiryValue: TextView
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -39,6 +45,8 @@ class PlaybackPreferencesActivity : AppCompatActivity() {
         switchAutoSkipIntro = findViewById(R.id.switchAutoSkipIntro)
         switchAutoSkipCredits = findViewById(R.id.switchAutoSkipCredits)
         switchAutoplayNext = findViewById(R.id.switchAutoplayNext)
+        layoutAccountExpiry = findViewById(R.id.layoutAccountExpiry)
+        txtAccountExpiryValue = findViewById(R.id.txtAccountExpiryValue)
 
         val profile = ProfileManager.getActiveProfile()
         if (profile == null) {
@@ -48,6 +56,7 @@ class PlaybackPreferencesActivity : AppCompatActivity() {
         }
 
         txtSubtitle.text = getString(R.string.playback_prefs_subtitle, profile.name)
+        bindAccountExpiry()
 
         setSwitchState(switchAutoSkipIntro, profile.autoSkipIntro)
         setSwitchState(switchAutoSkipCredits, profile.autoSkipCredits)
@@ -63,6 +72,52 @@ class PlaybackPreferencesActivity : AppCompatActivity() {
         }
 
         rowAutoSkipIntro.post { rowAutoSkipIntro.requestFocus() }
+    }
+
+    private fun bindAccountExpiry() {
+        val masterKey = MasterKey.Builder(this)
+            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+            .build()
+
+        val prefs = EncryptedSharedPreferences.create(
+            this,
+            Constants.PREFS_NAME,
+            masterKey,
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+        )
+
+        val rawExpiry = prefs.getString(Constants.KEY_ACCOUNT_EXPIRY, null)?.trim().orEmpty()
+        if (rawExpiry.isBlank()) {
+            layoutAccountExpiry.visibility = View.GONE
+            return
+        }
+
+        val formattedExpiry = formatAccountExpiry(rawExpiry)
+        txtAccountExpiryValue.text = getString(R.string.playback_prefs_account_expiry_value, formattedExpiry)
+        layoutAccountExpiry.visibility = View.VISIBLE
+    }
+
+    private fun formatAccountExpiry(rawExpiry: String): String {
+        val inputFormats = listOf(
+            SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US),
+            SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US),
+            SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss'Z'", Locale.US)
+        )
+        val outputFormat = SimpleDateFormat("MMM d, yyyy 'at' h:mm a", Locale.getDefault())
+
+        for (inputFormat in inputFormats) {
+            try {
+                inputFormat.isLenient = false
+                val parsed = inputFormat.parse(rawExpiry)
+                if (parsed != null) return outputFormat.format(parsed)
+            } catch (_: Exception) {
+                // Try next known format
+            }
+        }
+
+        // Fallback to raw server value if parsing fails
+        return rawExpiry
     }
 
     private fun bindRow(row: View, toggle: SwitchCompat) {

@@ -93,4 +93,7 @@
     <dimen name="spacing_lg">16dp</dimen>
     <dimen name="spacing_xl">24dp</dimen>
     <dimen name="spacing_xxl">32dp</dimen>
+
+    <!-- Dialogs -->
+    <dimen name="create_profile_dialog_top_offset">56dp</dimen>
 </resources>

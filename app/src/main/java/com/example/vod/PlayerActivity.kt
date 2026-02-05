@@ -5,6 +5,7 @@ import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.os.SystemClock
 import android.util.Log
 import android.widget.Toast
 import androidx.annotation.OptIn
@@ -58,6 +59,7 @@ class PlayerActivity : AppCompatActivity() {
 
     private val checkInterval = Constants.PROGRESS_CHECK_INTERVAL_MS
     private var tickCount = 0
+    private var pausedSinceElapsedMs: Long? = null
 
     private var resumeTimeMs: Long = 0
     private var enableSubtitles: Boolean = false
@@ -167,10 +169,22 @@ class PlayerActivity : AppCompatActivity() {
         override fun run() {
             val p = player ?: return
 
-            if (p.isPlaying) {
+            val currentPosMs = p.currentPosition
+            val currentPosSec = (currentPosMs / 1000).toInt()
+            val isPlaying = p.isPlaying
+            val isPausedState = !isPlaying &&
+                p.playbackState == Player.STATE_READY &&
+                !p.playWhenReady
+
+            if (isPlaying) {
+                // Playback resumed; allow heartbeat/sync immediately.
+                pausedSinceElapsedMs = null
+            } else if (isPausedState && pausedSinceElapsedMs == null) {
+                pausedSinceElapsedMs = SystemClock.elapsedRealtime()
+            }
+
+            if (isPlaying) {
                 val duration = p.duration
-                val currentPosMs = p.currentPosition
-                val currentPosSec = (currentPosMs / 1000).toInt()
 
                 // Check for skip intro button visibility
                 checkIntroMarker(currentPosSec)
@@ -186,18 +200,35 @@ class PlayerActivity : AppCompatActivity() {
                         hideNextEpisodeButton()
                     }
                 }
+            }
 
-                if (tickCount % Constants.PROGRESS_SYNC_TICK_INTERVAL == 0) {
-                    val isPaused = 0
+            if (tickCount % Constants.PROGRESS_SYNC_TICK_INTERVAL == 0) {
+                val shouldSyncPaused = if (isPausedState) {
+                    val pausedAt = pausedSinceElapsedMs ?: SystemClock.elapsedRealtime()
+                    val pausedDurationMs = SystemClock.elapsedRealtime() - pausedAt
+                    pausedDurationMs < Constants.PAUSE_HEARTBEAT_TIMEOUT_MS
+                } else {
+                    false
+                }
+
+                if (isPlaying || shouldSyncPaused) {
                     val profileId = ProfileManager.getActiveProfileId()
+                    val bufferSeconds = ((p.bufferedPosition - currentPosMs).coerceAtLeast(0L) / 1000L).toInt()
+                    val paused = if (isPlaying) 0 else 1
 
                     lifecycleScope.launch(Dispatchers.IO) {
                         try {
                             withTimeout(Constants.NETWORK_TIMEOUT_MS) {
-                                NetworkClient.api.syncProgress(videoId, currentPosSec.toLong(), isPaused, profileId)
+                                NetworkClient.api.syncProgress(
+                                    id = videoId,
+                                    time = currentPosSec.toLong(),
+                                    paused = paused,
+                                    bufferSeconds = bufferSeconds,
+                                    profileId = profileId
+                                )
                             }
                         } catch (_: Exception) {
-                            // Fix 3: Renamed 'e' to '_' to silence "Parameter never used" warning
+                            // Ignore transient sync failures; next tick will retry.
                         }
                     }
                 }

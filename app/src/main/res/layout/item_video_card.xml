@@ -30,6 +30,17 @@
         android:progressDrawable="@drawable/bg_progress_bar"
         android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="@id/imgPoster" />
+
+    <ImageView
+        android:id="@+id/seriesWatchIndicator"
+        android:layout_width="14dp"
+        android:layout_height="14dp"
+        android:contentDescription="@null"
+        android:importantForAccessibility="no"
+        android:src="@drawable/ic_watch_activity_triangle"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="@id/imgPoster"
+        app:layout_constraintEnd_toEndOf="@id/imgPoster" />
     <!-- Quality badge with enhanced dark background for visibility on light posters -->
     <TextView
         android:id="@+id/txtQualityBadge"

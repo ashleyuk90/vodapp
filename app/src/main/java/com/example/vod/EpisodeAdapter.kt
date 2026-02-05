@@ -4,6 +4,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.ImageView
+import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 
@@ -109,12 +110,36 @@ class EpisodeAdapter(
         private val txtTitle: TextView = itemView.findViewById(R.id.txtEpTitle)
         private val txtPlot: TextView = itemView.findViewById(R.id.txtEpPlot)
         private val txtDuration: TextView = itemView.findViewById(R.id.txtEpDuration)
+        private val episodePlaybackProgress: ProgressBar = itemView.findViewById(R.id.episodePlaybackProgress)
 
         fun bind(ep: EpisodeItem) {
             txtNum.text = ep.episode.toString()
             txtTitle.text = ep.title
             txtDuration.text = itemView.context.getString(R.string.duration_format, ep.runtime)
             txtPlot.text = ep.plot ?: ""
+
+            val durationSeconds = when {
+                ep.total_duration > 0 -> ep.total_duration
+                ep.runtime > 0 -> ep.runtime.toLong() * 60L
+                else -> 0L
+            }
+            val computedProgressPercent = if (ep.resume_time > 0 && durationSeconds > 0) {
+                ((ep.resume_time.toDouble() / durationSeconds.toDouble()) * 100).toInt().coerceIn(0, 100)
+            } else {
+                0
+            }
+            val progressPercent = if (ep.progress_percent > 0) {
+                ep.progress_percent.coerceIn(0, 100)
+            } else {
+                computedProgressPercent
+            }
+
+            if (progressPercent > 0) {
+                episodePlaybackProgress.visibility = View.VISIBLE
+                episodePlaybackProgress.progress = progressPercent
+            } else {
+                episodePlaybackProgress.visibility = View.GONE
+            }
 
             itemView.setOnClickListener { onEpisodeClick(ep) }
         }

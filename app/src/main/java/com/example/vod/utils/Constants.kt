@@ -44,6 +44,9 @@ object Constants {
     
     /** How often to sync progress (every N ticks) */
     const val PROGRESS_SYNC_TICK_INTERVAL = 10
+
+    /** Stop paused heartbeat/progress sync after this long (ms) */
+    const val PAUSE_HEARTBEAT_TIMEOUT_MS = 60_000L
     
     /** Time before end to show "Next Episode" button (ms) */
     const val NEXT_EPISODE_THRESHOLD_MS = 30_000L
@@ -107,4 +110,6 @@ object Constants {
     const val PREFS_NAME = "VOD_PREFS_ENCRYPTED"
     const val KEY_USER = "KEY_USER"
     const val KEY_PASS = "KEY_PASS"
+    const val KEY_CSRF_TOKEN = "KEY_CSRF_TOKEN"
+    const val KEY_ACCOUNT_EXPIRY = "KEY_ACCOUNT_EXPIRY"
 }

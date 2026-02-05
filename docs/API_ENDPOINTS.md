@@ -27,7 +27,7 @@ Cookie: PHPSESSID=your_session_id
 ## Rate Limiting
 
 - Per-action rate limits enforced
-- Default: 60 requests per minute per action
+- Default: 120 requests per minute per action
 - Exceeded limit returns HTTP 429
 
 ---
@@ -52,20 +52,24 @@ username=admin&password=password123
 ```json
 {
   "status": "success",
-  "message": "Login successful",
   "user": {
     "id": 1,
     "username": "admin",
-    "role": "admin"
-  }
+    "role": "admin",
+    "expiry_date": "2026-12-31 23:59:59"
+  },
+  "csrf_token": "your_csrf_token_here",
+  "account_expiry": "2026-12-31 23:59:59"
 }
 ```
+
+`account_expiry` is returned only when an account expiry is configured for the user.
 
 **Error Response (401 Unauthorized):**
 ```json
 {
   "status": "error",
-  "message": "Invalid username or password"
+  "message": "Invalid credentials"
 }
 ```
 
@@ -134,7 +138,6 @@ Get user's watch list or check if specific video is in watch list.
 - `library_id` (optional): Filter by library
 - `search` (optional): Search term
 - `page` (optional): Page number (default: 1)
-- `profile_id` (optional): Override active profile for watch list data
 
 **Request (check specific video):**
 ```
@@ -214,15 +217,31 @@ id=123&time=1800&paused=0
 
 Get dashboard statistics and data.
 
+**Query Parameters:**
+- `profile_id` (optional): Profile override for resume/progress fields
+
 **Success Response:**
 ```json
 {
   "status": "success",
-  "continue_watching": [],
+  "continue_watching": [
+    {
+      "id": 321,
+      "title": "Example Episode",
+      "type": "episode",
+      "resume_time": 754,
+      "continue_from_seconds": 754,
+      "continue_from_hms": "00:12:34",
+      "total_duration": 2520
+    }
+  ],
   "recent_movies": [],
   "recent_shows": []
 }
 ```
+
+`continue_from_seconds` is the exact saved playback position to seek to when resuming.
+`type` indicates whether the entry is a `movie` or `episode`.
 
 ---
 
@@ -263,15 +282,18 @@ Get detailed information about a video.
 
 **Query Parameters:**
 - `id` (required): Video ID
-- `profile_id` (optional): Profile override for resume time
+- `profile_id` (optional): Profile override for resume time and `video.episodes[]` progress fields
 
 **Notes:**
 - `content_rating` is stored as a UK-mapped rating (U/PG/12/12A/15/18/R18) based on metadata when available.
 - `intro_marker` / `credits_marker` are only returned for series episodes with markers detected. Otherwise `null`.
-- **Intro markers**: Use `start_seconds` and `end_seconds` directly for the intro segment boundaries.
-- **Credits markers**: Use `credits_duration_seconds` + `credits_end_offset_seconds` to compute the credits window:
-  - `credits_start = video_duration_seconds - credits_end_offset_seconds - credits_duration_seconds`
-  - `credits_end = video_duration_seconds - credits_end_offset_seconds`
+- `intro_marker` uses `start_seconds` / `end_seconds`.
+- `credits_marker` uses `credits_duration_seconds` + `credits_end_offset_seconds` to compute the credits window relative to episode length.
+- For episode details, `video.episodes[]` includes per-episode progress for the active/requested profile:
+  - `resume_time` (seconds watched)
+  - `total_duration` (runtime in seconds)
+  - `progress_percent` (0-100)
+  - `can_resume` (`true` when `resume_time > 60`)
 
 **Request:**
 ```
@@ -287,11 +309,23 @@ GET /api/details?id=123
     "title": "Pilot",
     "type": "episode",
     "series_title": "Example Show",
-    "content_rating": "12",
     "season": 1,
     "episode": 1,
     "runtime": 42,
     "resume_time": 120,
+    "episodes": [
+      {
+        "id": 123,
+        "title": "Pilot",
+        "season": 1,
+        "episode": 1,
+        "runtime": 42,
+        "resume_time": 120,
+        "total_duration": 2520,
+        "progress_percent": 5,
+        "can_resume": true
+      }
+    ],
     "intro_marker": {
       "type": "intro",
       "start_seconds": 42,
@@ -463,6 +497,69 @@ profile_id=12
   "active_profile_id": 12
 }
 ```
+
+#### POST /api/profiles_add
+
+Create a new profile for the logged-in user.
+
+**Request:**
+```
+name=Kids
+pin=1234
+max_content_rating=12
+auto_skip_intro=1
+auto_skip_credits=1
+autoplay_next=1
+```
+
+**Parameters:**
+- `name` (required)
+- `pin` (optional; required when `max_content_rating` is provided)
+- `max_content_rating` (optional UK rating)
+- `max_rating` (optional legacy IMDb rating cap)
+- `auto_skip_intro` (optional; `1`/`0`)
+- `auto_skip_credits` (optional; `1`/`0`)
+- `autoplay_next` (optional; `1`/`0`, defaults to enabled)
+
+**Success Response:**
+```json
+{
+  "status": "success",
+  "profile": {
+    "id": 15,
+    "name": "Kids",
+    "max_content_rating": "12",
+    "max_rating": null,
+    "auto_skip_intro": true,
+    "auto_skip_credits": true,
+    "autoplay_next": true,
+    "has_pin": true
+  },
+  "active_profile_id": 15
+}
+```
+
+#### POST /api/profiles_remove
+
+Delete one of the logged-in user's profiles.
+
+**Request:**
+```
+profile_id=15
+```
+
+**Success Response:**
+```json
+{
+  "status": "success",
+  "deleted_profile_id": 15,
+  "active_profile_id": 12
+}
+```
+
+**Notes:**
+- Returns `400` if attempting to delete the last remaining profile.
+- Returns `404` if the profile does not belong to the logged-in user.
 
 ---
 

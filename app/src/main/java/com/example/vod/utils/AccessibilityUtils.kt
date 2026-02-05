@@ -105,6 +105,7 @@ object AccessibilityUtils {
      * @param quality Video quality (HD, 4K, etc.)
      * @param hasProgress Whether user has started watching
      * @param progressPercent Watch progress percentage
+     * @param hasEpisodeProgress Whether this series has watched episodes
      */
     fun createVideoCardDescription(
         title: String,
@@ -112,7 +113,8 @@ object AccessibilityUtils {
         rating: String?,
         quality: String?,
         hasProgress: Boolean = false,
-        progressPercent: Int = 0
+        progressPercent: Int = 0,
+        hasEpisodeProgress: Boolean = false
     ): String {
         val parts = mutableListOf<String>()
         parts.add(title)
@@ -122,6 +124,8 @@ object AccessibilityUtils {
         
         if (hasProgress && progressPercent > 0) {
             parts.add("$progressPercent% watched")
+        } else if (hasEpisodeProgress) {
+            parts.add("watched episodes")
         }
         
         return parts.joinToString(", ")

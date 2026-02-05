@@ -61,6 +61,9 @@ class LoginActivity : AppCompatActivity() {
         // 3. CHECK FOR SAVED CREDENTIALS
         val savedUser = prefs.getString(Constants.KEY_USER, null)
         val savedPass = prefs.getString(Constants.KEY_PASS, null)
+        val savedCsrfToken = prefs.getString(Constants.KEY_CSRF_TOKEN, null)
+
+        NetworkClient.updateCsrfToken(savedCsrfToken)
 
         if (savedUser != null && savedPass != null) {
             performLogin(savedUser, savedPass)
@@ -133,9 +136,24 @@ class LoginActivity : AppCompatActivity() {
                     val activity = weakActivity.get() ?: return@withContext
                     
                     if (response.status == "success") {
+                        val csrfToken = response.csrfToken?.takeIf { it.isNotBlank() }
+                        val accountExpiry = response.accountExpiry?.takeIf { it.isNotBlank() }
+                            ?: response.user?.expiryDate?.takeIf { it.isNotBlank() }
+                        NetworkClient.updateCsrfToken(csrfToken)
+
                         prefs.edit {
                             putString(Constants.KEY_USER, user)
                             putString(Constants.KEY_PASS, pass)
+                            if (csrfToken != null) {
+                                putString(Constants.KEY_CSRF_TOKEN, csrfToken)
+                            } else {
+                                remove(Constants.KEY_CSRF_TOKEN)
+                            }
+                            if (accountExpiry != null) {
+                                putString(Constants.KEY_ACCOUNT_EXPIRY, accountExpiry)
+                            } else {
+                                remove(Constants.KEY_ACCOUNT_EXPIRY)
+                            }
                         }
 
                         Toast.makeText(activity.applicationContext, "Welcome back!", Toast.LENGTH_SHORT).show()
@@ -176,6 +194,7 @@ class LoginActivity : AppCompatActivity() {
     }
 
     private fun showLoginError(msg: String?) {
+        NetworkClient.updateCsrfToken(null)
         prefs.edit {
             clear()
         }

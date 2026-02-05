@@ -59,6 +59,16 @@
             android:maxLines="2"
             android:ellipsize="end"
             android:layout_marginTop="6dp"/>
+
+        <ProgressBar
+            android:id="@+id/episodePlaybackProgress"
+            style="@android:style/Widget.ProgressBar.Horizontal"
+            android:layout_width="match_parent"
+            android:layout_height="3dp"
+            android:layout_marginTop="10dp"
+            android:max="100"
+            android:progressDrawable="@drawable/bg_progress_bar_yellow"
+            android:visibility="gone" />
     </LinearLayout>
 
     <ImageView

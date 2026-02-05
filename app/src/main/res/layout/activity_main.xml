@@ -273,12 +273,16 @@
         <LinearLayout
             android:id="@+id/layoutSearchOverlay"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
+            android:layout_height="match_parent"
             android:orientation="vertical"
             android:padding="32dp"
             android:visibility="gone"
             android:background="@color/background_primary"
-            android:elevation="10dp">
+            android:elevation="10dp"
+            android:clickable="true"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            android:descendantFocusability="afterDescendants">
             <EditText
                 android:id="@+id/editSearch"
                 android:layout_width="match_parent"
@@ -290,161 +294,153 @@
                 android:textSize="24sp"
                 android:padding="16dp"
                 android:imeOptions="actionSearch"
-                android:inputType="text"/>
+                android:inputType="text"
+                android:nextFocusDown="@id/chipAll"/>
             
             <!-- Filter Chips -->
-            <HorizontalScrollView
+            <LinearLayout
+                android:id="@+id/layoutFilterChips"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="16dp"
-                android:scrollbars="none"
-                android:clipToPadding="false"
-                android:focusable="false">
-                
+                android:orientation="vertical">
+
                 <LinearLayout
-                    android:id="@+id/layoutFilterChips"
-                    android:layout_width="wrap_content"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
+                    android:gravity="center_vertical"
                     android:orientation="horizontal">
-                    
+
                     <!-- Type Filter -->
                     <com.google.android.material.chip.ChipGroup
                         android:id="@+id/chipGroupType"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        app:singleLine="true"
                         app:singleSelection="true"
                         app:selectionRequired="false">
-                        
+
                         <com.google.android.material.chip.Chip
                             android:id="@+id/chipAll"
                             style="@style/Widget.MaterialComponents.Chip.Filter"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="@string/filter_all"
-                            android:focusable="true"
                             android:checked="true"
-                            app:chipBackgroundColor="@color/selector_chip_bg"
-                            android:textColor="@android:color/white" />
-                        
+                            android:focusable="true"
+                            android:text="@string/filter_all"
+                            android:textColor="@android:color/white"
+                            app:chipBackgroundColor="@color/selector_chip_bg" />
+
                         <com.google.android.material.chip.Chip
                             android:id="@+id/chipMovies"
                             style="@style/Widget.MaterialComponents.Chip.Filter"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="@string/filter_movies"
                             android:focusable="true"
-                            app:chipBackgroundColor="@color/selector_chip_bg"
-                            android:textColor="@android:color/white" />
-                        
+                            android:text="@string/filter_movies"
+                            android:textColor="@android:color/white"
+                            app:chipBackgroundColor="@color/selector_chip_bg" />
+
                         <com.google.android.material.chip.Chip
                             android:id="@+id/chipSeries"
                             style="@style/Widget.MaterialComponents.Chip.Filter"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
+                            android:focusable="true"
                             android:text="@string/filter_series"
-                            android:focusable="true"
-                            app:chipBackgroundColor="@color/selector_chip_bg"
-                            android:textColor="@android:color/white" />
+                            android:textColor="@android:color/white"
+                            app:chipBackgroundColor="@color/selector_chip_bg" />
                     </com.google.android.material.chip.ChipGroup>
-                    
-                    <View
-                        android:layout_width="1dp"
-                        android:layout_height="32dp"
-                        android:layout_marginHorizontal="12dp"
-                        android:layout_gravity="center_vertical"
-                        android:background="@color/border_subtle" />
-                    
-                    <!-- Genre Filter -->
-                    <com.google.android.material.chip.ChipGroup
-                        android:id="@+id/chipGroupGenre"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        app:singleSelection="true"
-                        app:selectionRequired="false">
-                        
-                        <com.google.android.material.chip.Chip
-                            android:id="@+id/chipAction"
-                            style="@style/Widget.MaterialComponents.Chip.Filter"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/filter_action"
-                            android:focusable="true"
-                            app:chipBackgroundColor="@color/selector_chip_bg"
-                            android:textColor="@android:color/white" />
-                        
-                        <com.google.android.material.chip.Chip
-                            android:id="@+id/chipComedy"
-                            style="@style/Widget.MaterialComponents.Chip.Filter"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/filter_comedy"
-                            android:focusable="true"
-                            app:chipBackgroundColor="@color/selector_chip_bg"
-                            android:textColor="@android:color/white" />
-                        
-                        <com.google.android.material.chip.Chip
-                            android:id="@+id/chipDrama"
-                            style="@style/Widget.MaterialComponents.Chip.Filter"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/filter_drama"
-                            android:focusable="true"
-                            app:chipBackgroundColor="@color/selector_chip_bg"
-                            android:textColor="@android:color/white" />
-                        
-                        <com.google.android.material.chip.Chip
-                            android:id="@+id/chipHorror"
-                            style="@style/Widget.MaterialComponents.Chip.Filter"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/filter_horror"
-                            android:focusable="true"
-                            app:chipBackgroundColor="@color/selector_chip_bg"
-                            android:textColor="@android:color/white" />
-                        
-                        <com.google.android.material.chip.Chip
-                            android:id="@+id/chipSciFi"
-                            style="@style/Widget.MaterialComponents.Chip.Filter"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/filter_scifi"
-                            android:focusable="true"
-                            app:chipBackgroundColor="@color/selector_chip_bg"
-                            android:textColor="@android:color/white" />
-                        
-                        <com.google.android.material.chip.Chip
-                            android:id="@+id/chipAnimation"
-                            style="@style/Widget.MaterialComponents.Chip.Filter"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/filter_animation"
-                            android:focusable="true"
-                            app:chipBackgroundColor="@color/selector_chip_bg"
-                            android:textColor="@android:color/white" />
-                    </com.google.android.material.chip.ChipGroup>
-                    
-                    <View
-                        android:layout_width="1dp"
-                        android:layout_height="32dp"
-                        android:layout_marginHorizontal="12dp"
-                        android:layout_gravity="center_vertical"
-                        android:background="@color/border_subtle" />
-                    
-                    <!-- Clear Filters -->
+
+                    <!-- Clear Filters stays on first row and remains in-view -->
                     <com.google.android.material.chip.Chip
                         android:id="@+id/chipClearFilters"
                         style="@style/Widget.MaterialComponents.Chip.Action"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="@string/filter_clear"
+                        android:layout_marginStart="12dp"
                         android:focusable="true"
-                        app:chipBackgroundColor="@color/border_subtle"
+                        android:text="@string/filter_clear"
                         android:textColor="@color/status_error"
+                        android:visibility="gone"
+                        app:chipBackgroundColor="@color/border_subtle"
                         app:chipIcon="@drawable/ic_close"
-                        app:chipIconTint="@color/status_error"
-                        android:visibility="gone" />
+                        app:chipIconTint="@color/status_error" />
                 </LinearLayout>
-            </HorizontalScrollView>
+
+                <!-- Genre Filter wraps to additional lines instead of overflowing -->
+                <com.google.android.material.chip.ChipGroup
+                    android:id="@+id/chipGroupGenre"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="12dp"
+                    app:chipSpacingHorizontal="10dp"
+                    app:chipSpacingVertical="10dp"
+                    app:singleLine="false"
+                    app:singleSelection="true"
+                    app:selectionRequired="false">
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chipAction"
+                        style="@style/Widget.MaterialComponents.Chip.Filter"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:focusable="true"
+                        android:text="@string/filter_action"
+                        android:textColor="@android:color/white"
+                        app:chipBackgroundColor="@color/selector_chip_bg" />
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chipComedy"
+                        style="@style/Widget.MaterialComponents.Chip.Filter"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:focusable="true"
+                        android:text="@string/filter_comedy"
+                        android:textColor="@android:color/white"
+                        app:chipBackgroundColor="@color/selector_chip_bg" />
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chipDrama"
+                        style="@style/Widget.MaterialComponents.Chip.Filter"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:focusable="true"
+                        android:text="@string/filter_drama"
+                        android:textColor="@android:color/white"
+                        app:chipBackgroundColor="@color/selector_chip_bg" />
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chipHorror"
+                        style="@style/Widget.MaterialComponents.Chip.Filter"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:focusable="true"
+                        android:text="@string/filter_horror"
+                        android:textColor="@android:color/white"
+                        app:chipBackgroundColor="@color/selector_chip_bg" />
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chipSciFi"
+                        style="@style/Widget.MaterialComponents.Chip.Filter"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:focusable="true"
+                        android:text="@string/filter_scifi"
+                        android:textColor="@android:color/white"
+                        app:chipBackgroundColor="@color/selector_chip_bg" />
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chipAnimation"
+                        style="@style/Widget.MaterialComponents.Chip.Filter"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:focusable="true"
+                        android:text="@string/filter_animation"
+                        android:textColor="@android:color/white"
+                        app:chipBackgroundColor="@color/selector_chip_bg" />
+                </com.google.android.material.chip.ChipGroup>
+            </LinearLayout>
             
             <!-- Search Empty State -->
             <include 

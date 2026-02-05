@@ -36,6 +36,18 @@
     <string name="profile_load_error">Failed to load profiles</string>
     <string name="profile_select_error">Failed to select profile</string>
     <string name="profile_not_selected">No active profile selected</string>
+    <string name="create_profile">Create Profile</string>
+    <string name="create_profile_hint">Add a new profile</string>
+    <string name="create_profile_action">Create</string>
+    <string name="create_profile_dialog_subtitle">Create a name for this profile.</string>
+    <string name="profile_name_hint">Profile name</string>
+    <string name="profile_name_required">Profile name is required</string>
+    <string name="profile_created">Profile created: %1$s</string>
+    <string name="profile_create_error">Failed to create profile</string>
+    <string name="delete_profile_action">Delete Profile</string>
+    <string name="delete_profile_confirm">Delete profile \"%1$s\"? This cannot be undone.</string>
+    <string name="profile_deleted">Profile deleted: %1$s</string>
+    <string name="profile_delete_error">Failed to delete profile</string>
     <string name="max_rating_format">Max: %1$s</string>
     <string name="enter_pin">Enter PIN</string>
     <string name="wrong_pin">Incorrect PIN</string>
@@ -50,7 +62,7 @@
     <string name="filter_horror">Horror</string>
     <string name="filter_scifi">Sci-Fi</string>
     <string name="filter_animation">Animation</string>
-    <string name="filter_clear">Clear Filters</string>
+    <string name="filter_clear">Clear</string>
     <string name="search_results_filtered">Showing %1$d results with filters</string>
     
     <!-- Search Empty/Error States -->
@@ -108,6 +120,8 @@
     <string name="playback_pref_auto_skip_credits_desc">Automatically skip credits and jump to the next episode.</string>
     <string name="playback_pref_autoplay_next_title">Autoplay next episode</string>
     <string name="playback_pref_autoplay_next_desc">Start the next episode automatically after playback ends.</string>
+    <string name="playback_prefs_account_expiry_label">Account Expiry</string>
+    <string name="playback_prefs_account_expiry_value">Expires %1$s</string>
     <string name="playback_prefs_saved">Playback preferences updated</string>
     
     <!-- Accessibility -->
