@@ -1,0 +1,22 @@
+<resources>
+    <!-- Home (Dashboard) scale -->
+    <dimen name="home_bottom_padding">24dp</dimen>
+
+    <dimen name="home_hero_height">280dp</dimen>
+    <dimen name="home_hero_padding">16dp</dimen>
+
+    <dimen name="home_title_text">38sp</dimen>
+    <dimen name="home_meta_text">13sp</dimen>
+    <dimen name="home_desc_text">13sp</dimen>
+
+    <dimen name="home_section_title_text">16sp</dimen>
+    <dimen name="home_section_margin_start">16dp</dimen>
+    <dimen name="home_section_margin_top">16dp</dimen>
+    <dimen name="home_section_margin_bottom">8dp</dimen>
+
+    <dimen name="home_list_side_padding">16dp</dimen>
+    <dimen name="home_list_bottom_margin">24dp</dimen>
+
+    <!-- Horizontal card width on Home rows -->
+    <dimen name="home_horizontal_card_width">140dp</dimen>
+</resources>

@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#000000">
+
+    <androidx.media3.ui.PlayerView
+        android:id="@+id/player_view"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        app:use_controller="true"
+        app:show_buffering="when_playing"
+        app:resize_mode="fit"/>
+
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnNextEpisode"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="32dp"
+
+        android:text="Next Episode"
+        android:textAllCaps="true"
+        android:textStyle="bold"
+        android:fontFamily="sans-serif-medium"
+
+        android:visibility="gone"
+
+        app:icon="@drawable/ic_play_arrow"
+        app:iconGravity="textStart"
+
+        app:cornerRadius="8dp"
+        app:elevation="6dp"
+
+        app:backgroundTint="@color/selector_btn_bg"
+        android:textColor="@color/selector_btn_text"
+        app:iconTint="@color/selector_btn_text"
+
+        android:focusable="true"
+        android:focusableInTouchMode="true" />
+
+</FrameLayout>

@@ -1,0 +1,21 @@
+<resources>
+    <string name="app_name">VOD</string>
+    <string name="nav_open">Open Menu</string>
+    <string name="nav_close">Close Menu</string>
+    <string name="director_label">Director: %1$s</string>
+    <string name="starring_label">Starring: %1$s</string>
+    <string name="rating_format">★ %1$s</string>
+    <string name="rotten_tomatoes_format">%1$s%%</string>
+    <string name="runtime_format">%1$dh %2$dm</string>
+    <string name="runtime_minutes_format">%1$dm</string>
+    <string name="btn_play">Play</string>
+    <string name="btn_restart">Restart</string>
+    <string name="btn_watch_later">Watch Later</string>
+    <string name="btn_in_watch_list">In Watch List</string>
+    <string name="toast_added_watchlist">Added to Watch List</string>
+    <string name="toast_removed_watchlist">Removed from Watch List</string>
+    <string name="season_format">Season %d</string>
+    <string name="duration_format">%d min</string>
+    <string name="watch_list_empty">Your Watch List is empty.</string>
+    <string name="watch_list_error">Error loading Watch List.</string>
+</resources>
