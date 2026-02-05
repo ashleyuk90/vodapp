@@ -1,8 +1,9 @@
 package com.example.vod
 
+import android.content.pm.PackageManager
 import android.content.Context
 import android.content.Intent
-import android.graphics.drawable.AnimationDrawable
+import android.content.res.Configuration
 import android.os.Bundle
 import android.view.LayoutInflater
 import android.view.View
@@ -11,12 +12,13 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager2.widget.ViewPager2
 import com.example.vod.utils.AnimationHelper
 import com.example.vod.utils.Constants
 import com.example.vod.utils.OrientationUtils
-import com.example.vod.utils.ResponsiveUtils
 import com.google.android.material.button.MaterialButton
 
 /**
@@ -29,6 +31,7 @@ class OnboardingActivity : AppCompatActivity() {
     private lateinit var btnNext: MaterialButton
     private lateinit var btnSkip: MaterialButton
     private lateinit var indicatorContainer: LinearLayout
+    private lateinit var bottomContainer: LinearLayout
 
     private val onboardingPages = listOf(
         OnboardingPage(
@@ -85,16 +88,44 @@ class OnboardingActivity : AppCompatActivity() {
         btnNext = findViewById(R.id.btnNext)
         btnSkip = findViewById(R.id.btnSkip)
         indicatorContainer = findViewById(R.id.indicatorContainer)
+        bottomContainer = findViewById(R.id.onboardingBottomContainer)
 
         setupViewPager()
         setupIndicators()
         setupButtons()
-        if (ResponsiveUtils.isTV(this)) {
+        setupWindowInsets()
+        if (shouldRequestInitialFocus()) {
             btnNext.post { btnNext.requestFocus() }
         }
 
         // Apply enter animation
         AnimationHelper.applyFadeTransition(this)
+    }
+
+    private fun setupWindowInsets() {
+        val initialBottomPadding = bottomContainer.paddingBottom
+
+        ViewCompat.setOnApplyWindowInsetsListener(bottomContainer) { view, windowInsets ->
+            val systemBars = windowInsets.getInsets(WindowInsetsCompat.Type.systemBars())
+            view.setPadding(
+                view.paddingLeft,
+                view.paddingTop,
+                view.paddingRight,
+                initialBottomPadding + systemBars.bottom
+            )
+            windowInsets
+        }
+
+        ViewCompat.requestApplyInsets(bottomContainer)
+    }
+
+    private fun shouldRequestInitialFocus(): Boolean {
+        val isTelevisionMode =
+            resources.configuration.uiMode and Configuration.UI_MODE_TYPE_MASK == Configuration.UI_MODE_TYPE_TELEVISION
+        val hasLeanbackFeature = packageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK)
+        val hasTouchscreen = packageManager.hasSystemFeature(PackageManager.FEATURE_TOUCHSCREEN)
+
+        return isTelevisionMode || hasLeanbackFeature || !hasTouchscreen
     }
 
     private fun setupViewPager() {
