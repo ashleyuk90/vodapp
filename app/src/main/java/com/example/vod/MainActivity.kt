@@ -1158,7 +1158,11 @@ class MainActivity : AppCompatActivity() {
 
         // Ensure Watch Later fragment is removed so grid can render
         supportFragmentManager.findFragmentById(R.id.fragment_container)?.let { fragment ->
-            supportFragmentManager.beginTransaction().remove(fragment).commit()
+            if (!supportFragmentManager.isStateSaved) {
+                supportFragmentManager.beginTransaction().remove(fragment).commitNow()
+            } else {
+                supportFragmentManager.beginTransaction().remove(fragment).commit()
+            }
         }
 
         fetchJob?.cancel()
