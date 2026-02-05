@@ -1,9 +1,9 @@
 package com.example.vod.utils
 
+import android.app.UiModeManager
 import android.content.Context
+import android.content.pm.PackageManager
 import android.content.res.Configuration
-import android.util.DisplayMetrics
-import android.view.WindowManager
 import com.example.vod.R
 
 /**
@@ -33,9 +33,21 @@ object ResponsiveUtils {
     }
 
     /**
+     * Detect television devices using system UI mode and Leanback feature.
+     */
+    private fun isTelevisionDevice(context: Context): Boolean {
+        val uiModeManager = context.getSystemService(Context.UI_MODE_SERVICE) as? UiModeManager
+        val isTelevisionMode = uiModeManager?.currentModeType == Configuration.UI_MODE_TYPE_TELEVISION
+        val hasLeanbackFeature = context.packageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK)
+        return isTelevisionMode || hasLeanbackFeature
+    }
+
+    /**
      * Get the current screen size category.
      */
     fun getScreenSize(context: Context): ScreenSize {
+        if (isTelevisionDevice(context)) return ScreenSize.TV
+
         val screenWidthDp = getScreenWidthDp(context)
         
         return when {
@@ -93,7 +105,14 @@ object ResponsiveUtils {
      * Get the resource value for grid span count (uses resource qualifier system).
      */
     fun getGridSpanCountFromResources(context: Context): Int {
-        return context.resources.getInteger(R.integer.grid_span_count)
+        val resourceSpanCount = context.resources.getInteger(R.integer.grid_span_count)
+
+        // Some TVs don't match large-screen `sw` qualifiers; keep grid density usable there.
+        return if (isTelevisionDevice(context)) {
+            maxOf(resourceSpanCount, TV_SPAN)
+        } else {
+            resourceSpanCount
+        }
     }
 
     /**
@@ -137,7 +156,7 @@ object ResponsiveUtils {
      * Check if the device is a TV.
      */
     fun isTV(context: Context): Boolean {
-        return getScreenSize(context) == ScreenSize.TV
+        return isTelevisionDevice(context)
     }
 
     /**
