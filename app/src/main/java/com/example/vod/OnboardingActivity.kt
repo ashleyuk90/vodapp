@@ -16,6 +16,7 @@ import androidx.viewpager2.widget.ViewPager2
 import com.example.vod.utils.AnimationHelper
 import com.example.vod.utils.Constants
 import com.example.vod.utils.OrientationUtils
+import com.example.vod.utils.ResponsiveUtils
 import com.google.android.material.button.MaterialButton
 
 /**
@@ -88,6 +89,9 @@ class OnboardingActivity : AppCompatActivity() {
         setupViewPager()
         setupIndicators()
         setupButtons()
+        if (ResponsiveUtils.isTV(this)) {
+            btnNext.post { btnNext.requestFocus() }
+        }
 
         // Apply enter animation
         AnimationHelper.applyFadeTransition(this)

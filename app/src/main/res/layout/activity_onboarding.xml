@@ -15,7 +15,9 @@
     <androidx.viewpager2.widget.ViewPager2
         android:id="@+id/viewPager"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"/>
+        android:layout_height="match_parent"
+        android:focusable="false"
+        android:focusableInTouchMode="false"/>
     
     <!-- Bottom navigation area -->
     <LinearLayout
@@ -50,7 +52,8 @@
                 android:text="@string/onboarding_skip"
                 android:textColor="#888888"
                 android:focusable="true"
-                android:focusableInTouchMode="true"/>
+                android:focusableInTouchMode="true"
+                android:nextFocusRight="@id/btnNext"/>
             
             <View
                 android:layout_width="0dp"
@@ -65,7 +68,9 @@
                 app:backgroundTint="#E50914"
                 android:textColor="@android:color/white"
                 android:focusable="true"
-                android:focusableInTouchMode="true"/>
+                android:focusableInTouchMode="true"
+                android:focusedByDefault="true"
+                android:nextFocusLeft="@id/btnSkip"/>
         </LinearLayout>
     </LinearLayout>
 </FrameLayout>
