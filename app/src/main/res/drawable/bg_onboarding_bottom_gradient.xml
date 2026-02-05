@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Bottom gradient for onboarding -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android"
+    android:shape="rectangle">
+    <gradient
+        android:startColor="#000F0F0F"
+        android:centerColor="#AA0F0F0F"
+        android:endColor="#FF0F0F0F"
+        android:angle="90"/>
+</shape>

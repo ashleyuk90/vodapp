@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- ========================================= -->
+<!-- Landscape Mode Dimensions (TV/Large)     -->
+<!-- Optimized for 10-foot viewing experience -->
+<!-- ========================================= -->
+<resources>
+    <!-- Grid settings for TV landscape (most content on screen) -->
+    <integer name="grid_span_count">7</integer>
+    
+    <!-- Hero section - keep reasonable for landscape -->
+    <dimen name="home_hero_height">320dp</dimen>
+    
+    <!-- Horizontal card width - larger for TV -->
+    <dimen name="home_horizontal_card_width">200dp</dimen>
+</resources>

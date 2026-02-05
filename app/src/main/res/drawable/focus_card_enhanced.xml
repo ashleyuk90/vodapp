@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Enhanced focus state for video cards - TV optimized with glow effect -->
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Outer glow/shadow layer -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="#33FFFFFF"/>
+            <corners android:radius="14dp"/>
+        </shape>
+    </item>
+    <!-- Inner content area -->
+    <item android:left="2dp" android:top="2dp" android:right="2dp" android:bottom="2dp">
+        <shape android:shape="rectangle">
+            <solid android:color="@android:color/transparent"/>
+            <corners android:radius="12dp"/>
+        </shape>
+    </item>
+    <!-- Focus border -->
+    <item>
+        <shape android:shape="rectangle">
+            <stroke android:width="4dp" android:color="#FFFFFF"/>
+            <corners android:radius="12dp"/>
+        </shape>
+    </item>
+</layer-list>

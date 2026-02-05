@@ -3,13 +3,13 @@
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
-    android:layout_margin="12dp"
+    android:layout_margin="@dimen/card_margin"
     android:focusable="true"
     android:clickable="true"
     android:clipChildren="false"
     android:clipToPadding="false"
-    app:cardCornerRadius="12dp"
-    app:cardBackgroundColor="#1A1A1A"
+    app:cardCornerRadius="@dimen/card_corner_radius"
+    app:cardBackgroundColor="@color/card_background"
     android:foreground="@drawable/selector_card_border"> <androidx.constraintlayout.widget.ConstraintLayout
     android:layout_width="match_parent"
     android:layout_height="wrap_content">
@@ -30,30 +30,32 @@
         android:progressDrawable="@drawable/bg_progress_bar"
         android:visibility="gone"
         app:layout_constraintBottom_toBottomOf="@id/imgPoster" />
+    <!-- Quality badge with enhanced dark background for visibility on light posters -->
     <TextView
         android:id="@+id/txtQualityBadge"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_margin="8dp"
-        android:background="@drawable/bg_badge_dark"
+        android:background="@drawable/bg_badge_dark_enhanced"
         android:paddingHorizontal="6dp"
         android:paddingVertical="2dp"
-        android:textColor="#FFFFFF"
-        android:textSize="10sp"
+        android:textColor="@color/text_primary"
+        android:textSize="@dimen/card_badge_text_size"
         android:textStyle="bold"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
+    <!-- Rating badge with dark outline for visibility on light backgrounds -->
     <TextView
         android:id="@+id/txtRatingBadge"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_margin="8dp"
-        android:background="#FFD700"
+        android:background="@drawable/bg_rating_badge"
         android:paddingHorizontal="6dp"
         android:paddingVertical="2dp"
-        android:textColor="#000000"
-        android:textSize="10sp"
+        android:textColor="@color/text_on_primary"
+        android:textSize="@dimen/card_badge_text_size"
         android:textStyle="bold"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
@@ -62,7 +64,7 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"
-        android:padding="8dp"
+        android:padding="@dimen/card_content_padding"
         app:layout_constraintTop_toBottomOf="@id/imgPoster">
 
         <TextView
@@ -71,8 +73,8 @@
             android:layout_height="wrap_content"
             android:ellipsize="end"
             android:maxLines="1"
-            android:textColor="#FFFFFF"
-            android:textSize="14sp"
+            android:textColor="@color/text_primary"
+            android:textSize="@dimen/card_title_text_size"
             android:textStyle="bold" />
 
         <LinearLayout
@@ -86,8 +88,8 @@
                 android:layout_width="0dp"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                android:textColor="#888888"
-                android:textSize="12sp" />
+                android:textColor="@color/text_tertiary"
+                android:textSize="@dimen/card_metadata_text_size" />
 
             <TextView
                 android:id="@+id/txtRuntime"
@@ -95,8 +97,8 @@
                 android:layout_height="wrap_content"
                 android:background="@drawable/bg_badge_outline"
                 android:paddingHorizontal="4dp"
-                android:textColor="#888888"
-                android:textSize="10sp" />
+                android:textColor="@color/text_tertiary"
+                android:textSize="@dimen/card_badge_text_size" />
         </LinearLayout>
     </LinearLayout>
 </androidx.constraintlayout.widget.ConstraintLayout>

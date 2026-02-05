@@ -9,6 +9,7 @@ import androidx.fragment.app.Fragment
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.GridLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.example.vod.utils.ResponsiveUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -39,8 +40,8 @@ class WatchLaterFragment : Fragment(R.layout.fragment_library) {
     }
 
     private fun setupRecyclerView() {
-        // 5 columns for TV layout
-        recyclerView.layoutManager = GridLayoutManager(context, 4)
+        val spanCount = ResponsiveUtils.getGridSpanCountFromResources(requireContext())
+        recyclerView.layoutManager = GridLayoutManager(context, spanCount)
 
         // FIX: Change emptyList() to mutableListOf()
         // This prevents the ClassCastException when updateData is called later
@@ -60,8 +61,9 @@ class WatchLaterFragment : Fragment(R.layout.fragment_library) {
 
         lifecycleScope.launch(Dispatchers.IO) {
             try {
-                // Call the NEW API Endpoint
-                val response = NetworkClient.api.getWatchList(page = 1)
+                // Call the NEW API Endpoint with profile_id
+                val profileId = ProfileManager.getActiveProfileId()
+                val response = NetworkClient.api.getWatchList(page = 1, profileId)
 
                 withContext(Dispatchers.Main) {
                     progressBar.visibility = View.GONE

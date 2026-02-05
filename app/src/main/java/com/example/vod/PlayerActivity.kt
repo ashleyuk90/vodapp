@@ -23,11 +23,18 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.trackselection.DefaultTrackSelector
 import androidx.media3.ui.PlayerView
+import com.example.vod.utils.Constants
+import com.example.vod.utils.ErrorHandler
+import com.example.vod.utils.AnimationHelper
+import com.example.vod.utils.NetworkUtils
+import com.example.vod.utils.OrientationUtils
 import com.google.android.material.button.MaterialButton
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
+import java.io.IOException
+import java.lang.ref.WeakReference
 
 // Fix 1: Opt-in to Media3 Unstable API to fix the red errors
 @OptIn(UnstableApi::class)
@@ -35,37 +42,80 @@ class PlayerActivity : AppCompatActivity() {
 
     private lateinit var playerView: PlayerView
     private lateinit var btnNextEpisode: MaterialButton
+    private lateinit var btnSkipIntro: MaterialButton
+    private lateinit var btnSkipCredits: MaterialButton
     private var player: ExoPlayer? = null
 
-    // Fix 2: Moved TAG to companion object and made it const (fixes capitalization warning)
     companion object {
         private const val TAG = "VOD_DEBUG"
+        private const val MAX_RETRY_ATTEMPTS = 3
+        private const val INITIAL_RETRY_DELAY_MS = 2000L
+        private const val MAX_RETRY_DELAY_MS = 16000L
     }
 
     private var videoId: Int = -1
     private var progressHandler = Handler(Looper.getMainLooper())
 
-    private val checkInterval = 1000L
+    private val checkInterval = Constants.PROGRESS_CHECK_INTERVAL_MS
     private var tickCount = 0
 
     private var resumeTimeMs: Long = 0
     private var enableSubtitles: Boolean = false
     private var nextEpisodeData: NextEpisode? = null
 
+    // Skip intro/credits markers
+    private var introMarker: ContentMarker? = null
+    private var creditsMarker: ContentMarker? = null
+    private var autoSkipIntro: Boolean = false
+    private var autoSkipCredits: Boolean = false
+    private var autoplayNext: Boolean = true
+    private var hasSkippedIntro: Boolean = false
+    private var hasShownCreditsButton: Boolean = false
+
+    // Stream error recovery state
+    private var retryAttempt = 0
+    private var currentRetryDelay = INITIAL_RETRY_DELAY_MS
+    private var lastStreamUrl: String? = null
+    private var lastCookieHeader: String? = null
+    private var lastSubUrl: String? = null
+    private var lastSubLang: String? = null
+    private var isRetrying = false
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        OrientationUtils.applyPreferredOrientation(this)
         setContentView(R.layout.activity_player)
         window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         playerView = findViewById(R.id.player_view)
         btnNextEpisode = findViewById(R.id.btnNextEpisode)
+        btnSkipIntro = findViewById(R.id.btnSkipIntro)
+        btnSkipCredits = findViewById(R.id.btnSkipCredits)
+
+        // Hide player controls by default - user must tap/click to show them
+        playerView.controllerAutoShow = false
+        playerView.controllerShowTimeoutMs = 5000  // Hide controls after 5 seconds of no interaction
 
         btnNextEpisode.setOnClickListener {
             loadNextEpisode()
         }
 
+        btnSkipIntro.setOnClickListener {
+            skipIntro()
+        }
+
+        btnSkipCredits.setOnClickListener {
+            skipCredits()
+        }
+
+        // Load profile auto-skip preferences
+        loadProfilePreferences()
+
         videoId = intent.getIntExtra("VIDEO_ID", -1)
         resumeTimeMs = intent.getLongExtra("RESUME_TIME", 0L) * 1000
         enableSubtitles = intent.getBooleanExtra("ENABLE_SUBTITLES", false)
+
+        // Load intro/credits markers from intent (passed from DetailsActivity)
+        loadMarkersFromIntent()
 
         if (videoId != -1) {
             initializePlayer(videoId)
@@ -75,6 +125,44 @@ class PlayerActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * Load intro/credits markers from intent extras.
+     * These are passed from DetailsActivity which gets them from the /api/details endpoint.
+     */
+    private fun loadMarkersFromIntent() {
+        val introStart = intent.getIntExtra("INTRO_START", -1)
+        val introEnd = intent.getIntExtra("INTRO_END", -1)
+        val creditsStart = intent.getIntExtra("CREDITS_START", -1)
+
+        if (introStart >= 0 && introEnd > introStart) {
+            introMarker = ContentMarker(
+                type = "intro",
+                startSeconds = introStart,
+                endSeconds = introEnd
+            )
+            Log.d(TAG, "Loaded intro marker from intent: ${introStart}s - ${introEnd}s")
+        }
+
+        if (creditsStart >= 0) {
+            creditsMarker = ContentMarker(
+                type = "credits",
+                startSeconds = creditsStart,
+                endSeconds = 0  // Credits go to end of video
+            )
+            Log.d(TAG, "Loaded credits marker from intent: ${creditsStart}s")
+        }
+    }
+
+    /**
+     * Load auto-skip preferences from active profile.
+     */
+    private fun loadProfilePreferences() {
+        autoSkipIntro = ProfileManager.shouldAutoSkipIntro()
+        autoSkipCredits = ProfileManager.shouldAutoSkipCredits()
+        autoplayNext = ProfileManager.shouldAutoplayNext()
+        Log.d(TAG, "Profile prefs: autoSkipIntro=$autoSkipIntro, autoSkipCredits=$autoSkipCredits, autoplayNext=$autoplayNext")
+    }
+
     private val progressRunnable = object : Runnable {
         override fun run() {
             val p = player ?: return
@@ -82,23 +170,31 @@ class PlayerActivity : AppCompatActivity() {
             if (p.isPlaying) {
                 val duration = p.duration
                 val currentPosMs = p.currentPosition
+                val currentPosSec = (currentPosMs / 1000).toInt()
+
+                // Check for skip intro button visibility
+                checkIntroMarker(currentPosSec)
+
+                // Check for skip credits button visibility
+                checkCreditsMarker(currentPosSec)
+
                 if (duration > 0) {
                     val timeRemaining = duration - currentPosMs
-                    if (timeRemaining <= 30000 && nextEpisodeData != null) {
+                    if (timeRemaining <= Constants.NEXT_EPISODE_THRESHOLD_MS && nextEpisodeData != null) {
                         showNextEpisodeButton()
                     } else {
                         hideNextEpisodeButton()
                     }
                 }
 
-                if (tickCount % 10 == 0) {
-                    val currentPosSec = currentPosMs / 1000
+                if (tickCount % Constants.PROGRESS_SYNC_TICK_INTERVAL == 0) {
                     val isPaused = 0
+                    val profileId = ProfileManager.getActiveProfileId()
 
                     lifecycleScope.launch(Dispatchers.IO) {
                         try {
-                            withTimeout(5000) {
-                                NetworkClient.api.syncProgress(videoId, currentPosSec, isPaused)
+                            withTimeout(Constants.NETWORK_TIMEOUT_MS) {
+                                NetworkClient.api.syncProgress(videoId, currentPosSec.toLong(), isPaused, profileId)
                             }
                         } catch (_: Exception) {
                             // Fix 3: Renamed 'e' to '_' to silence "Parameter never used" warning
@@ -112,20 +208,132 @@ class PlayerActivity : AppCompatActivity() {
         }
     }
 
+    /**
+     * Check if we should show/hide the Skip Intro button or auto-skip.
+     */
+    private fun checkIntroMarker(currentPosSec: Int) {
+        val intro = introMarker ?: return
+
+        val isInIntro = currentPosSec >= intro.startSeconds && currentPosSec < intro.endSeconds
+
+        if (isInIntro && !hasSkippedIntro) {
+            if (autoSkipIntro) {
+                // Auto-skip intro
+                skipIntro()
+            } else {
+                // Show skip intro button
+                showSkipIntroButton()
+            }
+        } else if (!isInIntro || hasSkippedIntro) {
+            hideSkipIntroButton()
+        }
+    }
+
+    /**
+     * Check if we should show the Skip Credits button or auto-skip.
+     */
+    private fun checkCreditsMarker(currentPosSec: Int) {
+        val credits = creditsMarker ?: return
+
+        val isInCredits = currentPosSec >= credits.startSeconds
+
+        if (isInCredits && !hasShownCreditsButton) {
+            hasShownCreditsButton = true
+            if (autoSkipCredits && nextEpisodeData != null) {
+                // Auto-skip to next episode
+                loadNextEpisode()
+            } else if (nextEpisodeData != null) {
+                // Show skip credits button
+                showSkipCreditsButton()
+            }
+        } else if (!isInCredits) {
+            hideSkipCreditsButton()
+        }
+    }
+
+    /**
+     * Skip to end of intro segment.
+     */
+    private fun skipIntro() {
+        val intro = introMarker ?: return
+        hasSkippedIntro = true
+        player?.seekTo(intro.endSeconds * 1000L)
+        hideSkipIntroButton()
+        Log.d(TAG, "Skipped intro to ${intro.endSeconds}s")
+    }
+
+    /**
+     * Skip credits and load next episode.
+     */
+    private fun skipCredits() {
+        if (nextEpisodeData != null) {
+            loadNextEpisode()
+        }
+    }
+
+    private fun showSkipIntroButton() {
+        if (!btnSkipIntro.isVisible) {
+            AnimationHelper.fadeIn(btnSkipIntro)
+            btnSkipIntro.requestFocus()
+        }
+    }
+
+    private fun hideSkipIntroButton() {
+        if (btnSkipIntro.isVisible) {
+            AnimationHelper.fadeOut(btnSkipIntro, gone = true)
+        }
+    }
+
+    private fun showSkipCreditsButton() {
+        if (!btnSkipCredits.isVisible) {
+            AnimationHelper.fadeIn(btnSkipCredits)
+        }
+    }
+
+    private fun hideSkipCreditsButton() {
+        if (btnSkipCredits.isVisible) {
+            btnSkipCredits.isVisible = false
+        }
+    }
+
     // Fix 4: Suppress typo check for PHPSESSID
     @Suppress("SpellCheckingInspection")
     private fun initializePlayer(id: Int) {
-        CoroutineScope(Dispatchers.IO).launch {
+        // Check network before loading video
+        if (!NetworkUtils.isNetworkAvailable(this)) {
+            ErrorHandler.showError(this, "No internet connection")
+            finish()
+            return
+        }
+
+        // Use WeakReference to prevent activity leak
+        val weakActivity = WeakReference(this)
+
+        // Use lifecycleScope instead of CoroutineScope for automatic cancellation
+        lifecycleScope.launch(Dispatchers.IO) {
             try {
                 val response = NetworkClient.api.getStreamInfo(id)
                 val data = response.data
 
                 if (data?.streamUrl == null) {
                     Log.e(TAG, "ERROR: Stream URL is NULL")
+                    withContext(Dispatchers.Main) {
+                        weakActivity.get()?.let { activity ->
+                            ErrorHandler.showError(activity, "Video stream unavailable")
+                            activity.finish()
+                        }
+                    }
                     return@launch
                 }
 
-                nextEpisodeData = data.next_episode
+                weakActivity.get()?.nextEpisodeData = data.next_episode
+                // Only update markers from API response if they're present (otherwise keep intent-loaded values)
+                data.introMarker?.let { weakActivity.get()?.introMarker = it }
+                data.creditsMarker?.let { weakActivity.get()?.creditsMarker = it }
+
+                val finalIntro = weakActivity.get()?.introMarker
+                val finalCredits = weakActivity.get()?.creditsMarker
+                Log.d(TAG, "Final Markers - Intro: ${finalIntro?.let { "${it.startSeconds}-${it.endSeconds}s" } ?: "none"}, Credits: ${finalCredits?.let { "${it.startSeconds}s" } ?: "none"}")
 
                 val cookies = NetworkClient.cookieManager.cookieStore.cookies
                 val sb = StringBuilder()
@@ -136,8 +344,8 @@ class PlayerActivity : AppCompatActivity() {
                 }
                 val cookieString = sb.toString()
 
-                runOnUiThread {
-                    setupExoPlayer(
+                withContext(Dispatchers.Main) {
+                    weakActivity.get()?.setupExoPlayer(
                         data.streamUrl,
                         cookieString,
                         data.subtitleUrl,
@@ -145,17 +353,33 @@ class PlayerActivity : AppCompatActivity() {
                     )
                 }
 
+            } catch (e: IOException) {
+                Log.e(TAG, "Network error in initializePlayer", e)
+                withContext(Dispatchers.Main) {
+                    weakActivity.get()?.let { activity ->
+                        ErrorHandler.handleNetworkError(activity, e)
+                        activity.finish()
+                    }
+                }
             } catch (e: Exception) {
                 Log.e(TAG, "CRITICAL EXCEPTION in initializePlayer", e)
-                e.printStackTrace()
-                runOnUiThread {
-                    Toast.makeText(this@PlayerActivity, "Error loading video", Toast.LENGTH_SHORT).show()
+                withContext(Dispatchers.Main) {
+                    weakActivity.get()?.let { activity ->
+                        ErrorHandler.handleNetworkError(activity, e, "Error loading video")
+                        activity.finish()
+                    }
                 }
             }
         }
     }
 
     private fun setupExoPlayer(url: String, cookieHeader: String, subUrl: String?, subLang: String?) {
+        // Store stream parameters for retry
+        lastStreamUrl = url
+        lastCookieHeader = cookieHeader
+        lastSubUrl = subUrl
+        lastSubLang = subLang
+
         val dataSourceFactory = DefaultHttpDataSource.Factory()
             .setUserAgent("okhttp/4.9.0")
             .setAllowCrossProtocolRedirects(true)
@@ -195,19 +419,23 @@ class PlayerActivity : AppCompatActivity() {
 
         player?.addListener(object : Player.Listener {
             override fun onPlayerError(error: PlaybackException) {
-                val cause = error.cause
-                if (cause is androidx.media3.datasource.HttpDataSource.InvalidResponseCodeException) {
-                    runOnUiThread {
-                        Toast.makeText(applicationContext, "Server Rejected: HTTP ${cause.responseCode}", Toast.LENGTH_LONG).show()
-                    }
-                }
+                handlePlaybackError(error)
             }
 
             override fun onPlaybackStateChanged(playbackState: Int) {
                 if (playbackState == Player.STATE_READY && player?.playWhenReady == true) {
                     Log.d(TAG, "Sync: Player READY. Starting Monitor.")
+                    // Reset retry state on successful playback
+                    resetRetryState()
                     progressHandler.removeCallbacks(progressRunnable)
                     progressHandler.post(progressRunnable)
+                }
+                if (playbackState == Player.STATE_ENDED) {
+                    if (autoplayNext && nextEpisodeData != null) {
+                        loadNextEpisode()
+                    } else if (nextEpisodeData != null) {
+                        showNextEpisodeButton()
+                    }
                 }
             }
         })
@@ -219,6 +447,135 @@ class PlayerActivity : AppCompatActivity() {
         player?.play()
     }
 
+    /**
+     * Handle playback errors with automatic retry logic.
+     * Uses exponential backoff: 2s, 4s, 8s, up to 16s max.
+     */
+    private fun handlePlaybackError(error: PlaybackException) {
+        Log.e(TAG, "Playback error: ${error.errorCodeName}", error)
+
+        // Save current position before we potentially lose it
+        player?.currentPosition?.let { pos ->
+            if (pos > 0) resumeTimeMs = pos
+        }
+
+        val cause = error.cause
+        val errorMessage = when {
+            cause is androidx.media3.datasource.HttpDataSource.InvalidResponseCodeException -> {
+                "Server error: HTTP ${cause.responseCode}"
+            }
+            error.errorCode == PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_FAILED -> {
+                "Network connection failed"
+            }
+            error.errorCode == PlaybackException.ERROR_CODE_IO_NETWORK_CONNECTION_TIMEOUT -> {
+                "Connection timed out"
+            }
+            error.errorCode == PlaybackException.ERROR_CODE_IO_BAD_HTTP_STATUS -> {
+                "Stream unavailable"
+            }
+            else -> {
+                "Playback error occurred"
+            }
+        }
+
+        // Check if we should retry
+        if (retryAttempt < MAX_RETRY_ATTEMPTS && !isRetrying) {
+            retryAttempt++
+            isRetrying = true
+
+            val retryMessage = "Connection issue. Retrying ($retryAttempt/$MAX_RETRY_ATTEMPTS)..."
+            Toast.makeText(this, retryMessage, Toast.LENGTH_SHORT).show()
+
+            Log.d(TAG, "Scheduling retry attempt $retryAttempt in ${currentRetryDelay}ms")
+
+            progressHandler.postDelayed({
+                retryPlayback()
+            }, currentRetryDelay)
+
+            // Exponential backoff: double the delay for next attempt
+            currentRetryDelay = (currentRetryDelay * 2).coerceAtMost(MAX_RETRY_DELAY_MS)
+        } else {
+            // Max retries exceeded - show final error with manual retry option
+            showFinalError(errorMessage)
+        }
+    }
+
+    /**
+     * Retry playback with stored stream parameters.
+     */
+    private fun retryPlayback() {
+        isRetrying = false
+
+        val url = lastStreamUrl
+        val cookie = lastCookieHeader
+
+        if (url == null || cookie == null) {
+            // No stored stream info - reload from API
+            Log.d(TAG, "No cached stream info, reloading from API")
+            player?.release()
+            player = null
+            initializePlayer(videoId)
+            return
+        }
+
+        // Check network before retry
+        if (!NetworkUtils.isNetworkAvailable(this)) {
+            if (retryAttempt < MAX_RETRY_ATTEMPTS) {
+                retryAttempt++
+                Toast.makeText(this, "Waiting for network ($retryAttempt/$MAX_RETRY_ATTEMPTS)...", Toast.LENGTH_SHORT).show()
+                progressHandler.postDelayed({ retryPlayback() }, currentRetryDelay)
+                currentRetryDelay = (currentRetryDelay * 2).coerceAtMost(MAX_RETRY_DELAY_MS)
+            } else {
+                showFinalError("No internet connection")
+            }
+            return
+        }
+
+        Log.d(TAG, "Retrying playback attempt $retryAttempt")
+
+        // Save current position before releasing player
+        val currentPosition = player?.currentPosition ?: resumeTimeMs
+
+        // Release old player and create new one
+        player?.release()
+        player = null
+
+        // Update resumeTimeMs so we continue from where we were
+        if (currentPosition > 0) {
+            resumeTimeMs = currentPosition
+        }
+
+        // Recreate player with stored parameters
+        setupExoPlayer(url, cookie, lastSubUrl, lastSubLang)
+    }
+
+    /**
+     * Show final error with manual retry button.
+     */
+    private fun showFinalError(errorMessage: String) {
+        Toast.makeText(
+            this,
+            "$errorMessage. Tap screen to retry or press back to exit.",
+            Toast.LENGTH_LONG
+        ).show()
+
+        // Allow tap on player view to retry
+        playerView.setOnClickListener {
+            resetRetryState()
+            playerView.setOnClickListener(null)
+            initializePlayer(videoId)
+        }
+    }
+
+    /**
+     * Reset retry state after successful playback or manual retry.
+     */
+    private fun resetRetryState() {
+        retryAttempt = 0
+        currentRetryDelay = INITIAL_RETRY_DELAY_MS
+        isRetrying = false
+    }
+
     // Fix 6: Suppress SetTextI18n (Hardcoded text) warning so you don't have to make an XML resource right now
     @SuppressLint("SetTextI18n")
     private fun showNextEpisodeButton() {
@@ -226,10 +583,7 @@ class PlayerActivity : AppCompatActivity() {
         if (!btnNextEpisode.isVisible) {
             val nextTitle = nextEpisodeData?.title ?: "Next Episode"
             btnNextEpisode.text = "Next: $nextTitle"
-            btnNextEpisode.isVisible = true
-
-            btnNextEpisode.alpha = 0f
-            btnNextEpisode.animate().alpha(1f).setDuration(500).start()
+            AnimationHelper.fadeIn(btnNextEpisode, Constants.BACKDROP_FADE_DURATION_MS)
 
             btnNextEpisode.requestFocus()
         }
@@ -260,7 +614,8 @@ class PlayerActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        if (player != null && player!!.isPlaying) {
+        // Fixed: Use safe call instead of forced non-null assertion
+        if (player?.isPlaying == true) {
             progressHandler.post(progressRunnable)
         }
     }
@@ -273,6 +628,14 @@ class PlayerActivity : AppCompatActivity() {
 
     override fun onStop() {
         super.onStop()
+        player?.release()
+        player = null
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        // Ensure all handler callbacks are removed to prevent leaks
+        progressHandler.removeCallbacksAndMessages(null)
         player?.release()
         player = null
     }

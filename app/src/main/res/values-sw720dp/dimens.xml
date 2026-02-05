@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- ========================================= -->
+<!-- TV / Large Tablet Dimensions (10" screens and larger) -->
+<!-- Optimized for 10-foot viewing experience -->
+<!-- ========================================= -->
+<resources>
+    <!-- Home (Dashboard) scale for large tablets/TV -->
+    <dimen name="home_bottom_padding">48dp</dimen>
+    <dimen name="home_hero_height">400dp</dimen>
+    <dimen name="home_hero_padding">32dp</dimen>
+
+    <dimen name="home_title_text">52sp</dimen>
+    <dimen name="home_meta_text">16sp</dimen>
+    <dimen name="home_desc_text">16sp</dimen>
+
+    <dimen name="home_section_title_text">24sp</dimen>
+    <dimen name="home_section_margin_start">32dp</dimen>
+    <dimen name="home_section_margin_top">24dp</dimen>
+    <dimen name="home_section_margin_bottom">16dp</dimen>
+
+    <dimen name="home_list_side_padding">32dp</dimen>
+    <dimen name="home_list_bottom_margin">40dp</dimen>
+
+    <!-- Horizontal card width on Home rows - even larger for big screens -->
+    <dimen name="home_horizontal_card_width">220dp</dimen>
+    
+    <!-- Grid settings for large tablets/TV -->
+    <integer name="grid_span_count">6</integer>
+    
+    <!-- Side menu (TV) - wider for easier reading -->
+    <dimen name="side_menu_width">200dp</dimen>
+    <dimen name="side_menu_padding">16dp</dimen>
+    <dimen name="side_menu_icon_size">32dp</dimen>
+    <dimen name="side_menu_icon_margin">14dp</dimen>
+    <dimen name="side_menu_text_size">18sp</dimen>
+    <dimen name="side_menu_label_text_size">13sp</dimen>
+    <dimen name="side_menu_item_padding_vertical">16dp</dimen>
+    <dimen name="side_menu_item_padding_horizontal">18dp</dimen>
+    
+    <!-- Typography - Card (TV) - larger for 10-foot viewing -->
+    <dimen name="card_title_text_size">18sp</dimen>
+    <dimen name="card_metadata_text_size">14sp</dimen>
+    <dimen name="card_badge_text_size">12sp</dimen>
+    <dimen name="card_margin">16dp</dimen>
+    <dimen name="card_content_padding">12dp</dimen>
+    <dimen name="card_corner_radius">14dp</dimen>
+    
+    <!-- Typography - Details View (TV) -->
+    <dimen name="details_title_text_size">40sp</dimen>
+    <dimen name="details_metadata_text_size">15sp</dimen>
+    <dimen name="details_plot_text_size">18sp</dimen>
+    <dimen name="details_rating_text_size">18sp</dimen>
+    <dimen name="details_credits_text_size">15sp</dimen>
+    <dimen name="details_poster_width">280dp</dimen>
+    <dimen name="details_poster_height">420dp</dimen>
+    <dimen name="details_padding">72dp</dimen>
+    <dimen name="details_padding_top">160dp</dimen>
+    <dimen name="details_padding_portrait">36dp</dimen>
+    <dimen name="details_padding_top_portrait">96dp</dimen>
+    
+    <!-- Typography - Buttons (TV) -->
+    <dimen name="button_text_size">15sp</dimen>
+    <dimen name="button_min_height">58dp</dimen>
+    <dimen name="button_icon_size">32dp</dimen>
+    <dimen name="hero_play_button_size">40dp</dimen>
+    <dimen name="hero_play_button_padding">4dp</dimen>
+    <dimen name="icon_size">32dp</dimen>
+    <dimen name="icon_button_size">44dp</dimen>
+    <dimen name="icon_button_padding">6dp</dimen>
+    <dimen name="icon_button_padding_large">8dp</dimen>
+    
+    <!-- Alphabet Scroller (TV) - larger targets for D-pad -->
+    <dimen name="alphabet_text_size">20sp</dimen>
+    <dimen name="alphabet_letter_padding_vertical">8dp</dimen>
+    <dimen name="alphabet_letter_padding_horizontal">12dp</dimen>
+    <dimen name="alphabet_letter_min_width">36dp</dimen>
+    
+    <!-- Episode List (TV) -->
+    <dimen name="episode_title_text_size">20sp</dimen>
+    <dimen name="episode_metadata_text_size">16sp</dimen>
+    <dimen name="episode_plot_text_size">16sp</dimen>
+    
+    <!-- Focus States (TV) - more prominent for 10-foot viewing -->
+    <dimen name="focus_border_width">5dp</dimen>
+    
+    <!-- Spacing (TV) - larger for easier navigation -->
+    <dimen name="spacing_xs">4dp</dimen>
+    <dimen name="spacing_sm">10dp</dimen>
+    <dimen name="spacing_md">16dp</dimen>
+    <dimen name="spacing_lg">24dp</dimen>
+    <dimen name="spacing_xl">32dp</dimen>
+    <dimen name="spacing_xxl">48dp</dimen>
+</resources>

@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="140dp"
+    android:layout_height="wrap_content"
+    android:layout_margin="16dp"
+    android:background="@drawable/sel_profile_item"
+    android:focusable="true"
+    android:focusableInTouchMode="true"
+    android:gravity="center"
+    android:orientation="vertical"
+    android:padding="16dp">
+
+    <!-- Profile Avatar Circle -->
+    <FrameLayout
+        android:layout_width="80dp"
+        android:layout_height="80dp"
+        android:layout_marginBottom="12dp">
+
+        <!-- Avatar Background -->
+        <View
+            android:id="@+id/viewAvatarBg"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:background="@drawable/bg_circle_profile" />
+
+        <!-- Avatar Initial -->
+        <TextView
+            android:id="@+id/txtInitial"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:gravity="center"
+            android:textColor="@color/text_primary"
+            android:textSize="32sp"
+            android:textStyle="bold"
+            tools:text="D" />
+
+        <!-- Lock icon for PIN-protected profiles -->
+        <ImageView
+            android:id="@+id/imgLock"
+            android:layout_width="@dimen/icon_size"
+            android:layout_height="@dimen/icon_size"
+            android:layout_gravity="bottom|end"
+            android:background="@drawable/bg_badge_dark"
+            android:padding="4dp"
+            android:src="@drawable/ic_lock"
+            android:visibility="gone"
+            app:tint="@color/text_primary"
+            tools:visibility="visible" />
+
+    </FrameLayout>
+
+    <!-- Profile Name -->
+    <TextView
+        android:id="@+id/txtProfileName"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:ellipsize="end"
+        android:maxLines="1"
+        android:textColor="@color/text_primary"
+        android:textSize="14sp"
+        tools:text="Default" />
+
+    <!-- Kids/Parental Control indicator -->
+    <TextView
+        android:id="@+id/txtRatingLimit"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:textColor="@color/text_tertiary"
+        android:textSize="11sp"
+        android:visibility="gone"
+        tools:text="Max: PG"
+        tools:visibility="visible" />
+
+</LinearLayout>

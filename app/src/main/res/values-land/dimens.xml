@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- ========================================= -->
+<!-- Landscape Mode Dimensions (Phone)        -->
+<!-- More columns to utilize horizontal space -->
+<!-- ========================================= -->
+<resources>
+    <!-- Grid settings for landscape phone -->
+    <integer name="grid_span_count">3</integer>
+    
+    <!-- Hero section - smaller in landscape to show more content -->
+    <dimen name="home_hero_height">200dp</dimen>
+    
+    <!-- Horizontal card width - smaller to fit more -->
+    <dimen name="home_horizontal_card_width">130dp</dimen>
+</resources>

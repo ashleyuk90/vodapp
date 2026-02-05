@@ -19,41 +19,91 @@ interface ApiService {
     ): ApiResponse<User>
 
     @GET("api.php?action=library")
-    suspend fun getLibrary(@Query("lib_id") libId: Int,@Query("page") page: Int): LibraryResponse
+    suspend fun getLibrary(
+        @Query("lib_id") libId: Int,
+        @Query("page") page: Int,
+        @Query("profile_id") profileId: Int? = null
+    ): LibraryResponse
 
     @GET("api.php?action=get_libraries")
     suspend fun getLibraries(): LibraryListResponse
+
     @GET("api.php?action=play")
     suspend fun getStreamInfo(@Query("id") id: Int): ApiResponse<PlayResponse>
+
     @GET("api.php?action=details")
-    suspend fun getDetails(@Query("id") id: Int): DetailsResponse
+    suspend fun getDetails(
+        @Query("id") id: Int,
+        @Query("profile_id") profileId: Int? = null
+    ): DetailsResponse
+
     @FormUrlEncoded
     @POST("api.php?action=progress")
     suspend fun syncProgress(
         @Field("id") id: Int,
         @Field("time") time: Long,
-        @Field("paused") paused: Int
+        @Field("paused") paused: Int,
+        @Field("profile_id") profileId: Int? = null
     ): ProgressResponse
+
     @GET("api.php?action=dashboard")
-    suspend fun getDashboard(): DashboardResponse
+    suspend fun getDashboard(
+        @Query("profile_id") profileId: Int? = null
+    ): DashboardResponse
+
     @GET("api.php?action=search")
-    suspend fun search(@Query("query") query: String): LibraryResponse
+    suspend fun search(
+        @Query("query") query: String,
+        @Query("profile_id") profileId: Int? = null,
+        @Query("genre") genre: String? = null,
+        @Query("year_min") yearMin: Int? = null,
+        @Query("year_max") yearMax: Int? = null,
+        @Query("min_rating") minRating: Float? = null,
+        @Query("type") type: String? = null
+    ): LibraryResponse
+
     @FormUrlEncoded
     @POST("api.php?action=watch_list_add")
     suspend fun addToWatchList(@Field("video_id") videoId: Int): ApiResponse<Any>
+
     @FormUrlEncoded
     @POST("api.php?action=watch_list_remove")
     suspend fun removeFromWatchList(@Field("video_id") videoId: Int): ApiResponse<Any>
+
     @GET("api.php?action=watch_list")
-    suspend fun getWatchList(@Query("page") page: Int = 1): WatchListResponse
+    suspend fun getWatchList(
+        @Query("page") page: Int = 1,
+        @Query("profile_id") profileId: Int? = null
+    ): WatchListResponse
+
     // Using @Query map to handle optional parameters like video_id, page, search
     @GET("api.php?action=watch_list")
     suspend fun getWatchListStatus(@Query("video_id") videoId: Int): WatchStatusResponse
+
+    // ===== Profile Endpoints =====
+
+    /**
+     * Get all profiles for the current user.
+     * Returns list of profiles and the currently active profile ID.
+     */
+    @GET("api.php?action=profiles")
+    suspend fun getProfiles(): ProfilesResponse
+
+    /**
+     * Select/activate a profile for the current session.
+     * All subsequent playback history will be saved under this profile.
+     */
+    @FormUrlEncoded
+    @POST("api.php?action=profiles_select")
+    suspend fun selectProfile(
+        @Field("profile_id") profileId: Int
+    ): ProfileSelectResponse
 }
 
 // 2. The Client Builder
 object NetworkClient {
-    private const val BASE_URL = "http://77.74.196.120/vod/" // UPDATE THIS!
+    // URL loaded from BuildConfig - configure in build.gradle.kts per build type
+    private val BASE_URL: String = BuildConfig.BASE_URL
 
     // Global Cookie Manager to hold the PHP Session
     val cookieManager = CookieManager().apply {
@@ -61,8 +111,19 @@ object NetworkClient {
     }
 
     private val okHttpClient = OkHttpClient.Builder()
-        .cookieJar(JavaNetCookieJar(cookieManager)) // <--- THE MAGIC LINE
-        .addInterceptor(HttpLoggingInterceptor().apply { level = HttpLoggingInterceptor.Level.BODY })
+        .cookieJar(JavaNetCookieJar(cookieManager))
+        // Only log in debug builds to prevent credential exposure
+        .addInterceptor(HttpLoggingInterceptor().apply {
+            level = if (BuildConfig.DEBUG) {
+                HttpLoggingInterceptor.Level.BODY
+            } else {
+                HttpLoggingInterceptor.Level.NONE
+            }
+        })
+        // Add timeouts for network resilience
+        .connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+        .readTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+        .writeTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
         .build()
 
     val api: ApiService = Retrofit.Builder()

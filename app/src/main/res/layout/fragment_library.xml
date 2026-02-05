@@ -2,12 +2,13 @@
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#121212"> <androidx.recyclerview.widget.RecyclerView
+    android:background="@color/background_secondary">
+    <androidx.recyclerview.widget.RecyclerView
     android:id="@+id/rvLibrary"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:clipToPadding="false"
-    android:padding="24dp"
+    android:padding="@dimen/spacing_lg"
     android:visibility="gone" />
 
     <ProgressBar
@@ -15,7 +16,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center"
-        android:indeterminateTint="#FFD700"
+        android:indeterminateTint="@color/brand_accent"
         android:visibility="gone" />
 
     <TextView
@@ -24,7 +25,7 @@
         android:layout_height="wrap_content"
         android:layout_gravity="center"
         android:text="Your list is empty."
-        android:textColor="#888888"
+        android:textColor="@color/text_tertiary"
         android:textSize="18sp"
         android:visibility="gone" />
 

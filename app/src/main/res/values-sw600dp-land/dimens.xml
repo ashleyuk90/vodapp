@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- ========================================= -->
+<!-- Landscape Mode Dimensions (Tablet)       -->
+<!-- More columns to utilize horizontal space -->
+<!-- ========================================= -->
+<resources>
+    <!-- Grid settings for landscape tablet -->
+    <integer name="grid_span_count">6</integer>
+    
+    <!-- Hero section - optimized for landscape -->
+    <dimen name="home_hero_height">280dp</dimen>
+    
+    <!-- Horizontal card width - optimized for landscape -->
+    <dimen name="home_horizontal_card_width">160dp</dimen>
+</resources>

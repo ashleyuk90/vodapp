@@ -14,10 +14,11 @@
         android:supportsRtl="true"
         android:banner="@mipmap/ic_banner"
         android:theme="@style/Theme.VOD"
-        android:usesCleartextTraffic="true">
+        android:networkSecurityConfig="@xml/network_security_config">
 
+    <!-- Onboarding Activity - First screen for new users -->
     <activity
-        android:name=".LoginActivity"
+        android:name=".OnboardingActivity"
         android:exported="true">
         <intent-filter>
             <action android:name="android.intent.action.MAIN" />
@@ -27,6 +28,14 @@
     </activity>
 
     <activity
+        android:name=".LoginActivity"
+        android:exported="true" />
+
+    <activity
+        android:name=".ProfileSelectionActivity"
+        android:exported="false" />
+
+    <activity
         android:name=".MainActivity"
         android:exported="false" />
 
@@ -34,9 +43,14 @@
         android:name=".PlayerActivity"
         android:configChanges="orientation|screenSize|screenLayout|keyboardHidden"
         android:exported="false" />
-        <activity
-            android:name=".DetailsActivity"
-            android:exported="false" />
+
+    <activity
+        android:name=".DetailsActivity"
+        android:exported="false" />
+
+    <activity
+        android:name=".PlaybackPreferencesActivity"
+        android:exported="false" />
 </application>
 
 </manifest>

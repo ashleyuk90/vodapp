@@ -1,0 +1,198 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="@color/background_dark"
+    android:orientation="vertical"
+    android:padding="@dimen/spacing_xl"
+    android:clipChildren="false"
+    android:clipToPadding="false">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
+
+        <ImageButton
+            android:id="@+id/btnBack"
+            android:layout_width="@dimen/icon_button_size"
+            android:layout_height="@dimen/icon_button_size"
+            android:background="@drawable/sel_menu_item_pill"
+            android:contentDescription="@string/a11y_back_button"
+            android:focusable="true"
+            android:padding="@dimen/icon_button_padding"
+            android:scaleType="fitCenter"
+            android:src="@drawable/ic_arrow_back"
+            app:tint="@color/back_arrow_tint" />
+
+        <TextView
+            android:id="@+id/txtTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginStart="@dimen/spacing_md"
+            android:text="@string/playback_prefs_title"
+            android:textColor="@color/text_primary"
+            android:textSize="@dimen/home_section_title_text"
+            android:textStyle="bold" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/txtSubtitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/spacing_sm"
+        android:text="@string/playback_prefs_subtitle"
+        android:textColor="@color/text_tertiary"
+        android:textSize="@dimen/episode_metadata_text_size" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:layout_marginTop="@dimen/spacing_xl"
+        android:clipChildren="false"
+        android:clipToPadding="false">
+
+        <LinearLayout
+            android:id="@+id/rowAutoSkipIntro"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/selector_card_border"
+            android:padding="@dimen/spacing_lg"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:clickable="true"
+            android:focusable="true"
+            android:focusableInTouchMode="true">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/lblAutoSkipIntro"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/playback_pref_auto_skip_intro_title"
+                    android:textColor="@color/text_primary"
+                    android:textSize="@dimen/episode_title_text_size"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/descAutoSkipIntro"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/spacing_xs"
+                    android:text="@string/playback_pref_auto_skip_intro_desc"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="@dimen/episode_metadata_text_size" />
+            </LinearLayout>
+
+            <androidx.appcompat.widget.SwitchCompat
+                android:id="@+id/switchAutoSkipIntro"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                style="@style/VOD.Switch"
+                android:focusable="false"
+                android:clickable="false" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/rowAutoSkipCredits"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_md"
+            android:background="@drawable/selector_card_border"
+            android:padding="@dimen/spacing_lg"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:clickable="true"
+            android:focusable="true"
+            android:focusableInTouchMode="true">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/lblAutoSkipCredits"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/playback_pref_auto_skip_credits_title"
+                    android:textColor="@color/text_primary"
+                    android:textSize="@dimen/episode_title_text_size"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/descAutoSkipCredits"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/spacing_xs"
+                    android:text="@string/playback_pref_auto_skip_credits_desc"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="@dimen/episode_metadata_text_size" />
+            </LinearLayout>
+
+            <androidx.appcompat.widget.SwitchCompat
+                android:id="@+id/switchAutoSkipCredits"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                style="@style/VOD.Switch"
+                android:focusable="false"
+                android:clickable="false" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/rowAutoplayNext"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_md"
+            android:background="@drawable/selector_card_border"
+            android:padding="@dimen/spacing_lg"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:clickable="true"
+            android:focusable="true"
+            android:focusableInTouchMode="true">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/lblAutoplayNext"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/playback_pref_autoplay_next_title"
+                    android:textColor="@color/text_primary"
+                    android:textSize="@dimen/episode_title_text_size"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/descAutoplayNext"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/spacing_xs"
+                    android:text="@string/playback_pref_autoplay_next_desc"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="@dimen/episode_metadata_text_size" />
+            </LinearLayout>
+
+            <androidx.appcompat.widget.SwitchCompat
+                android:id="@+id/switchAutoplayNext"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                style="@style/VOD.Switch"
+                android:focusable="false"
+                android:clickable="false" />
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>

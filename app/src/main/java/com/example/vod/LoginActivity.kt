@@ -9,13 +9,21 @@ import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
-import androidx.core.content.edit // Important import for the KTX fix
+import androidx.core.content.edit
+import androidx.lifecycle.lifecycleScope
+import androidx.security.crypto.EncryptedSharedPreferences
+import androidx.security.crypto.MasterKey
+import com.example.vod.utils.Constants
+import com.example.vod.utils.ErrorHandler
+import com.example.vod.utils.NetworkUtils
+import com.example.vod.utils.OrientationUtils
 import com.google.gson.Gson
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import retrofit2.HttpException
+import java.io.IOException
+import java.lang.ref.WeakReference
 
 class LoginActivity : AppCompatActivity() {
 
@@ -27,6 +35,7 @@ class LoginActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        OrientationUtils.applyPreferredOrientation(this)
         setContentView(R.layout.activity_login)
 
         // 1. Init Views
@@ -36,13 +45,22 @@ class LoginActivity : AppCompatActivity() {
         etPass = findViewById(R.id.etPassword)
         val btnLogin = findViewById<Button>(R.id.btnLogin)
 
-        // 2. Init Storage (SharedPreferences)
-        // FIX 1: Removed redundant "Context." qualifier
-        prefs = getSharedPreferences("VOD_PREFS", MODE_PRIVATE)
+        // 2. Init Storage (EncryptedSharedPreferences for secure credential storage)
+        val masterKey = MasterKey.Builder(this)
+            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
+            .build()
+
+        prefs = EncryptedSharedPreferences.create(
+            this,
+            Constants.PREFS_NAME,
+            masterKey,
+            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
+            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
+        )
 
         // 3. CHECK FOR SAVED CREDENTIALS
-        val savedUser = prefs.getString("KEY_USER", null)
-        val savedPass = prefs.getString("KEY_PASS", null)
+        val savedUser = prefs.getString(Constants.KEY_USER, null)
+        val savedPass = prefs.getString(Constants.KEY_PASS, null)
 
         if (savedUser != null && savedPass != null) {
             performLogin(savedUser, savedPass)
@@ -52,58 +70,112 @@ class LoginActivity : AppCompatActivity() {
         btnLogin.setOnClickListener {
             val user = etUser.text.toString().trim()
             val pass = etPass.text.toString().trim()
-            if (user.isNotEmpty() && pass.isNotEmpty()) {
+            
+            if (validateInput(user, pass)) {
                 performLogin(user, pass)
-            } else {
-                Toast.makeText(this, "Please enter details", Toast.LENGTH_SHORT).show()
             }
+        }
+    }
+
+    /**
+     * Validate username and password input.
+     * @return true if valid, false otherwise
+     */
+    private fun validateInput(user: String, pass: String): Boolean {
+        // Clear previous errors
+        etUser.error = null
+        etPass.error = null
+
+        return when {
+            user.isEmpty() -> {
+                etUser.error = "Username is required"
+                etUser.requestFocus()
+                false
+            }
+            user.length < Constants.MIN_USERNAME_LENGTH -> {
+                etUser.error = "Username must be at least ${Constants.MIN_USERNAME_LENGTH} characters"
+                etUser.requestFocus()
+                false
+            }
+            pass.isEmpty() -> {
+                etPass.error = "Password is required"
+                etPass.requestFocus()
+                false
+            }
+            pass.length < Constants.MIN_PASSWORD_LENGTH -> {
+                etPass.error = "Password must be at least ${Constants.MIN_PASSWORD_LENGTH} characters"
+                etPass.requestFocus()
+                false
+            }
+            else -> true
         }
     }
 
     private fun performLogin(user: String, pass: String) {
+        // Check network connectivity before attempting login
+        if (!NetworkUtils.isNetworkAvailable(this)) {
+            Toast.makeText(this, "No internet connection", Toast.LENGTH_SHORT).show()
+            return
+        }
+
         layoutForm.visibility = View.GONE
         layoutLoading.visibility = View.VISIBLE
 
-        CoroutineScope(Dispatchers.IO).launch {
+        // Use WeakReference to prevent activity leak
+        val weakActivity = WeakReference(this)
+
+        // Use lifecycleScope for automatic cancellation on activity destruction
+        lifecycleScope.launch(Dispatchers.IO) {
             try {
                 val response = NetworkClient.api.login(user, pass)
 
                 withContext(Dispatchers.Main) {
+                    val activity = weakActivity.get() ?: return@withContext
+                    
                     if (response.status == "success") {
-                        // FIX 2: Use KTX 'edit' extension (auto-applies)
                         prefs.edit {
-                            putString("KEY_USER", user)
-                            putString("KEY_PASS", pass)
+                            putString(Constants.KEY_USER, user)
+                            putString(Constants.KEY_PASS, pass)
                         }
 
-                        Toast.makeText(applicationContext, "Welcome back!", Toast.LENGTH_SHORT).show()
-                        startActivity(Intent(this@LoginActivity, MainActivity::class.java))
-                        finish()
+                        Toast.makeText(activity.applicationContext, "Welcome back!", Toast.LENGTH_SHORT).show()
+                        // Navigate to profile selection after login
+                        activity.startActivity(Intent(activity, ProfileSelectionActivity::class.java))
+                        activity.finish()
                     } else {
-                        showLoginError("Login Failed")
+                        activity.showLoginError("Login Failed")
                     }
                 }
             } catch (e: HttpException) {
                 withContext(Dispatchers.Main) {
+                    val activity = weakActivity.get() ?: return@withContext
                     try {
                         val errorJson = e.response()?.errorBody()?.string()
                         val errorResponse = Gson().fromJson(errorJson, ApiResponse::class.java)
-                        showLoginError(errorResponse.message ?: "Invalid Credentials")
-                    } catch (_: Exception) { // FIX 3: Renamed 'ex' to '_'
-                        showLoginError("Invalid Credentials")
+                        activity.showLoginError(errorResponse.message ?: "Invalid Credentials")
+                    } catch (_: Exception) {
+                        activity.showLoginError("Invalid Credentials")
+                    }
+                }
+            } catch (e: IOException) {
+                withContext(Dispatchers.Main) {
+                    weakActivity.get()?.let { activity ->
+                        ErrorHandler.handleNetworkError(activity, e)
+                        activity.showLoginError(null)
                     }
                 }
             } catch (e: Exception) {
-                e.printStackTrace()
                 withContext(Dispatchers.Main) {
-                    showLoginError("Connection Error: ${e.message}")
+                    weakActivity.get()?.let { activity ->
+                        ErrorHandler.handleNetworkError(activity, e, "Connection Error")
+                        activity.showLoginError(null)
+                    }
                 }
             }
         }
     }
 
-    private fun showLoginError(msg: String) {
-        // FIX 4: Use KTX 'edit' extension
+    private fun showLoginError(msg: String?) {
         prefs.edit {
             clear()
         }
@@ -111,6 +183,8 @@ class LoginActivity : AppCompatActivity() {
         layoutLoading.visibility = View.GONE
         layoutForm.visibility = View.VISIBLE
 
-        Toast.makeText(applicationContext, msg, Toast.LENGTH_SHORT).show()
+        msg?.let {
+            Toast.makeText(applicationContext, it, Toast.LENGTH_SHORT).show()
+        }
     }
 }

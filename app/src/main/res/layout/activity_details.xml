@@ -21,21 +21,6 @@
         android:layout_height="match_parent"
         android:background="@drawable/bg_hero_gradient" />
 
-    <ImageButton
-        android:id="@+id/btnBack"
-        android:layout_width="48dp"
-        android:layout_height="48dp"
-        android:layout_margin="32dp"
-        android:background="@drawable/sel_menu_item_pill"
-        android:contentDescription="Back"
-        android:focusable="true"
-        android:padding="12dp"
-        android:scaleType="fitCenter"
-        android:src="@drawable/ic_arrow_back"
-        app:tint="#FFFFFF"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
-
     <androidx.core.widget.NestedScrollView
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -46,17 +31,17 @@
         <androidx.constraintlayout.widget.ConstraintLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:paddingStart="56dp"
-            android:paddingTop="120dp"
-            android:paddingEnd="56dp"
+            android:paddingStart="@dimen/details_padding"
+            android:paddingTop="@dimen/details_padding_top"
+            android:paddingEnd="@dimen/details_padding"
             android:paddingBottom="48dp"
             android:clipChildren="false"
             android:clipToPadding="false">
 
             <androidx.cardview.widget.CardView
                 android:id="@+id/cardPoster"
-                android:layout_width="200dp"
-                android:layout_height="300dp"
+                android:layout_width="@dimen/details_poster_width"
+                android:layout_height="@dimen/details_poster_height"
                 app:cardBackgroundColor="#000000"
                 app:cardCornerRadius="12dp"
                 app:cardElevation="20dp"
@@ -96,8 +81,8 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     tools:text="Chicken Little"
-                    android:textColor="#FFFFFF"
-                    android:textSize="40sp"
+                    android:textColor="@color/text_primary"
+                    android:textSize="@dimen/details_title_text_size"
                     android:textStyle="bold"
                     android:shadowColor="#000000"
                     android:shadowRadius="10"
@@ -117,8 +102,8 @@
                         android:background="@drawable/bg_metadata_pill"
                         android:paddingHorizontal="10dp"
                         android:paddingVertical="4dp"
-                        android:textColor="#DDDDDD"
-                        android:textSize="13sp"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="@dimen/details_metadata_text_size"
                         android:textStyle="bold"
                         tools:text="2005" />
 
@@ -130,9 +115,23 @@
                         android:background="@drawable/bg_metadata_pill"
                         android:paddingHorizontal="10dp"
                         android:paddingVertical="4dp"
-                        android:textColor="#DDDDDD"
-                        android:textSize="13sp"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="@dimen/details_metadata_text_size"
                         tools:text="Animation" />
+
+                    <TextView
+                        android:id="@+id/txtDetailContentRating"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginStart="10dp"
+                        android:background="@drawable/bg_metadata_pill"
+                        android:paddingHorizontal="10dp"
+                        android:paddingVertical="4dp"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="@dimen/details_metadata_text_size"
+                        android:visibility="gone"
+                        tools:text="PG-13"
+                        tools:visibility="visible" />
 
                     <TextView
                         android:id="@+id/txtDetailRuntime"
@@ -142,8 +141,8 @@
                         android:background="@drawable/bg_metadata_pill"
                         android:paddingHorizontal="10dp"
                         android:paddingVertical="4dp"
-                        android:textColor="#DDDDDD"
-                        android:textSize="13sp"
+                        android:textColor="@color/text_secondary"
+                        android:textSize="@dimen/details_metadata_text_size"
                         tools:text="1h 21m" />
 
                     <TextView
@@ -152,8 +151,8 @@
                         android:layout_height="wrap_content"
                         android:layout_marginStart="16dp"
                         android:text="★ 5.9"
-                        android:textColor="#FFD700"
-                        android:textSize="15sp"
+                        android:textColor="@color/brand_accent"
+                        android:textSize="@dimen/details_rating_text_size"
                         android:textStyle="bold" />
 
                     <TextView
@@ -162,8 +161,8 @@
                         android:layout_height="wrap_content"
                         android:layout_marginStart="16dp"
                         android:text="95%"
-                        android:textColor="#FFFFFF"
-                        android:textSize="15sp"
+                        android:textColor="@color/text_primary"
+                        android:textSize="@dimen/details_rating_text_size"
                         android:textStyle="bold"
                         android:gravity="center_vertical"
                         app:drawableStartCompat="@drawable/ic_tomato"
@@ -179,8 +178,8 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="16dp"
                     android:lineSpacingMultiplier="1.2"
-                    android:textColor="#EEEEEE"
-                    android:textSize="15sp"
+                    android:textColor="@color/text_primary"
+                    android:textSize="@dimen/details_plot_text_size"
                     android:maxLines="5"
                     android:ellipsize="end"
                     tools:text="After ruining his reputation with the town..." />
@@ -197,76 +196,43 @@
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnResume"
+                        style="@style/VOD.Button.Primary"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginEnd="16dp"
-                        android:backgroundTint="#FFFFFF"
+                        android:layout_marginEnd="12dp"
                         android:text="RESUME"
-                        android:textColor="#000000"
-                        android:textStyle="bold"
-                        android:letterSpacing="0.05"
-                        android:fontFamily="sans-serif-medium"
-                        android:textSize="13sp"
+                        android:contentDescription="Resume playback from where you left off"
                         app:icon="@drawable/ic_play"
-                        app:iconTint="#000000"
-                        app:iconSize="20dp"
-                        app:cornerRadius="4dp"
-                        android:minHeight="48dp"
-                        android:minWidth="120dp"
                         android:visibility="gone" />
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnPlay"
+                        style="@style/VOD.Button.Primary"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginEnd="16dp"
-                        android:backgroundTint="#FFFFFF"
+                        android:layout_marginEnd="12dp"
                         android:text="PLAY"
-                        android:textColor="#000000"
-                        android:textStyle="bold"
-                        android:letterSpacing="0.05"
-                        android:fontFamily="sans-serif-medium"
-                        android:textSize="13sp"
-                        app:icon="@drawable/ic_play"
-                        app:iconTint="#000000"
-                        app:iconSize="20dp"
-                        app:cornerRadius="4dp"
-                        android:minHeight="48dp"
-                        android:minWidth="120dp"/>
+                        android:contentDescription="Play video from the beginning"
+                        app:icon="@drawable/ic_play" />
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnWatchLater"
+                        style="@style/VOD.Button.Secondary"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:layout_marginEnd="16dp"
-                        android:backgroundTint="#262626"
-                        android:text="Watch Later"
-                        android:textColor="#FFFFFF"
-                        android:textStyle="bold"
-                        android:letterSpacing="0.05"
-                        android:fontFamily="sans-serif-medium"
-                        android:textSize="13sp"
-                        app:icon="@drawable/ic_add"
-                        app:iconTint="#FFFFFF"
-                        app:iconSize="20dp"
-                        app:cornerRadius="4dp"
-                        android:minHeight="48dp" />
+                        android:layout_marginEnd="12dp"
+                        android:text="WATCH LATER"
+                        android:contentDescription="@string/a11y_watchlist_add"
+                        app:icon="@drawable/ic_add" />
 
                     <com.google.android.material.button.MaterialButton
                         android:id="@+id/btnSubtitles"
+                        style="@style/VOD.Button.Icon"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:backgroundTint="#262626"
                         android:text="CC"
-                        android:textColor="#FFFFFF"
-                        android:textStyle="bold"
-                        android:fontFamily="sans-serif-medium"
-                        android:textSize="13sp"
+                        android:contentDescription="@string/a11y_subtitles_available"
                         app:icon="@drawable/ic_subtitles"
-                        app:iconTint="#FFFFFF"
-                        app:iconSize="20dp"
-                        app:cornerRadius="4dp"
-                        android:minHeight="48dp"
                         android:visibility="gone" />
                 </LinearLayout>
 
@@ -275,7 +241,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="1dp"
                     android:layout_marginTop="24dp"
-                    android:background="#1AFFFFFF" />
+                    android:background="@color/divider_light" />
 
                 <LinearLayout
                     android:id="@+id/layoutCredits"
@@ -289,8 +255,8 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:textColor="#999999"
-                        android:textSize="13sp"
+                        android:textColor="@color/text_tertiary"
+                        android:textSize="@dimen/details_credits_text_size"
                         tools:text="Director: Alexs Stadermann" />
 
                     <TextView
@@ -298,8 +264,8 @@
                         android:layout_width="0dp"
                         android:layout_height="wrap_content"
                         android:layout_weight="1"
-                        android:textColor="#999999"
-                        android:textSize="13sp"
+                        android:textColor="@color/text_tertiary"
+                        android:textSize="@dimen/details_credits_text_size"
                         tools:text="Starring: N/A" />
                 </LinearLayout>
 
@@ -318,17 +284,36 @@
                         android:textColor="#FFFFFF"
                         android:textSize="20sp"
                         android:textStyle="bold"
-                        android:layout_marginBottom="12dp"/>
+                        android:layout_marginBottom="12dp"
+                        android:accessibilityHeading="true"/>
 
                     <androidx.recyclerview.widget.RecyclerView
                         android:id="@+id/rvEpisodes"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:nestedScrollingEnabled="false"/>
+                        android:nestedScrollingEnabled="false"
+                        android:contentDescription="List of episodes"/>
                 </LinearLayout>
 
             </LinearLayout>
 
         </androidx.constraintlayout.widget.ConstraintLayout>
     </androidx.core.widget.NestedScrollView>
+
+    <ImageButton
+        android:id="@+id/btnBack"
+        android:layout_width="48dp"
+        android:layout_height="48dp"
+        android:layout_margin="32dp"
+        android:background="@drawable/sel_menu_item_pill"
+        android:contentDescription="@string/a11y_back_button"
+        android:focusable="true"
+        android:clickable="true"
+        android:elevation="24dp"
+        android:padding="@dimen/icon_button_padding_large"
+        android:scaleType="fitCenter"
+        android:src="@drawable/ic_arrow_back"
+        app:tint="#FFFFFF"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintTop_toTopOf="parent" />
 </androidx.constraintlayout.widget.ConstraintLayout>

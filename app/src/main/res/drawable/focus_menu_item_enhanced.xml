@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Enhanced focus state for menu items with left accent bar -->
+<selector xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Focused state - white background with subtle accent -->
+    <item android:state_focused="true">
+        <layer-list>
+            <!-- Left accent bar (brand red) -->
+            <item android:width="4dp" android:gravity="start">
+                <shape android:shape="rectangle">
+                    <solid android:color="#E50914"/>
+                    <corners android:topLeftRadius="24dp" android:bottomLeftRadius="24dp"/>
+                </shape>
+            </item>
+            <!-- Main background -->
+            <item android:left="4dp">
+                <shape android:shape="rectangle">
+                    <solid android:color="#FFFFFF"/>
+                    <corners android:topRightRadius="24dp" android:bottomRightRadius="24dp"/>
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+    <!-- Selected/Active state -->
+    <item android:state_selected="true">
+        <layer-list>
+            <item android:width="4dp" android:gravity="start">
+                <shape android:shape="rectangle">
+                    <solid android:color="#E50914"/>
+                    <corners android:topLeftRadius="24dp" android:bottomLeftRadius="24dp"/>
+                </shape>
+            </item>
+            <item android:left="4dp">
+                <shape android:shape="rectangle">
+                    <solid android:color="#33FFFFFF"/>
+                    <corners android:topRightRadius="24dp" android:bottomRightRadius="24dp"/>
+                </shape>
+            </item>
+        </layer-list>
+    </item>
+    <!-- Default state -->
+    <item>
+        <shape android:shape="rectangle">
+            <solid android:color="@android:color/transparent"/>
+        </shape>
+    </item>
+</selector>

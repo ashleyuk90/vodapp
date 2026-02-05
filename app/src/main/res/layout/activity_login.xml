@@ -2,7 +2,7 @@
 <FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="#121212">
+    android:background="@color/background_secondary">
 
     <LinearLayout
         android:id="@+id/layoutLoginForm"
@@ -16,7 +16,7 @@
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="VOD Login"
-            android:textColor="#FFFFFF"
+            android:textColor="@color/text_primary"
             android:textSize="24sp"
             android:textStyle="bold"
             android:layout_marginBottom="48dp"/>
@@ -26,9 +26,9 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="Username"
-            android:textColorHint="#888888"
-            android:textColor="#FFFFFF"
-            android:backgroundTint="#FFFFFF"
+            android:textColorHint="@color/text_tertiary"
+            android:textColor="@color/text_primary"
+            android:backgroundTint="@color/text_primary"
             android:inputType="text"
             android:minHeight="48dp"
             android:layout_marginBottom="16dp"/>
@@ -38,20 +38,19 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:hint="Password"
-            android:textColorHint="#888888"
-            android:textColor="#FFFFFF"
-            android:backgroundTint="#FFFFFF"
+            android:textColorHint="@color/text_tertiary"
+            android:textColor="@color/text_primary"
+            android:backgroundTint="@color/text_primary"
             android:inputType="textPassword"
             android:minHeight="48dp"
             android:layout_marginBottom="24dp"/>
 
-        <Button
+        <com.google.android.material.button.MaterialButton
             android:id="@+id/btnLogin"
+            style="@style/VOD.Button.Accent"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Sign In"
-            android:backgroundTint="#E50914"
-            android:textColor="#FFFFFF"/>
+            android:text="Sign In" />
     </LinearLayout>
 
     <LinearLayout
@@ -59,20 +58,20 @@
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:gravity="center"
-        android:background="#121212"
+        android:background="@color/background_secondary"
         android:visibility="gone"
         android:orientation="vertical">
 
         <ProgressBar
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:indeterminateTint="#E50914"/>
+            android:indeterminateTint="@color/brand_primary"/>
 
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="Logging in..."
-            android:textColor="#FFFFFF"
+            android:textColor="@color/text_primary"
             android:layout_marginTop="16dp"/>
     </LinearLayout>
 

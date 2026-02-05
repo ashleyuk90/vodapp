@@ -14,8 +14,126 @@
     <string name="btn_in_watch_list">In Watch List</string>
     <string name="toast_added_watchlist">Added to Watch List</string>
     <string name="toast_removed_watchlist">Removed from Watch List</string>
+    
+    <!-- Player Controls -->
+    <string name="skip_intro">Skip Intro</string>
+    <string name="skip_credits">Skip Credits</string>
+    <string name="next_episode">Next Episode</string>
+    <string name="a11y_skip_intro">Skip intro segment</string>
+    <string name="a11y_skip_credits">Skip credits and play next episode</string>
+    
     <string name="season_format">Season %d</string>
     <string name="duration_format">%d min</string>
     <string name="watch_list_empty">Your Watch List is empty.</string>
     <string name="watch_list_error">Error loading Watch List.</string>
+    
+    <!-- Profile Selection -->
+    <string name="who_is_watching">Who\'s Watching?</string>
+    <string name="select_profile">Select a profile to continue</string>
+    <string name="retry">Retry</string>
+    <string name="loading_profiles">Loading profiles…</string>
+    <string name="profile_selected">Profile selected: %1$s</string>
+    <string name="profile_load_error">Failed to load profiles</string>
+    <string name="profile_select_error">Failed to select profile</string>
+    <string name="profile_not_selected">No active profile selected</string>
+    <string name="max_rating_format">Max: %1$s</string>
+    <string name="enter_pin">Enter PIN</string>
+    <string name="wrong_pin">Incorrect PIN</string>
+    
+    <!-- Search Filters -->
+    <string name="filter_all">All</string>
+    <string name="filter_movies">Movies</string>
+    <string name="filter_series">Series</string>
+    <string name="filter_action">Action</string>
+    <string name="filter_comedy">Comedy</string>
+    <string name="filter_drama">Drama</string>
+    <string name="filter_horror">Horror</string>
+    <string name="filter_scifi">Sci-Fi</string>
+    <string name="filter_animation">Animation</string>
+    <string name="filter_clear">Clear Filters</string>
+    <string name="search_results_filtered">Showing %1$d results with filters</string>
+    
+    <!-- Search Empty/Error States -->
+    <string name="search_empty_title">No Results Found</string>
+    <string name="search_empty_message">Try different keywords or adjust your filters to find what you\'re looking for.</string>
+    <string name="search_hint">Search movies, shows, actors…</string>
+    
+    <!-- Error States -->
+    <string name="error_title">Something Went Wrong</string>
+    <string name="error_generic">We couldn\'t load the content. Please check your connection and try again.</string>
+    <string name="error_network">No internet connection. Please check your network settings.</string>
+    <string name="error_server">Our servers are having issues. Please try again later.</string>
+    <string name="go_back">Go Back</string>
+    
+    <!-- Profile Menu -->
+    <string name="profile_switch">Switch Profile</string>
+    <string name="set_as_default">Set as Default</string>
+    <string name="remove_default">Remove Default</string>
+    <string name="default_profile_set">Default profile set: %1$s</string>
+    <string name="default_profile_cleared">Default profile cleared</string>
+    
+    <!-- Onboarding -->
+    <string name="onboarding_skip">Skip</string>
+    <string name="onboarding_next">Next</string>
+    <string name="onboarding_get_started">Get Started</string>
+    <string name="onboarding_icon_desc">Feature icon</string>
+    
+    <string name="onboarding_welcome_title">Welcome to VOD</string>
+    <string name="onboarding_welcome_desc">This quick guide will show you how to navigate and use the app. Use the Next button or swipe to continue.</string>
+    
+    <string name="onboarding_navigation_title">How to Navigate</string>
+    <string name="onboarding_navigation_desc">Use your D-pad or remote to navigate. The side menu on the left has Search, Home, Watch Later, and your content libraries. Navigate up/down to move between menu items, then press right or OK to enter each section.</string>
+    
+    <string name="onboarding_browsing_title">Browsing Content</string>
+    <string name="onboarding_browsing_desc">The Home screen shows a featured title at the top. Navigate down to browse Continue Watching and content rows. Select any title to view details, or press Play to start watching immediately.</string>
+    
+    <string name="onboarding_profiles_title">Using Profiles</string>
+    <string name="onboarding_profiles_desc">Each family member can have their own profile with separate watch history. Select your profile at the bottom of the side menu to switch profiles. Long-press it to open Playback Preferences. In the profile picker, long-press a profile to set it as default for auto-login.</string>
+    
+    <string name="onboarding_search_title">Search &amp; Filters</string>
+    <string name="onboarding_search_desc">Select Search from the side menu to find content. Type your query, then use the filter chips below to narrow results by Movies, Series, or genre (Action, Comedy, Drama, etc.). Select Clear to reset filters.</string>
+    
+    <string name="onboarding_watchlist_title">Watch Later &amp; Progress</string>
+    <string name="onboarding_watchlist_desc">On any title, select the Watch Later button to save it for later. Your watchlist and viewing progress sync across devices. Continue Watching on the Home screen shows titles you haven\'t finished.</string>
+    
+    <string name="onboarding_playback_title">Playback Controls</string>
+    <string name="onboarding_playback_desc">During playback: use left/right to seek, OK to pause/play, and back to exit. For series, a Next Episode button appears at the end. Resume will pick up where you left off, or choose Play to start from the beginning.</string>
+
+    <!-- Playback Preferences -->
+    <string name="playback_prefs_title">Playback Preferences</string>
+    <string name="playback_prefs_subtitle">Applies to: %1$s</string>
+    <string name="playback_pref_auto_skip_intro_title">Auto-skip intro</string>
+    <string name="playback_pref_auto_skip_intro_desc">Automatically skip opening intros when available.</string>
+    <string name="playback_pref_auto_skip_credits_title">Auto-skip credits</string>
+    <string name="playback_pref_auto_skip_credits_desc">Automatically skip credits and jump to the next episode.</string>
+    <string name="playback_pref_autoplay_next_title">Autoplay next episode</string>
+    <string name="playback_pref_autoplay_next_desc">Start the next episode automatically after playback ends.</string>
+    <string name="playback_prefs_saved">Playback preferences updated</string>
+    
+    <!-- Accessibility -->
+    <string name="a11y_menu_button">Menu button, %1$s</string>
+    <string name="a11y_video_card">%1$s, %2$d, %3$s quality, rated %4$s</string>
+    <string name="a11y_video_card_progress">%1$s, %2$d percent watched</string>
+    <string name="a11y_play_button">Play %1$s</string>
+    <string name="a11y_resume_button">Resume %1$s from where you left off</string>
+    <string name="a11y_back_button">Go back</string>
+    <string name="a11y_search_button">Search for content</string>
+    <string name="menu_collapse">Collapse menu</string>
+    <string name="menu_expand">Expand menu</string>
+    <string name="a11y_profile_button">Switch profile, current profile %1$s</string>
+    <string name="a11y_loading">Loading content, please wait</string>
+    <string name="a11y_content_loaded">Content loaded</string>
+    <string name="a11y_filter_active">Filter active: %1$s</string>
+    <string name="a11y_filter_cleared">Filters cleared</string>
+    <string name="a11y_episode_item">Episode %1$d, %2$s, %3$s</string>
+    <string name="a11y_hero_section">Featured content: %1$s</string>
+    <string name="a11y_section_header">Section: %1$s</string>
+    <string name="a11y_watchlist_add">Add to watch list</string>
+    <string name="a11y_watchlist_remove">Remove from watch list</string>
+    <string name="a11y_subtitles_available">Subtitles available</string>
+    <string name="a11y_navigation_hint">Use D-pad to navigate, press OK to select</string>
+    
+    <!-- High Contrast Mode -->
+    <string name="settings_high_contrast">High Contrast Mode</string>
+    <string name="settings_high_contrast_desc">Increase text and UI contrast for better visibility</string>
 </resources>

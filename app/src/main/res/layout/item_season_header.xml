@@ -17,14 +17,14 @@
         android:layout_height="wrap_content"
         android:layout_weight="1"
         android:text="Season 1"
-        android:textColor="#FFFFFF"
+        android:textColor="@color/text_primary"
         android:textSize="18sp"
         android:textStyle="bold"/>
 
     <ImageView
         android:id="@+id/imgExpand"
-        android:layout_width="24dp"
-        android:layout_height="24dp"
+        android:layout_width="@dimen/icon_size"
+        android:layout_height="@dimen/icon_size"
         android:src="@drawable/ic_arrow_chevron"
-        app:tint="#888888"/>
+        app:tint="@color/text_tertiary"/>
 </LinearLayout>

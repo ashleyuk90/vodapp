@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Empty State Layout - shown when no results are found -->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/layoutEmptyState"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:gravity="center"
+    android:padding="48dp">
+
+    <ImageView
+        android:id="@+id/imgEmptyIcon"
+        android:layout_width="80dp"
+        android:layout_height="80dp"
+        android:src="@drawable/ic_search"
+        android:alpha="0.4"
+        app:tint="@color/text_tertiary"
+        android:importantForAccessibility="no" />
+
+    <TextView
+        android:id="@+id/txtEmptyTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/search_empty_title"
+        android:textColor="@color/text_primary"
+        android:textSize="20sp"
+        android:textStyle="bold"
+        android:layout_marginTop="24dp"
+        android:gravity="center" />
+
+    <TextView
+        android:id="@+id/txtEmptyMessage"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="@string/search_empty_message"
+        android:textColor="@color/text_secondary"
+        android:textSize="14sp"
+        android:layout_marginTop="8dp"
+        android:gravity="center"
+        android:maxWidth="400dp" />
+
+    <Button
+        android:id="@+id/btnClearFilters"
+        android:layout_width="wrap_content"
+        android:layout_height="@dimen/button_min_height"
+        android:text="@string/filter_clear"
+        android:textColor="@color/text_on_brand"
+        android:textSize="@dimen/button_text_size"
+        android:background="@drawable/bg_button_play"
+        android:paddingHorizontal="24dp"
+        android:layout_marginTop="24dp"
+        android:focusable="true"
+        android:visibility="gone" />
+</LinearLayout>

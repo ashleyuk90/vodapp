@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Fade gradient to indicate more scrollable content above -->
+<shape xmlns:android="http://schemas.android.com/apk/res/android">
+    <gradient
+        android:angle="270"
+        android:startColor="#FF161616"
+        android:endColor="#00161616"
+        android:type="linear"/>
+</shape>

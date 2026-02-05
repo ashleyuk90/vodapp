@@ -13,31 +13,54 @@
         app:show_buffering="when_playing"
         app:resize_mode="fit"/>
 
+    <!-- Skip Intro Button (bottom-start) -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnSkipIntro"
+        style="@style/VOD.Button.Secondary"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|start"
+        android:layout_marginStart="32dp"
+        android:layout_marginBottom="48dp"
+        android:text="@string/skip_intro"
+        android:visibility="gone"
+        app:icon="@drawable/ic_play_arrow"
+        android:focusable="true"
+        android:focusableInTouchMode="true"
+        android:nextFocusRight="@id/btnSkipCredits"
+        android:nextFocusUp="@id/player_view"/>
+
+    <!-- Skip Credits Button (bottom-start, same position as skip intro) -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnSkipCredits"
+        style="@style/VOD.Button.Secondary"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|start"
+        android:layout_marginStart="32dp"
+        android:layout_marginBottom="48dp"
+        android:text="@string/skip_credits"
+        android:visibility="gone"
+        app:icon="@drawable/ic_play_arrow"
+        android:focusable="true"
+        android:focusableInTouchMode="true"
+        android:nextFocusRight="@id/btnNextEpisode"
+        android:nextFocusUp="@id/player_view"/>
+
+    <!-- Next Episode Button (bottom-end) -->
     <com.google.android.material.button.MaterialButton
         android:id="@+id/btnNextEpisode"
+        style="@style/VOD.Button.Primary"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom|end"
-        android:layout_margin="32dp"
-
+        android:layout_marginEnd="32dp"
+        android:layout_marginBottom="100dp"
         android:text="Next Episode"
-        android:textAllCaps="true"
-        android:textStyle="bold"
-        android:fontFamily="sans-serif-medium"
-
         android:visibility="gone"
-
         app:icon="@drawable/ic_play_arrow"
-        app:iconGravity="textStart"
-
-        app:cornerRadius="8dp"
-        app:elevation="6dp"
-
-        app:backgroundTint="@color/selector_btn_bg"
-        android:textColor="@color/selector_btn_text"
-        app:iconTint="@color/selector_btn_text"
-
         android:focusable="true"
-        android:focusableInTouchMode="true" />
+        android:focusableInTouchMode="true"
+        android:nextFocusLeft="@id/btnSkipCredits"/>
 
 </FrameLayout>

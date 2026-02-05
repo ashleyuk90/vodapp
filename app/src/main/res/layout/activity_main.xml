@@ -5,17 +5,34 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:orientation="horizontal"
-    android:background="#0F0F0F"
+    android:background="@color/background_primary"
     android:baselineAligned="false">
 
     <LinearLayout
         android:id="@+id/sideMenu"
-        android:layout_width="150dp"
+        android:layout_width="@dimen/side_menu_width"
         android:layout_height="match_parent"
         android:orientation="vertical"
-        android:background="#161616"
-        android:padding="12dp"
+        android:background="@color/background_menu"
+        android:padding="@dimen/side_menu_padding"
         android:elevation="8dp">
+
+        <LinearLayout
+            android:id="@+id/sideMenuHeader"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:gravity="end"
+            android:layout_marginBottom="4dp">
+
+            <ImageButton
+                android:id="@+id/btnMenuToggle"
+                android:layout_width="@dimen/icon_button_size"
+                android:layout_height="@dimen/icon_button_size"
+                android:background="@android:color/transparent"
+                android:contentDescription="@string/menu_collapse"
+                android:src="@drawable/ic_arrow_back"
+                app:tint="@color/text_primary" />
+        </LinearLayout>
 
         <LinearLayout
             android:id="@+id/btnMenuSearch"
@@ -23,28 +40,40 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:paddingVertical="10dp"
-            android:paddingHorizontal="12dp"
-            android:background="@drawable/sel_menu_item_pill"
+            android:paddingVertical="@dimen/side_menu_item_padding_vertical"
+            android:paddingHorizontal="@dimen/side_menu_item_padding_horizontal"
+            android:background="@drawable/focus_menu_item_enhanced"
             android:focusable="true"
             android:focusableInTouchMode="true"
-            android:nextFocusUp="@id/btnMenuSearch"
-            android:nextFocusDown="@id/btnMenuHome">
+            android:nextFocusUp="@id/btnMenuProfile"
+            android:nextFocusDown="@id/btnMenuHome"
+            android:contentDescription="@string/a11y_search_button">
+
+            <ImageView
+                android:layout_width="@dimen/side_menu_icon_size"
+                android:layout_height="@dimen/side_menu_icon_size"
+                android:layout_marginEnd="@dimen/side_menu_icon_margin"
+                android:src="@drawable/ic_search"
+                android:importantForAccessibility="no"
+                app:tint="@color/sel_menu_text_color"
+                android:duplicateParentState="true" />
 
             <TextView
+                android:id="@+id/txtMenuSearch"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Search"
-                android:textSize="13sp"
+                android:textSize="@dimen/side_menu_text_size"
                 android:textColor="@color/sel_menu_text_color"
                 android:fontFamily="sans-serif-medium"
-                android:duplicateParentState="true" />
+                android:duplicateParentState="true"
+                android:importantForAccessibility="no" />
         </LinearLayout>
 
         <View
             android:layout_width="match_parent"
             android:layout_height="1dp"
-            android:background="#2A2A2A"
+            android:background="@color/divider"
             android:layout_marginVertical="8dp"/>
 
         <LinearLayout
@@ -53,22 +82,34 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:paddingVertical="10dp"
-            android:paddingHorizontal="12dp"
-            android:background="@drawable/sel_menu_item_pill"
+            android:paddingVertical="@dimen/side_menu_item_padding_vertical"
+            android:paddingHorizontal="@dimen/side_menu_item_padding_horizontal"
+            android:background="@drawable/focus_menu_item_enhanced"
             android:focusable="true"
             android:focusableInTouchMode="true"
             android:nextFocusUp="@id/btnMenuSearch"
-            android:nextFocusDown="@id/btnMenuWatchLater">
+            android:nextFocusDown="@id/btnMenuWatchLater"
+            android:contentDescription="Home, navigate to dashboard">
+
+            <ImageView
+                android:layout_width="@dimen/side_menu_icon_size"
+                android:layout_height="@dimen/side_menu_icon_size"
+                android:layout_marginEnd="@dimen/side_menu_icon_margin"
+                android:src="@drawable/ic_home"
+                android:importantForAccessibility="no"
+                app:tint="@color/sel_menu_text_color"
+                android:duplicateParentState="true" />
 
             <TextView
+                android:id="@+id/txtMenuHome"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Home"
-                android:textSize="13sp"
+                android:textSize="@dimen/side_menu_text_size"
                 android:textColor="@color/sel_menu_text_color"
                 android:fontFamily="sans-serif-medium"
-                android:duplicateParentState="true" />
+                android:duplicateParentState="true"
+                android:importantForAccessibility="no" />
         </LinearLayout>
 
         <LinearLayout
@@ -77,52 +118,149 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical"
-            android:paddingVertical="10dp"
-            android:paddingHorizontal="12dp"
-            android:layout_marginTop="4dp"
-            android:background="@drawable/sel_menu_item_pill"
+            android:paddingVertical="@dimen/side_menu_item_padding_vertical"
+            android:paddingHorizontal="@dimen/side_menu_item_padding_horizontal"
+            android:layout_marginTop="2dp"
+            android:background="@drawable/focus_menu_item_enhanced"
             android:focusable="true"
             android:focusableInTouchMode="true"
             android:nextFocusUp="@id/btnMenuHome"
-            android:nextFocusDown="@id/sideMenuScroll">
+            android:nextFocusDown="@id/sideMenuScroll"
+            android:contentDescription="Watch Later, view your saved content">
+
+            <ImageView
+                android:layout_width="@dimen/side_menu_icon_size"
+                android:layout_height="@dimen/side_menu_icon_size"
+                android:layout_marginEnd="@dimen/side_menu_icon_margin"
+                android:src="@drawable/ic_watch_later"
+                android:importantForAccessibility="no"
+                app:tint="@color/sel_menu_text_color"
+                android:duplicateParentState="true" />
 
             <TextView
+                android:id="@+id/txtMenuWatchLater"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
                 android:text="Watch Later"
-                android:textSize="13sp"
+                android:textSize="@dimen/side_menu_text_size"
                 android:textColor="@color/sel_menu_text_color"
                 android:fontFamily="sans-serif-medium"
-                android:duplicateParentState="true" />
+                android:duplicateParentState="true"
+                android:importantForAccessibility="no" />
         </LinearLayout>
 
         <TextView
+            android:id="@+id/txtLibraryLabel"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
             android:text="LIBRARY"
-            android:textColor="#888888"
-            android:textSize="10sp"
+            android:textColor="@color/text_muted"
+            android:textSize="@dimen/side_menu_label_text_size"
             android:textStyle="bold"
-            android:layout_marginTop="16dp"
-            android:layout_marginBottom="6dp"
-            android:layout_marginStart="8dp"
-            android:letterSpacing="0.1"/>
+            android:layout_marginTop="20dp"
+            android:layout_marginBottom="8dp"
+            android:layout_marginStart="@dimen/side_menu_item_padding_horizontal"
+            android:letterSpacing="0.15"/>
 
-        <ScrollView
-            android:id="@+id/sideMenuScroll"
+        <!-- Library list with scroll fade gradients -->
+        <FrameLayout
+            android:id="@+id/libraryContainer"
             android:layout_width="match_parent"
             android:layout_height="0dp"
-            android:layout_weight="1"
-            android:scrollbars="none"
-            android:fadeScrollbars="true"
-            android:fillViewport="true">
-
-            <LinearLayout
-                android:id="@+id/sideMenuContainer"
+            android:layout_weight="1">
+            
+            <ScrollView
+                android:id="@+id/sideMenuScroll"
                 android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:scrollbars="none"
+                android:fadeScrollbars="true"
+                android:fillViewport="true">
+
+                <LinearLayout
+                    android:id="@+id/sideMenuContainer"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical" />
+            </ScrollView>
+            
+            <!-- Fade gradient at top (hidden by default, shown when scrolled) -->
+            <View
+                android:id="@+id/viewScrollFadeTop"
+                android:layout_width="match_parent"
+                android:layout_height="24dp"
+                android:layout_gravity="top"
+                android:background="@drawable/bg_scroll_fade_top"
+                android:visibility="gone" />
+            
+            <!-- Fade gradient at bottom (shown when more content below) -->
+            <View
+                android:id="@+id/viewScrollFadeBottom"
+                android:layout_width="match_parent"
+                android:layout_height="24dp"
+                android:layout_gravity="bottom"
+                android:background="@drawable/bg_scroll_fade_bottom"
+                android:visibility="gone" />
+        </FrameLayout>
+
+        <!-- Profile Button at bottom of side menu -->
+        <View
+            android:layout_width="match_parent"
+            android:layout_height="1dp"
+            android:background="@color/divider"
+            android:layout_marginTop="12dp"
+            android:layout_marginBottom="8dp"/>
+
+        <LinearLayout
+            android:id="@+id/btnMenuProfile"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:paddingVertical="@dimen/side_menu_item_padding_vertical"
+            android:paddingHorizontal="@dimen/side_menu_item_padding_horizontal"
+            android:background="@drawable/focus_menu_item_enhanced"
+            android:focusable="true"
+            android:focusableInTouchMode="true"
+            android:nextFocusUp="@id/sideMenuScroll"
+            android:nextFocusDown="@id/btnMenuSearch">
+
+            <!-- Profile Avatar Circle -->
+            <FrameLayout
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:layout_marginEnd="@dimen/side_menu_icon_margin">
+
+                <View
+                    android:id="@+id/viewProfileAvatar"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:background="@drawable/bg_circle_profile" />
+
+                <TextView
+                    android:id="@+id/txtProfileInitial"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:gravity="center"
+                    android:textColor="@android:color/white"
+                    android:textSize="12sp"
+                    android:textStyle="bold"
+                    android:text="D" />
+            </FrameLayout>
+
+            <TextView
+                android:id="@+id/txtProfileName"
+                android:layout_width="0dp"
                 android:layout_height="wrap_content"
-                android:orientation="vertical" />
-        </ScrollView>
+                android:layout_weight="1"
+                android:text="@string/profile_switch"
+                android:textSize="@dimen/side_menu_text_size"
+                android:textColor="@color/sel_menu_text_color"
+                android:fontFamily="sans-serif-medium"
+                android:duplicateParentState="true"
+                android:maxLines="1"
+                android:ellipsize="end" />
+        </LinearLayout>
 
     </LinearLayout>
 
@@ -139,20 +277,183 @@
             android:orientation="vertical"
             android:padding="32dp"
             android:visibility="gone"
-            android:background="#0F0F0F"
+            android:background="@color/background_primary"
             android:elevation="10dp">
             <EditText
                 android:id="@+id/editSearch"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:background="@drawable/bg_search_input"
-                android:hint="Search titles, people, genres..."
-                android:textColorHint="#666666"
-                android:textColor="#FFFFFF"
+                android:hint="@string/search_hint"
+                android:textColorHint="@color/text_muted"
+                android:textColor="@color/text_primary"
                 android:textSize="24sp"
                 android:padding="16dp"
                 android:imeOptions="actionSearch"
                 android:inputType="text"/>
+            
+            <!-- Filter Chips -->
+            <HorizontalScrollView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="16dp"
+                android:scrollbars="none"
+                android:clipToPadding="false"
+                android:focusable="false">
+                
+                <LinearLayout
+                    android:id="@+id/layoutFilterChips"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal">
+                    
+                    <!-- Type Filter -->
+                    <com.google.android.material.chip.ChipGroup
+                        android:id="@+id/chipGroupType"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        app:singleSelection="true"
+                        app:selectionRequired="false">
+                        
+                        <com.google.android.material.chip.Chip
+                            android:id="@+id/chipAll"
+                            style="@style/Widget.MaterialComponents.Chip.Filter"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/filter_all"
+                            android:focusable="true"
+                            android:checked="true"
+                            app:chipBackgroundColor="@color/selector_chip_bg"
+                            android:textColor="@android:color/white" />
+                        
+                        <com.google.android.material.chip.Chip
+                            android:id="@+id/chipMovies"
+                            style="@style/Widget.MaterialComponents.Chip.Filter"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/filter_movies"
+                            android:focusable="true"
+                            app:chipBackgroundColor="@color/selector_chip_bg"
+                            android:textColor="@android:color/white" />
+                        
+                        <com.google.android.material.chip.Chip
+                            android:id="@+id/chipSeries"
+                            style="@style/Widget.MaterialComponents.Chip.Filter"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/filter_series"
+                            android:focusable="true"
+                            app:chipBackgroundColor="@color/selector_chip_bg"
+                            android:textColor="@android:color/white" />
+                    </com.google.android.material.chip.ChipGroup>
+                    
+                    <View
+                        android:layout_width="1dp"
+                        android:layout_height="32dp"
+                        android:layout_marginHorizontal="12dp"
+                        android:layout_gravity="center_vertical"
+                        android:background="@color/border_subtle" />
+                    
+                    <!-- Genre Filter -->
+                    <com.google.android.material.chip.ChipGroup
+                        android:id="@+id/chipGroupGenre"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        app:singleSelection="true"
+                        app:selectionRequired="false">
+                        
+                        <com.google.android.material.chip.Chip
+                            android:id="@+id/chipAction"
+                            style="@style/Widget.MaterialComponents.Chip.Filter"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/filter_action"
+                            android:focusable="true"
+                            app:chipBackgroundColor="@color/selector_chip_bg"
+                            android:textColor="@android:color/white" />
+                        
+                        <com.google.android.material.chip.Chip
+                            android:id="@+id/chipComedy"
+                            style="@style/Widget.MaterialComponents.Chip.Filter"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/filter_comedy"
+                            android:focusable="true"
+                            app:chipBackgroundColor="@color/selector_chip_bg"
+                            android:textColor="@android:color/white" />
+                        
+                        <com.google.android.material.chip.Chip
+                            android:id="@+id/chipDrama"
+                            style="@style/Widget.MaterialComponents.Chip.Filter"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/filter_drama"
+                            android:focusable="true"
+                            app:chipBackgroundColor="@color/selector_chip_bg"
+                            android:textColor="@android:color/white" />
+                        
+                        <com.google.android.material.chip.Chip
+                            android:id="@+id/chipHorror"
+                            style="@style/Widget.MaterialComponents.Chip.Filter"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/filter_horror"
+                            android:focusable="true"
+                            app:chipBackgroundColor="@color/selector_chip_bg"
+                            android:textColor="@android:color/white" />
+                        
+                        <com.google.android.material.chip.Chip
+                            android:id="@+id/chipSciFi"
+                            style="@style/Widget.MaterialComponents.Chip.Filter"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/filter_scifi"
+                            android:focusable="true"
+                            app:chipBackgroundColor="@color/selector_chip_bg"
+                            android:textColor="@android:color/white" />
+                        
+                        <com.google.android.material.chip.Chip
+                            android:id="@+id/chipAnimation"
+                            style="@style/Widget.MaterialComponents.Chip.Filter"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/filter_animation"
+                            android:focusable="true"
+                            app:chipBackgroundColor="@color/selector_chip_bg"
+                            android:textColor="@android:color/white" />
+                    </com.google.android.material.chip.ChipGroup>
+                    
+                    <View
+                        android:layout_width="1dp"
+                        android:layout_height="32dp"
+                        android:layout_marginHorizontal="12dp"
+                        android:layout_gravity="center_vertical"
+                        android:background="@color/border_subtle" />
+                    
+                    <!-- Clear Filters -->
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chipClearFilters"
+                        style="@style/Widget.MaterialComponents.Chip.Action"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/filter_clear"
+                        android:focusable="true"
+                        app:chipBackgroundColor="@color/border_subtle"
+                        android:textColor="@color/status_error"
+                        app:chipIcon="@drawable/ic_close"
+                        app:chipIconTint="@color/status_error"
+                        android:visibility="gone" />
+                </LinearLayout>
+            </HorizontalScrollView>
+            
+            <!-- Search Empty State -->
+            <include 
+                android:id="@+id/searchEmptyState"
+                layout="@layout/layout_empty_state"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="48dp"
+                android:visibility="gone" />
         </LinearLayout>
 
         <ScrollView
@@ -168,58 +469,98 @@
                 <RelativeLayout
                     android:id="@+id/layoutHero"
                     android:layout_width="match_parent"
-                    android:layout_height="260dp"
-                    android:focusable="true"
-                    android:focusableInTouchMode="true">
+                    android:layout_height="@dimen/home_hero_height"
+                    android:focusable="false"
+                    android:clipChildren="false">
                     <ImageView
                         android:id="@+id/imgHeroBackdrop"
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
                         android:scaleType="centerCrop"
                         android:alpha="0.6"
+                        android:importantForAccessibility="no"
                         tools:src="@tools:sample/backgrounds/scenic" />
                     <View
                         android:layout_width="match_parent"
                         android:layout_height="match_parent"
                         android:background="@drawable/bg_hero_gradient"/>
+                    
+                    <!-- Hero Content -->
                     <LinearLayout
+                        android:id="@+id/layoutHeroContent"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:orientation="vertical"
                         android:layout_alignParentBottom="true"
-                        android:padding="24dp"> <TextView
-                        android:id="@+id/txtHeroTitle"
-                        android:layout_width="wrap_content"
-                        android:layout_height="wrap_content"
-                        tools:text="Fallout"
-                        android:textSize="32sp"
-                        android:textStyle="bold"
-                        android:textColor="#FFFFFF"
-                        android:shadowColor="#000000"
-                        android:shadowRadius="8"
-                        android:shadowDx="2"
-                        android:shadowDy="2"/>
+                        android:padding="@dimen/home_hero_padding"
+                        android:clipChildren="false"
+                        android:clipToPadding="false">
+                        
+                        <TextView
+                            android:id="@+id/txtHeroTitle"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            tools:text="Fallout"
+                            android:textSize="@dimen/home_title_text"
+                            android:textStyle="bold"
+                            android:textColor="@color/text_primary"
+                            android:shadowColor="#000000"
+                            android:shadowRadius="8"
+                            android:shadowDx="2"
+                            android:shadowDy="2"/>
+                        
                         <TextView
                             android:id="@+id/txtHeroMetadata"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             tools:text="2024 • 1 Season • TV-MA"
-                            android:textColor="#CCCCCC"
-                            android:textSize="12sp"
+                            android:textColor="@color/text_secondary"
+                            android:textSize="@dimen/home_meta_text"
                             android:layout_marginTop="4dp"/>
+                        
                         <TextView
                             android:id="@+id/txtHeroDescription"
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:maxWidth="720dp"
                             tools:text="The story of haves and have-nots..."
-                            android:textColor="#AAAAAA"
-                            android:textSize="14sp"
+                            android:textColor="@color/text_tertiary"
+                            android:textSize="@dimen/home_desc_text"
                             android:maxLines="2"
                             android:ellipsize="end"
                             android:layout_marginTop="6dp"
                             android:lineSpacingMultiplier="1.1"/>
+                        
+                        <!-- Hero Play Button (small icon) -->
+                        <ImageButton
+                            android:id="@+id/btnHeroPlay"
+                            android:layout_width="@dimen/hero_play_button_size"
+                            android:layout_height="@dimen/hero_play_button_size"
+                            android:layout_marginTop="12dp"
+                            android:src="@drawable/ic_play"
+                            android:background="@drawable/bg_button_play_square"
+                            android:padding="@dimen/hero_play_button_padding"
+                            android:scaleType="centerInside"
+                            android:focusable="true"
+                            android:contentDescription="@string/a11y_play_button"
+                            app:tint="@color/text_on_brand" />
                     </LinearLayout>
+                    
+                    <!-- Hero Page Indicators (for auto-rotate) -->
+                    <LinearLayout
+                        android:id="@+id/layoutHeroIndicators"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_alignParentEnd="true"
+                        android:layout_alignParentBottom="true"
+                        android:layout_marginEnd="24dp"
+                        android:layout_marginBottom="24dp"
+                        android:orientation="horizontal"
+                        android:visibility="gone"
+                        tools:visibility="visible">
+                        <!-- Indicators are added programmatically -->
+                    </LinearLayout>
+                    
                     <View
                         android:id="@+id/heroFocusBar"
                         android:layout_width="match_parent"
@@ -236,58 +577,64 @@
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Continue Watching"
-                    android:textColor="#FFD700"
-                    android:textSize="18sp"
+                    android:textColor="@color/brand_accent"
+                    android:textSize="@dimen/home_section_title_text"
                     android:textStyle="bold"
-                    android:layout_marginTop="24dp"
-                    android:layout_marginBottom="12dp"
-                    android:layout_marginStart="32dp"/>
+                    android:layout_marginTop="@dimen/home_section_margin_top"
+                    android:layout_marginBottom="@dimen/home_section_margin_bottom"
+                    android:layout_marginStart="@dimen/home_section_margin_start"
+                    android:accessibilityHeading="true"/>
                 <androidx.recyclerview.widget.RecyclerView
                     android:id="@+id/rvContinueWatching"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
                     android:clipToPadding="false"
-                    android:paddingStart="32dp"
-                    android:paddingEnd="32dp"
-                    android:layout_marginBottom="24dp"/>
+                    android:paddingStart="@dimen/home_list_side_padding"
+                    android:paddingEnd="@dimen/home_list_side_padding"
+                    android:layout_marginBottom="@dimen/home_list_bottom_margin"
+                    android:contentDescription="Continue watching section, horizontal list of videos"/>
                 <TextView
                     android:id="@+id/lblRecentMovies"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Recently Added Movies"
-                    android:textColor="#EEEEEE"
-                    android:textSize="18sp"
+                    android:textColor="@color/text_primary"
+                    android:textSize="@dimen/home_section_title_text"
                     android:textStyle="bold"
-                    android:layout_marginBottom="12dp"
-                    android:layout_marginStart="32dp"/>
+                    android:layout_marginBottom="@dimen/home_section_margin_bottom"
+                    android:layout_marginStart="@dimen/home_section_margin_start"
+                    android:accessibilityHeading="true"/>
                 <androidx.recyclerview.widget.RecyclerView
                     android:id="@+id/rvRecentMovies"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
                     android:clipToPadding="false"
-                    android:paddingStart="32dp"
-                    android:paddingEnd="32dp"
-                    android:layout_marginBottom="24dp"/>
+                    android:paddingStart="@dimen/home_list_side_padding"
+                    android:paddingEnd="@dimen/home_list_side_padding"
+                    android:layout_marginBottom="@dimen/home_list_bottom_margin"
+                    android:contentDescription="Recently added movies, horizontal list"/>
                 <TextView
                     android:id="@+id/lblRecentShows"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:text="Recently Added TV"
-                    android:textColor="#EEEEEE"
-                    android:textSize="18sp"
+                    android:textColor="@color/text_primary"
+                    android:textSize="@dimen/home_section_title_text"
                     android:textStyle="bold"
-                    android:layout_marginBottom="12dp"
-                    android:layout_marginStart="32dp"/>
+                    android:layout_marginBottom="@dimen/home_section_margin_bottom"
+                    android:layout_marginStart="@dimen/home_section_margin_start"
+                    android:accessibilityHeading="true"/>
                 <androidx.recyclerview.widget.RecyclerView
                     android:id="@+id/rvRecentShows"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
+                    android:contentDescription="Recently added TV shows, horizontal list"
                     android:clipToPadding="false"
-                    android:paddingStart="32dp"
-                    android:paddingEnd="32dp"/>
+                    android:paddingStart="@dimen/home_list_side_padding"
+                    android:paddingEnd="@dimen/home_list_side_padding"/>
             </LinearLayout>
         </ScrollView>
 
@@ -305,21 +652,22 @@
                 android:layout_weight="1"
                 android:descendantFocusability="afterDescendants"
                 android:clipToPadding="false"
-                android:padding="16dp"
+                android:padding="@dimen/spacing_lg"
                 android:saveEnabled="true"/>
             <ScrollView
+                android:id="@+id/scrollAlphabet"
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"
                 android:scrollbars="none"
-                android:background="#111111"
-                android:paddingHorizontal="4dp">
+                android:background="@color/background_secondary"
+                android:paddingHorizontal="@dimen/spacing_xs">
                 <LinearLayout
                     android:id="@+id/containerAlphabet"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
                     android:gravity="center_horizontal"
-                    android:paddingVertical="16dp"/>
+                    android:paddingVertical="@dimen/spacing_lg"/>
             </ScrollView>
         </LinearLayout>
     </FrameLayout>

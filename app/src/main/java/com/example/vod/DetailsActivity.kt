@@ -17,10 +17,17 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import coil.load
-import kotlinx.coroutines.CoroutineScope
+import com.example.vod.utils.Constants
+import com.example.vod.utils.ErrorHandler
+import com.example.vod.utils.NetworkUtils
+import com.example.vod.utils.AnimationHelper
+import com.example.vod.utils.OrientationUtils
+import com.example.vod.utils.RatingUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import java.io.IOException
+import java.lang.ref.WeakReference
 
 class DetailsActivity : AppCompatActivity() {
 
@@ -32,6 +39,7 @@ class DetailsActivity : AppCompatActivity() {
     private lateinit var txtRuntime: TextView
     private lateinit var txtRating: TextView
     private lateinit var txtRottenTomatoes: TextView
+    private lateinit var txtContentRating: TextView
 
     // Buttons
     private lateinit var btnPlay: com.google.android.material.button.MaterialButton
@@ -54,9 +62,9 @@ class DetailsActivity : AppCompatActivity() {
     private lateinit var video: VideoItem
     private var isInWatchList = false
     private var isWatchLaterProcessing = false
-
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        OrientationUtils.applyPreferredOrientation(this)
         setContentView(R.layout.activity_details)
 
         // Initialize Views
@@ -68,6 +76,7 @@ class DetailsActivity : AppCompatActivity() {
         txtRuntime = findViewById(R.id.txtDetailRuntime)
         txtRating = findViewById(R.id.txtRating)
         txtRottenTomatoes = findViewById(R.id.txtRottenTomatoes)
+        txtContentRating = findViewById(R.id.txtDetailContentRating)
 
         btnPlay = findViewById(R.id.btnPlay)
         btnResume = findViewById(R.id.btnResume)
@@ -85,6 +94,9 @@ class DetailsActivity : AppCompatActivity() {
         layoutEpisodes = findViewById(R.id.layoutEpisodes)
         rvEpisodes = findViewById(R.id.rvEpisodes)
         rvEpisodes.layoutManager = LinearLayoutManager(this)
+
+        // Initialize ProfileManager
+        ProfileManager.init(this)
 
         val videoId = intent.getIntExtra("VIDEO_ID", -1)
 
@@ -116,28 +128,30 @@ class DetailsActivity : AppCompatActivity() {
     private fun setupWatchLaterButton(id: Int) {
         btnWatchLater.setOnClickListener {
             if (isWatchLaterProcessing) return@setOnClickListener
-            isWatchLaterProcessing = true
+            AnimationHelper.runWithPressEffect(btnWatchLater) {
+                isWatchLaterProcessing = true
 
-            lifecycleScope.launch(Dispatchers.IO) {
-                try {
-                    val response = if (isInWatchList) {
-                        NetworkClient.api.removeFromWatchList(id)
-                    } else {
-                        NetworkClient.api.addToWatchList(id)
-                    }
-
-                    if (response.status == "success") {
-                        isInWatchList = !isInWatchList
-                        withContext(Dispatchers.Main) {
-                            updateWatchLaterUI()
-                            val msgRes = if (isInWatchList) R.string.toast_added_watchlist else R.string.toast_removed_watchlist
-                            Toast.makeText(this@DetailsActivity, msgRes, Toast.LENGTH_SHORT).show()
+                lifecycleScope.launch(Dispatchers.IO) {
+                    try {
+                        val response = if (isInWatchList) {
+                            NetworkClient.api.removeFromWatchList(id)
+                        } else {
+                            NetworkClient.api.addToWatchList(id)
                         }
+
+                        if (response.status == "success") {
+                            isInWatchList = !isInWatchList
+                            withContext(Dispatchers.Main) {
+                                updateWatchLaterUI()
+                                val msgRes = if (isInWatchList) R.string.toast_added_watchlist else R.string.toast_removed_watchlist
+                                Toast.makeText(this@DetailsActivity, msgRes, Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                    } finally {
+                        withContext(Dispatchers.Main) { isWatchLaterProcessing = false }
                     }
-                } catch (e: Exception) {
-                    e.printStackTrace()
-                } finally {
-                    withContext(Dispatchers.Main) { isWatchLaterProcessing = false }
                 }
             }
         }
@@ -162,6 +176,21 @@ class DetailsActivity : AppCompatActivity() {
             intent.putExtra("RESUME_TIME", startTime)
             intent.putExtra("ENABLE_SUBTITLES", enableSubtitles)
 
+            // Pass intro/credits markers if available
+            video.introMarker?.let { marker ->
+                intent.putExtra("INTRO_START", marker.startSeconds)
+                intent.putExtra("INTRO_END", marker.endSeconds)
+            }
+            video.creditsMarker?.let { marker ->
+                // Credits marker uses duration from end - calculate actual start position
+                val videoDurationSeconds = (video.total_duration.takeIf { it > 0 } ?: (video.runtime * 60L)).toInt()
+                val creditsStart = marker.getCreditsStartSeconds(videoDurationSeconds)
+                    ?: marker.startSeconds  // Fallback to legacy startSeconds if new fields not available
+                if (creditsStart > 0) {
+                    intent.putExtra("CREDITS_START", creditsStart)
+                }
+            }
+
             video.episodes?.let { episodes ->
                 val currentEpIndex = episodes.indexOfFirst { it.id == video.id }
                 if (currentEpIndex != -1 && currentEpIndex < episodes.size - 1) {
@@ -171,14 +200,26 @@ class DetailsActivity : AppCompatActivity() {
                 }
             }
             startActivity(intent)
+            AnimationHelper.applyOpenTransition(this)
         }
     }
 
     private fun setupNavigation() {
-        btnBack.setOnClickListener { finish() }
-        btnPlay.setOnClickListener { startPlayback(0L) }
-        btnResume.setOnClickListener { startPlayback(video.resume_time) }
-        btnSubtitles.setOnClickListener { startPlayback(0L, true) }
+        btnBack.setOnClickListener { 
+            AnimationHelper.runWithPressEffect(btnBack) {
+                finish()
+                AnimationHelper.applyCloseTransition(this)
+            }
+        }
+        btnPlay.setOnClickListener { 
+            AnimationHelper.runWithPressEffect(btnPlay) { startPlayback(0L) }
+        }
+        btnResume.setOnClickListener { 
+            AnimationHelper.runWithPressEffect(btnResume) { startPlayback(video.resume_time) }
+        }
+        btnSubtitles.setOnClickListener { 
+            AnimationHelper.runWithPressEffect(btnSubtitles) { startPlayback(0L, true) }
+        }
 
         val focusListener = View.OnFocusChangeListener { v, hasFocus ->
             applyFocusStyle(v, hasFocus)
@@ -195,13 +236,13 @@ class DetailsActivity : AppCompatActivity() {
         // Handle Back Button
         if (v is ImageButton) {
             if (hasFocus) {
-                v.animate().scaleX(1.1f).scaleY(1.1f).setDuration(200).start()
-                v.elevation = 10f
+                AnimationHelper.scaleUp(v, Constants.FOCUS_SCALE_LARGE)
+                v.elevation = Constants.FOCUS_ELEVATION
                 v.backgroundTintList = ColorStateList.valueOf(Color.WHITE)
                 v.imageTintList = ColorStateList.valueOf(Color.BLACK)
             } else {
-                v.animate().scaleX(1.0f).scaleY(1.0f).setDuration(200).start()
-                v.elevation = 0f
+                AnimationHelper.scaleDown(v)
+                v.elevation = Constants.DEFAULT_ELEVATION
                 // Fixed: Use toColorInt() extension instead of Color.parseColor
                 v.backgroundTintList = ColorStateList.valueOf("#FFFFFF".toColorInt())
                 v.imageTintList = ColorStateList.valueOf(Color.WHITE)
@@ -212,14 +253,14 @@ class DetailsActivity : AppCompatActivity() {
         // Handle Material Buttons
         if (v is com.google.android.material.button.MaterialButton) {
             if (hasFocus) {
-                v.animate().scaleX(1.05f).scaleY(1.05f).setDuration(200).start()
-                v.elevation = 10f
+                AnimationHelper.scaleUp(v, Constants.FOCUS_SCALE_MEDIUM)
+                v.elevation = Constants.FOCUS_ELEVATION
                 v.backgroundTintList = ColorStateList.valueOf(Color.WHITE)
                 v.setTextColor(Color.BLACK)
                 v.iconTint = ColorStateList.valueOf(Color.BLACK)
             } else {
-                v.animate().scaleX(1.0f).scaleY(1.0f).setDuration(200).start()
-                v.elevation = 0f
+                AnimationHelper.scaleDown(v)
+                v.elevation = Constants.DEFAULT_ELEVATION
 
                 // Fixed: Use toColorInt() extension
                 v.backgroundTintList = ColorStateList.valueOf("#262626".toColorInt())
@@ -258,129 +299,167 @@ class DetailsActivity : AppCompatActivity() {
     }
 
     private fun loadDetails(id: Int) {
-        CoroutineScope(Dispatchers.IO).launch {
+        // Check network before loading details
+        if (!NetworkUtils.isNetworkAvailable(this)) {
+            ErrorHandler.showError(this, "No internet connection")
+            finish()
+            return
+        }
+
+        // Use WeakReference to prevent activity leak
+        val weakActivity = WeakReference(this)
+
+        // Use lifecycleScope for automatic cancellation on activity destruction
+        lifecycleScope.launch(Dispatchers.IO) {
             try {
-                val response = NetworkClient.api.getDetails(id)
+                val profileId = ProfileManager.getActiveProfileId()
+                val response = NetworkClient.api.getDetails(id, profileId)
                 withContext(Dispatchers.Main) {
+                    val activity = weakActivity.get() ?: return@withContext
+                    
                     if (response.status == "success" && response.video != null) {
-                        video = response.video
+                        activity.video = response.video
 
-                        txtTitle.text = video.title
-                        txtPlot.text = video.plot
-                        txtYear.text = video.year.toString()
+                        activity.txtTitle.text = activity.video.title
+                        activity.txtPlot.text = activity.video.plot
+                        activity.txtYear.text = activity.video.year.toString()
 
-                        txtRating.text = getString(R.string.rating_format, video.rating ?: "N/A")
-                        txtDetailGenre.text = video.genres ?: "N/A"
+                        val formattedRating = RatingUtils.formatImdbRating(activity.video.rating) ?: "N/A"
+                        activity.txtRating.text = activity.getString(R.string.rating_format, formattedRating)
+                        activity.txtDetailGenre.text = activity.video.genres ?: "N/A"
 
-                        // Rotten Tomatoes Logic
-                        val rawScore = video.rottenTomatoes?.replace("%", "")?.trim()
-                        val scoreInt = rawScore?.toIntOrNull()
-                        if (scoreInt != null && scoreInt > 0) {
-                            txtRottenTomatoes.text = getString(R.string.rotten_tomatoes_format, scoreInt.toString())
-                            txtRottenTomatoes.visibility = View.VISIBLE
+                        val contentRating = activity.video.contentRating?.trim()
+                        if (!contentRating.isNullOrEmpty() && contentRating != "N/A") {
+                            activity.txtContentRating.text = contentRating
+                            activity.txtContentRating.visibility = View.VISIBLE
                         } else {
-                            txtRottenTomatoes.visibility = View.GONE
+                            activity.txtContentRating.visibility = View.GONE
                         }
 
-                        btnSubtitles.visibility = if (video.hasSubtitles) View.VISIBLE else View.GONE
-
-                        if (video.runtime > 0) {
-                            val hours = video.runtime / 60
-                            val mins = video.runtime % 60
-                            if (hours > 0) {
-                                txtRuntime.text = getString(R.string.runtime_format, hours, mins)
-                            } else {
-                                txtRuntime.text = getString(R.string.runtime_minutes_format, mins)
-                            }
-                            txtRuntime.visibility = View.VISIBLE
+                        // Rotten Tomatoes Logic
+                        val rawScore = activity.video.rottenTomatoes?.replace("%", "")?.trim()
+                        val scoreInt = rawScore?.toIntOrNull()
+                        if (scoreInt != null && scoreInt > 0) {
+                            activity.txtRottenTomatoes.text = activity.getString(R.string.rotten_tomatoes_format, scoreInt.toString())
+                            activity.txtRottenTomatoes.visibility = View.VISIBLE
                         } else {
-                            txtRuntime.visibility = View.GONE
+                            activity.txtRottenTomatoes.visibility = View.GONE
+                        }
+
+                        activity.btnSubtitles.visibility = if (activity.video.hasSubtitles) View.VISIBLE else View.GONE
+
+                        if (activity.video.runtime > 0) {
+                            val hours = activity.video.runtime / 60
+                            val mins = activity.video.runtime % 60
+                            if (hours > 0) {
+                                activity.txtRuntime.text = activity.getString(R.string.runtime_format, hours, mins)
+                            } else {
+                                activity.txtRuntime.text = activity.getString(R.string.runtime_minutes_format, mins)
+                            }
+                            activity.txtRuntime.visibility = View.VISIBLE
+                        } else {
+                            activity.txtRuntime.visibility = View.GONE
                         }
 
                         // --- CREDITS LOGIC ---
-                        val directorText = video.director
+                        val directorText = activity.video.director
                         val hasDirector = !directorText.isNullOrBlank() && directorText != "N/A"
 
                         if (hasDirector) {
-                            txtDirector.text = getString(R.string.director_label, directorText)
-                            txtDirector.visibility = View.VISIBLE
+                            activity.txtDirector.text = activity.getString(R.string.director_label, directorText)
+                            activity.txtDirector.visibility = View.VISIBLE
                         } else {
-                            txtDirector.visibility = View.GONE
+                            activity.txtDirector.visibility = View.GONE
                         }
 
-                        val starringText = video.starring
+                        val starringText = activity.video.starring
                         val hasStarring = !starringText.isNullOrBlank() && starringText != "N/A"
 
                         if (hasStarring) {
-                            txtStarring.text = getString(R.string.starring_label, starringText)
-                            txtStarring.visibility = View.VISIBLE
+                            activity.txtStarring.text = activity.getString(R.string.starring_label, starringText)
+                            activity.txtStarring.visibility = View.VISIBLE
                         } else {
-                            txtStarring.visibility = View.GONE
+                            activity.txtStarring.visibility = View.GONE
                         }
 
                         if (hasDirector || hasStarring) {
-                            layoutCredits.visibility = View.VISIBLE
-                            dividerCredits.visibility = View.VISIBLE
+                            activity.layoutCredits.visibility = View.VISIBLE
+                            activity.dividerCredits.visibility = View.VISIBLE
                         } else {
-                            layoutCredits.visibility = View.GONE
-                            dividerCredits.visibility = View.GONE
+                            activity.layoutCredits.visibility = View.GONE
+                            activity.dividerCredits.visibility = View.GONE
                         }
 
                         // --- IMAGE LOADING SIMPLIFIED ---
-                        var imageUrl = video.getDisplayImage()
+                        var imageUrl = activity.video.getDisplayImage()
 
                         // Handle Fallback Poster from Intent
-                        if (video.posterPath.isNullOrEmpty() && video.posterUrl.isNullOrEmpty()) {
-                            val fallback = intent.getStringExtra("FALLBACK_POSTER")
+                        if (activity.video.posterPath.isNullOrEmpty() && activity.video.posterUrl.isNullOrEmpty()) {
+                            val fallback = activity.intent.getStringExtra("FALLBACK_POSTER")
                             if (!fallback.isNullOrEmpty()) imageUrl = fallback
                         }
 
                         // Load Poster
-                        imgPoster.load(imageUrl) {
+                        activity.imgPoster.load(imageUrl) {
                             crossfade(true)
                         }
 
                         // Load Backdrop using the same imageUrl
-                        // The check !imageUrl.isNullOrEmpty() ensures we don't pass null to loadBlurredBackdrop
                         if (imageUrl.isNotEmpty()) {
-                            loadBlurredBackdrop(imageUrl)
+                            activity.loadBlurredBackdrop(imageUrl)
                         }
                         // --- END IMAGE LOADING ---
 
-                        val isEpisodeView = intent.getBooleanExtra("IS_EPISODE_VIEW", false)
+                        val isEpisodeView = activity.intent.getBooleanExtra("IS_EPISODE_VIEW", false)
                         val seriesPosterUrl = imageUrl
 
-                        if (video.type.equals("series", ignoreCase = true)
-                            || (video.type.equals("episode", ignoreCase = true) && !isEpisodeView)) {
+                        if (activity.video.type.equals("series", ignoreCase = true)
+                            || (activity.video.type.equals("episode", ignoreCase = true) && !isEpisodeView)) {
 
-                            layoutActionButtons.visibility = View.VISIBLE
-                            btnPlay.visibility = View.GONE
-                            btnResume.visibility = View.GONE
-                            btnSubtitles.visibility = View.GONE
-                            btnWatchLater.visibility = View.VISIBLE
-                            layoutEpisodes.visibility = View.VISIBLE
+                            activity.layoutActionButtons.visibility = View.VISIBLE
+                            activity.btnPlay.visibility = View.GONE
+                            activity.btnResume.visibility = View.GONE
+                            activity.btnSubtitles.visibility = View.GONE
+                            activity.btnWatchLater.visibility = View.VISIBLE
+                            activity.layoutEpisodes.visibility = View.VISIBLE
 
-                            video.episodes?.let { episodes ->
+                            activity.video.episodes?.let { episodes ->
                                 if (episodes.isNotEmpty()) {
-                                    rvEpisodes.adapter = EpisodeAdapter(episodes) { episode ->
-                                        val intent = Intent(this@DetailsActivity, DetailsActivity::class.java)
+                                    activity.rvEpisodes.adapter = EpisodeAdapter(episodes) { episode ->
+                                        val intent = Intent(activity, DetailsActivity::class.java)
                                         intent.putExtra("VIDEO_ID", episode.id)
                                         intent.putExtra("IS_EPISODE_VIEW", true)
                                         intent.putExtra("FALLBACK_POSTER", seriesPosterUrl)
-                                        startActivity(intent)
+                                        activity.startActivity(intent)
+                                        AnimationHelper.applyOpenTransition(activity)
                                     }
-                                    rvEpisodes.post { rvEpisodes.requestFocus() }
+                                    activity.rvEpisodes.post { activity.rvEpisodes.requestFocus() }
                                 }
                             }
                         } else {
-                            layoutActionButtons.visibility = View.VISIBLE
-                            layoutEpisodes.visibility = View.GONE
-                            displayProgress(video)
+                            activity.layoutActionButtons.visibility = View.VISIBLE
+                            activity.layoutEpisodes.visibility = View.GONE
+                            activity.displayProgress(activity.video)
                         }
+                    } else {
+                        ErrorHandler.showError(activity, "Failed to load details")
+                        activity.finish()
+                    }
+                }
+            } catch (e: IOException) {
+                withContext(Dispatchers.Main) {
+                    weakActivity.get()?.let { activity ->
+                        ErrorHandler.handleNetworkError(activity, e)
+                        activity.finish()
                     }
                 }
             } catch (e: Exception) {
-                e.printStackTrace()
+                withContext(Dispatchers.Main) {
+                    weakActivity.get()?.let { activity ->
+                        ErrorHandler.handleNetworkError(activity, e, "Error loading details")
+                        activity.finish()
+                    }
+                }
             }
         }
     }
@@ -389,10 +468,9 @@ class DetailsActivity : AppCompatActivity() {
     private fun loadBlurredBackdrop(url: String) {
         imgBackdrop.load(url) {
             crossfade(true)
-            // Blur radius of 25f matches your previous code
-            transformations(BlurTransformation(this@DetailsActivity, radius = 25f))
+            transformations(BlurTransformation(this@DetailsActivity, radius = Constants.BACKDROP_BLUR_RADIUS))
         }
         // Keep the dimming animation
-        imgBackdrop.animate().alpha(0.6f).setDuration(500).start()
+        imgBackdrop.animate().alpha(Constants.BACKDROP_DIM_ALPHA).setDuration(Constants.BACKDROP_FADE_DURATION_MS).start()
     }
 }

@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- ========================================= -->
+<!-- Tablet Dimensions (7" screens and larger) -->
+<!-- ========================================= -->
+<resources>
+    <!-- Home (Dashboard) scale for tablets -->
+    <dimen name="home_bottom_padding">32dp</dimen>
+    <dimen name="home_hero_height">340dp</dimen>
+    <dimen name="home_hero_padding">24dp</dimen>
+
+    <dimen name="home_title_text">44sp</dimen>
+    <dimen name="home_meta_text">15sp</dimen>
+    <dimen name="home_desc_text">15sp</dimen>
+
+    <dimen name="home_section_title_text">18sp</dimen>
+    <dimen name="home_section_margin_start">24dp</dimen>
+    <dimen name="home_section_margin_top">20dp</dimen>
+    <dimen name="home_section_margin_bottom">12dp</dimen>
+
+    <dimen name="home_list_side_padding">24dp</dimen>
+    <dimen name="home_list_bottom_margin">32dp</dimen>
+
+    <!-- Horizontal card width on Home rows - larger for tablets -->
+    <dimen name="home_horizontal_card_width">180dp</dimen>
+    
+    <!-- Grid settings for tablets -->
+    <integer name="grid_span_count">5</integer>
+    
+    <!-- Side menu -->
+    <dimen name="side_menu_width">180dp</dimen>
+    <dimen name="side_menu_padding">14dp</dimen>
+    <dimen name="side_menu_icon_size">28dp</dimen>
+    <dimen name="side_menu_icon_margin">12dp</dimen>
+    <dimen name="side_menu_text_size">15sp</dimen>
+    <dimen name="side_menu_label_text_size">12sp</dimen>
+    <dimen name="side_menu_item_padding_vertical">14dp</dimen>
+    <dimen name="side_menu_item_padding_horizontal">16dp</dimen>
+    
+    <!-- Typography - Card (tablet) -->
+    <dimen name="card_title_text_size">15sp</dimen>
+    <dimen name="card_metadata_text_size">13sp</dimen>
+    <dimen name="card_badge_text_size">11sp</dimen>
+    <dimen name="card_margin">14dp</dimen>
+    <dimen name="card_content_padding">10dp</dimen>
+    <dimen name="card_corner_radius">12dp</dimen>
+    
+    <!-- Typography - Details View (tablet) -->
+    <dimen name="details_title_text_size">32sp</dimen>
+    <dimen name="details_metadata_text_size">14sp</dimen>
+    <dimen name="details_plot_text_size">16sp</dimen>
+    <dimen name="details_rating_text_size">16sp</dimen>
+    <dimen name="details_credits_text_size">14sp</dimen>
+    <dimen name="details_poster_width">220dp</dimen>
+    <dimen name="details_poster_height">330dp</dimen>
+    <dimen name="details_padding">64dp</dimen>
+    <dimen name="details_padding_top">140dp</dimen>
+    <dimen name="details_padding_portrait">28dp</dimen>
+    <dimen name="details_padding_top_portrait">80dp</dimen>
+    
+    <!-- Typography - Buttons (tablet) -->
+    <dimen name="button_text_size">14sp</dimen>
+    <dimen name="button_min_height">54dp</dimen>
+    <dimen name="button_icon_size">28dp</dimen>
+    <dimen name="hero_play_button_size">40dp</dimen>
+    <dimen name="hero_play_button_padding">6dp</dimen>
+    <dimen name="icon_size">28dp</dimen>
+    <dimen name="icon_button_size">40dp</dimen>
+    <dimen name="icon_button_padding">6dp</dimen>
+    <dimen name="icon_button_padding_large">10dp</dimen>
+    
+    <!-- Alphabet Scroller (tablet) -->
+    <dimen name="alphabet_text_size">16sp</dimen>
+    <dimen name="alphabet_letter_padding_vertical">5dp</dimen>
+    <dimen name="alphabet_letter_padding_horizontal">10dp</dimen>
+    <dimen name="alphabet_letter_min_width">28dp</dimen>
+    
+    <!-- Episode List (tablet) -->
+    <dimen name="episode_title_text_size">17sp</dimen>
+    <dimen name="episode_metadata_text_size">14sp</dimen>
+    <dimen name="episode_plot_text_size">14sp</dimen>
+    
+    <!-- Focus States (tablet) -->
+    <dimen name="focus_border_width">4dp</dimen>
+    
+    <!-- Spacing (tablet) -->
+    <dimen name="spacing_xs">4dp</dimen>
+    <dimen name="spacing_sm">8dp</dimen>
+    <dimen name="spacing_md">14dp</dimen>
+    <dimen name="spacing_lg">20dp</dimen>
+    <dimen name="spacing_xl">28dp</dimen>
+    <dimen name="spacing_xxl">40dp</dimen>
+</resources>

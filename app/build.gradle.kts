@@ -8,20 +8,30 @@ android {
         version = release(36)
     }
 
+    // Enable BuildConfig generation
+    buildFeatures {
+        buildConfig = true
+    }
+
     defaultConfig {
         applicationId = "com.example.vod"
-        minSdk = 26
+        minSdk = 24
         targetSdk = 34
         versionCode = 1
         versionName = "1.0"
-        renderscriptTargetApi = 26
-        renderscriptSupportModeEnabled = true
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
+        debug {
+            // Development server URL
+            buildConfigField("String", "BASE_URL", "\"https://sini3.net:7443/vod/\"")
+        }
         release {
-            isMinifyEnabled = false
+            // Production server URL
+            buildConfigField("String", "BASE_URL", "\"https://sini3.net:7443/vod/\"")
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -58,5 +68,8 @@ dependencies {
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.7.3")
-    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.0")
+    // Security - Encrypted SharedPreferences
+    implementation("androidx.security:security-crypto:1.1.0-alpha06")
+    // Activity KTX for OnBackPressedDispatcher
+    implementation("androidx.activity:activity-ktx:1.8.0")
 }
