@@ -584,3 +584,56 @@ player?.setPlaybackSpeed(1.5f)
 | Data Saver Mode | Low | Low | P3 | Pending |
 | Stream Error Recovery | Medium | Medium | P2 | ✅ Done |
 | Playback Preferences UI | Low | Low | P3 | ✅ Done |
+
+---
+
+## 2026-02-08 Review Additions (Near-Term)
+
+### 33. Complete PIN Verification Flow
+
+**Description**: Enforce PIN checks before opening protected profiles.
+
+**Why now**:
+- Existing profile model already supports `has_pin`.
+- Current flow allows bypass, so this closes a real security/parental-controls gap.
+
+**Implementation**:
+- Add PIN input dialog on profile select.
+- Verify PIN with backend.
+- Add retry limit and temporary lockout messaging.
+
+**Complexity**: Medium
+
+---
+
+### 34. Continue Watching Management
+
+**Description**: Let users hide entries, mark as watched, and reset progress.
+
+**Benefits**:
+- Cleaner dashboard rows.
+- Better control over recommendations and playback history.
+
+**Implementation**:
+- Long-press actions on continue-watching cards.
+- New endpoints or reuse progress endpoint with reset action.
+- Sync state immediately and optimistically update UI.
+
+**Complexity**: Medium
+
+---
+
+### 35. Offline Action Queue (Watchlist + Progress)
+
+**Description**: Queue watchlist/progress changes when offline and replay when network returns.
+
+**Benefits**:
+- Fewer user-visible errors.
+- Better resilience on unstable connections.
+
+**Implementation**:
+- Persist pending actions locally (Room).
+- Background worker retries with exponential backoff.
+- Conflict handling (latest-write-wins for progress).
+
+**Complexity**: Medium-High

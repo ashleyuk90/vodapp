@@ -365,3 +365,41 @@ val okHttpClient = OkHttpClient.Builder()
 | [ErrorHandler.kt](../app/src/main/java/com/example/vod/utils/ErrorHandler.kt) | Consistent error messaging |
 | [NetworkUtils.kt](../app/src/main/java/com/example/vod/utils/NetworkUtils.kt) | Network connectivity checks |
 | [UiState.kt](../app/src/main/java/com/example/vod/utils/UiState.kt) | Type-safe UI state management |
+
+---
+
+## 2026-02-08 Review Addendum (Open Issues)
+
+### A. Critical: PIN-Protected Profile Bypass
+
+**Location**: [ProfileSelectionActivity.kt](../app/src/main/java/com/example/vod/ProfileSelectionActivity.kt)
+
+**Issue**: The PIN branch is still TODO and selection continues without verification.
+
+**Recommendation**:
+- Block profile selection until PIN verification succeeds.
+- Validate PIN server-side and rate-limit attempts.
+
+---
+
+### B. High: Hardcoded HTTP Image Fallbacks
+
+**Location**: [Models.kt](../app/src/main/java/com/example/vod/Models.kt)
+
+**Issue**: Fallback image URLs use hardcoded cleartext `http://77.74.196.120/...`.
+
+**Recommendation**:
+- Build image URLs from `BuildConfig.BASE_URL`.
+- Enforce HTTPS and null-safe path handling.
+
+---
+
+### C. High: Credentials Cleared on Transient Network Failures
+
+**Location**: [LoginActivity.kt](../app/src/main/java/com/example/vod/LoginActivity.kt)
+
+**Issue**: Network errors route to a handler that clears encrypted saved credentials.
+
+**Recommendation**:
+- Clear credentials only for explicit authentication failures.
+- Preserve credentials for timeout/offline/temporary server failures.
