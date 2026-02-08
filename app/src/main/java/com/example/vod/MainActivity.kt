@@ -4,6 +4,7 @@ import android.content.Intent
 import android.content.res.ColorStateList
 import android.graphics.Color
 import android.os.Bundle
+import android.util.Log
 import android.view.Gravity
 import android.view.KeyEvent
 import android.view.LayoutInflater
@@ -42,6 +43,7 @@ import com.example.vod.utils.OrientationUtils
 import com.example.vod.utils.RatingUtils
 import com.example.vod.utils.ResponsiveUtils
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.isActive
@@ -51,6 +53,10 @@ import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
 
 class MainActivity : AppCompatActivity() {
+    companion object {
+        private const val TAG = "MainActivity"
+    }
+
 
     // Main Views
     private lateinit var sideMenu: LinearLayout
@@ -80,9 +86,20 @@ class MainActivity : AppCompatActivity() {
     // Search Filters
     private lateinit var chipGroupType: ChipGroup
     private lateinit var chipGroupGenre: ChipGroup
+    private lateinit var chipGroupYear: ChipGroup
+    private lateinit var chipGroupRating: ChipGroup
     private lateinit var chipAll: Chip
     private lateinit var chipMovies: Chip
     private lateinit var chipSeries: Chip
+    private lateinit var chipYearAny: Chip
+    private lateinit var chipYear2020s: Chip
+    private lateinit var chipYear2010s: Chip
+    private lateinit var chipYear2000s: Chip
+    private lateinit var chipYearBefore2000: Chip
+    private lateinit var chipRatingAny: Chip
+    private lateinit var chipRating60: Chip
+    private lateinit var chipRating70: Chip
+    private lateinit var chipRating80: Chip
     private lateinit var chipClearFilters: Chip
     private var currentFilters = SearchFilters()
 
@@ -168,9 +185,20 @@ class MainActivity : AppCompatActivity() {
         // Initialize filter chips
         chipGroupType = findViewById(R.id.chipGroupType)
         chipGroupGenre = findViewById(R.id.chipGroupGenre)
+        chipGroupYear = findViewById(R.id.chipGroupYear)
+        chipGroupRating = findViewById(R.id.chipGroupRating)
         chipAll = findViewById(R.id.chipAll)
         chipMovies = findViewById(R.id.chipMovies)
         chipSeries = findViewById(R.id.chipSeries)
+        chipYearAny = findViewById(R.id.chipYearAny)
+        chipYear2020s = findViewById(R.id.chipYear2020s)
+        chipYear2010s = findViewById(R.id.chipYear2010s)
+        chipYear2000s = findViewById(R.id.chipYear2000s)
+        chipYearBefore2000 = findViewById(R.id.chipYearBefore2000)
+        chipRatingAny = findViewById(R.id.chipRatingAny)
+        chipRating60 = findViewById(R.id.chipRating60)
+        chipRating70 = findViewById(R.id.chipRating70)
+        chipRating80 = findViewById(R.id.chipRating80)
         chipClearFilters = findViewById(R.id.chipClearFilters)
         
         setupFilterChips()
@@ -583,14 +611,23 @@ class MainActivity : AppCompatActivity() {
             R.id.chipClearFilters
         )
 
-        topRowChipIds.forEach { chipId ->
-            findViewById<Chip>(chipId)?.nextFocusUpId = R.id.editSearch
-        }
-
         findViewById<Chip>(R.id.chipAll)?.nextFocusDownId = R.id.chipAction
         findViewById<Chip>(R.id.chipMovies)?.nextFocusDownId = R.id.chipComedy
         findViewById<Chip>(R.id.chipSeries)?.nextFocusDownId = R.id.chipDrama
         findViewById<Chip>(R.id.chipClearFilters)?.nextFocusDownId = R.id.chipHorror
+
+        findViewById<Chip>(R.id.chipAction)?.nextFocusDownId = R.id.chipYearAny
+        findViewById<Chip>(R.id.chipComedy)?.nextFocusDownId = R.id.chipYear2020s
+        findViewById<Chip>(R.id.chipDrama)?.nextFocusDownId = R.id.chipYear2010s
+        findViewById<Chip>(R.id.chipHorror)?.nextFocusDownId = R.id.chipYear2000s
+        findViewById<Chip>(R.id.chipSciFi)?.nextFocusDownId = R.id.chipYearBefore2000
+        findViewById<Chip>(R.id.chipAnimation)?.nextFocusDownId = R.id.chipYearBefore2000
+
+        findViewById<Chip>(R.id.chipYearAny)?.nextFocusDownId = R.id.chipRatingAny
+        findViewById<Chip>(R.id.chipYear2020s)?.nextFocusDownId = R.id.chipRating60
+        findViewById<Chip>(R.id.chipYear2010s)?.nextFocusDownId = R.id.chipRating70
+        findViewById<Chip>(R.id.chipYear2000s)?.nextFocusDownId = R.id.chipRating80
+        findViewById<Chip>(R.id.chipYearBefore2000)?.nextFocusDownId = R.id.chipRating80
 
         val allFilterChipIds = intArrayOf(
             R.id.chipAll,
@@ -602,8 +639,21 @@ class MainActivity : AppCompatActivity() {
             R.id.chipHorror,
             R.id.chipSciFi,
             R.id.chipAnimation,
+            R.id.chipYearAny,
+            R.id.chipYear2020s,
+            R.id.chipYear2010s,
+            R.id.chipYear2000s,
+            R.id.chipYearBefore2000,
+            R.id.chipRatingAny,
+            R.id.chipRating60,
+            R.id.chipRating70,
+            R.id.chipRating80,
             R.id.chipClearFilters
         )
+
+        topRowChipIds.forEach { chipId ->
+            findViewById<Chip>(chipId)?.nextFocusUpId = R.id.editSearch
+        }
 
         allFilterChipIds.forEach { chipId ->
             findViewById<Chip>(chipId)?.nextFocusUpId = R.id.editSearch
@@ -632,6 +682,17 @@ class MainActivity : AppCompatActivity() {
             R.id.chipSeries
         }
         findViewById<Chip>(R.id.chipHorror)?.nextFocusUpId = horrorUpId
+
+        findViewById<Chip>(R.id.chipYearAny)?.nextFocusUpId = R.id.chipAction
+        findViewById<Chip>(R.id.chipYear2020s)?.nextFocusUpId = R.id.chipComedy
+        findViewById<Chip>(R.id.chipYear2010s)?.nextFocusUpId = R.id.chipDrama
+        findViewById<Chip>(R.id.chipYear2000s)?.nextFocusUpId = R.id.chipHorror
+        findViewById<Chip>(R.id.chipYearBefore2000)?.nextFocusUpId = R.id.chipSciFi
+
+        findViewById<Chip>(R.id.chipRatingAny)?.nextFocusUpId = R.id.chipYearAny
+        findViewById<Chip>(R.id.chipRating60)?.nextFocusUpId = R.id.chipYear2020s
+        findViewById<Chip>(R.id.chipRating70)?.nextFocusUpId = R.id.chipYear2010s
+        findViewById<Chip>(R.id.chipRating80)?.nextFocusUpId = R.id.chipYear2000s
     }
 
     private fun openSearchOverlay() {
@@ -841,6 +902,31 @@ class MainActivity : AppCompatActivity() {
             currentFilters = currentFilters.copy(genre = genre)
             updateClearFiltersVisibility()
         }
+
+        // Year range filter chips
+        chipGroupYear.setOnCheckedStateChangeListener { _, checkedIds ->
+            val (yearMin, yearMax) = when {
+                checkedIds.contains(R.id.chipYear2020s) -> 2020 to 2029
+                checkedIds.contains(R.id.chipYear2010s) -> 2010 to 2019
+                checkedIds.contains(R.id.chipYear2000s) -> 2000 to 2009
+                checkedIds.contains(R.id.chipYearBefore2000) -> null to 1999
+                else -> null to null
+            }
+            currentFilters = currentFilters.copy(yearMin = yearMin, yearMax = yearMax)
+            updateClearFiltersVisibility()
+        }
+
+        // Minimum rating filter chips
+        chipGroupRating.setOnCheckedStateChangeListener { _, checkedIds ->
+            val minRating = when {
+                checkedIds.contains(R.id.chipRating60) -> 6.0f
+                checkedIds.contains(R.id.chipRating70) -> 7.0f
+                checkedIds.contains(R.id.chipRating80) -> 8.0f
+                else -> null
+            }
+            currentFilters = currentFilters.copy(minRating = minRating)
+            updateClearFiltersVisibility()
+        }
         
         // Clear filters button
         chipClearFilters.setOnClickListener {
@@ -849,10 +935,12 @@ class MainActivity : AppCompatActivity() {
     }
     
     private fun updateClearFiltersVisibility() {
-        // Show clear button only if genre filter is active (type "All" is ok)
+        // Show clear button only when at least one non-default filter is active.
         val hasGenreFilter = currentFilters.genre != null
         val hasTypeFilter = currentFilters.type != null
-        val shouldShowClear = hasGenreFilter || hasTypeFilter
+        val hasYearFilter = currentFilters.yearMin != null || currentFilters.yearMax != null
+        val hasRatingFilter = currentFilters.minRating != null
+        val shouldShowClear = hasGenreFilter || hasTypeFilter || hasYearFilter || hasRatingFilter
 
         // Prevent focus trap when clear chip disappears while focused
         if (!shouldShowClear && chipClearFilters.visibility == View.VISIBLE && chipClearFilters.hasFocus()) {
@@ -876,6 +964,8 @@ class MainActivity : AppCompatActivity() {
         // Select "All" chip instead of clearing completely
         chipAll.isChecked = true
         chipGroupGenre.clearCheck()
+        chipYearAny.isChecked = true
+        chipRatingAny.isChecked = true
         currentFilters = SearchFilters()
         updateClearFiltersVisibility()
     }
@@ -1425,8 +1515,11 @@ class MainActivity : AppCompatActivity() {
                         hasMorePages = false
                     }
                 }
+            } catch (e: CancellationException) {
+                Log.d(TAG, "Library fetch cancelled for libId=$libId")
+                throw e
             } catch (e: Exception) {
-                e.printStackTrace()
+                Log.e(TAG, "Error loading library for libId=$libId", e)
                 withContext(Dispatchers.Main) {
                     weakActivity.get()?.let { activity ->
                         ErrorHandler.handleNetworkError(activity, e, "Error loading library")

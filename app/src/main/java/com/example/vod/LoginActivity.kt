@@ -161,42 +161,54 @@ class LoginActivity : AppCompatActivity() {
                         activity.startActivity(Intent(activity, ProfileSelectionActivity::class.java))
                         activity.finish()
                     } else {
-                        activity.showLoginError("Login Failed")
+                        activity.showLoginError("Login Failed", clearSavedCredentials = true)
                     }
                 }
             } catch (e: HttpException) {
                 withContext(Dispatchers.Main) {
                     val activity = weakActivity.get() ?: return@withContext
+                    val clearSavedCredentials = e.code() == 401 || e.code() == 403
                     try {
                         val errorJson = e.response()?.errorBody()?.string()
                         val errorResponse = Gson().fromJson(errorJson, ApiResponse::class.java)
-                        activity.showLoginError(errorResponse.message ?: "Invalid Credentials")
+                        activity.showLoginError(
+                            errorResponse.message ?: "Invalid Credentials",
+                            clearSavedCredentials = clearSavedCredentials
+                        )
                     } catch (_: Exception) {
-                        activity.showLoginError("Invalid Credentials")
+                        activity.showLoginError(
+                            "Invalid Credentials",
+                            clearSavedCredentials = clearSavedCredentials
+                        )
                     }
                 }
             } catch (e: IOException) {
                 withContext(Dispatchers.Main) {
                     weakActivity.get()?.let { activity ->
                         ErrorHandler.handleNetworkError(activity, e)
-                        activity.showLoginError(null)
+                        activity.showLoginError(null, clearSavedCredentials = false)
                     }
                 }
             } catch (e: Exception) {
                 withContext(Dispatchers.Main) {
                     weakActivity.get()?.let { activity ->
                         ErrorHandler.handleNetworkError(activity, e, "Connection Error")
-                        activity.showLoginError(null)
+                        activity.showLoginError(null, clearSavedCredentials = false)
                     }
                 }
             }
         }
     }
 
-    private fun showLoginError(msg: String?) {
-        NetworkClient.updateCsrfToken(null)
-        prefs.edit {
-            clear()
+    private fun showLoginError(msg: String?, clearSavedCredentials: Boolean) {
+        if (clearSavedCredentials) {
+            NetworkClient.updateCsrfToken(null)
+            prefs.edit {
+                remove(Constants.KEY_USER)
+                remove(Constants.KEY_PASS)
+                remove(Constants.KEY_CSRF_TOKEN)
+                remove(Constants.KEY_ACCOUNT_EXPIRY)
+            }
         }
 
         layoutLoading.visibility = View.GONE

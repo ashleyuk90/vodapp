@@ -1,98 +1,77 @@
 # Code Review - 2026-02-08
 
+Updated after remediation pass.
+
 Scope:
-- Reviewed Kotlin app code under `app/src/main/java/com/example/vod`.
-- Reviewed Gradle/dependency setup in `app/build.gradle.kts`.
-- Reviewed project docs for drift and formatting issues.
+- Kotlin app code under `app/src/main/java/com/example/vod`.
+- Gradle/dependency setup in `app/build.gradle.kts`.
+- Project docs and README quality.
 
 Validation limits:
-- `./gradlew testDebugUnitTest` could not run locally because Java runtime is missing on this machine.
+- `./gradlew testDebugUnitTest` still cannot run in this environment because Java runtime is missing.
 
-## Findings (Ordered by Severity)
+## Status Summary
+
+| # | Finding | Severity | Status |
+| --- | --- | --- | --- |
+| 1 | PIN-protected profiles are not actually protected | Critical | Open |
+| 2 | Image fallback URLs were hardcoded to cleartext HTTP | High | Resolved |
+| 3 | Cancelled library fetches could surface as user-facing errors | High | Resolved |
+| 4 | Transient login/network failures cleared saved credentials | High | Resolved |
+| 5 | Duplicate/conflicting dependency declarations | Medium | Resolved |
+| 6 | Runtime error handling used `printStackTrace()` | Medium | Resolved |
+| 7 | README stale + UTF-16 encoding | Medium | Resolved |
+| 8 | Automated tests are placeholder-only | Low | Open |
+
+## Resolved Findings
+
+### 2) Image URL hardcoding
+- Fixed in `app/src/main/java/com/example/vod/Models.kt`.
+- `getDisplayImage()`/`getBackdropImage()` now resolve via secure base URL logic and return safe empty fallback.
+
+### 3) Cancellation handling in library fetch
+- Fixed in `app/src/main/java/com/example/vod/MainActivity.kt`.
+- Added explicit `CancellationException` handling to avoid false user-facing errors.
+
+### 4) Credential clearing on transient failures
+- Fixed in `app/src/main/java/com/example/vod/LoginActivity.kt`.
+- Credentials are now cleared only for auth failures (401/403 and explicit login failure paths), not transient network errors.
+
+### 5) Duplicate dependency declarations
+- Fixed in `app/build.gradle.kts`.
+- Removed duplicate explicit `core-ktx` and `material` lines so version catalog is the source of truth.
+
+### 6) `printStackTrace()` cleanup
+- Fixed in:
+  - `app/src/main/java/com/example/vod/MainActivity.kt`
+  - `app/src/main/java/com/example/vod/DetailsActivity.kt`
+  - `app/src/main/java/com/example/vod/WatchLaterFragment.kt`
+- Replaced with structured `Log` usage and user-safe error handling where appropriate.
+
+### 7) README encoding and drift
+- Fixed in `README.md`.
+- Converted to UTF-8, updated stale config notes, and aligned SDK/build/config sections with current project setup.
+
+## Remaining Findings
 
 ### 1) Critical: PIN-protected profiles are not actually protected
-- Location: `app/src/main/java/com/example/vod/ProfileSelectionActivity.kt:424`
-- Evidence: `profile.hasPin` branch contains TODO and still proceeds with profile selection.
-- Impact: Parental-control and profile privacy can be bypassed.
-- Suggested fix:
-  - Block selection until PIN entry succeeds.
+- Location: `app/src/main/java/com/example/vod/ProfileSelectionActivity.kt`.
+- Evidence: `profile.hasPin` branch is still TODO and proceeds with selection.
+- Required fix:
+  - Block profile selection until PIN verification succeeds.
   - Validate PIN server-side.
-  - Add local retry throttling and temporary lockout.
-
-### 2) High: Image fallback URLs are hardcoded to cleartext HTTP
-- Location: `app/src/main/java/com/example/vod/Models.kt:104`
-- Evidence: `getDisplayImage()` and `getBackdropImage()` return `http://77.74.196.120/...`.
-- Impact:
-  - Mixed/insecure transport risk.
-  - Fallback images may fail under strict network security policies.
-  - BuildConfig URL environment separation is bypassed.
-- Suggested fix:
-  - Build absolute image URLs from `BuildConfig.BASE_URL`.
-  - Require HTTPS for fallback paths.
-  - Return empty string when no path exists instead of `.../null`.
-
-### 3) High: Cancelled library fetches can surface as user-facing errors
-- Location: `app/src/main/java/com/example/vod/MainActivity.kt:1367`
-- Evidence: `fetchJob?.cancel()` is followed by `catch (e: Exception)` that treats cancellation as a normal error.
-- Impact: Spurious error messages during normal navigation (switching libraries quickly).
-- Suggested fix:
-  - Handle `CancellationException` separately and ignore it.
-  - Keep generic error handling for actual failures only.
-
-### 4) High: Transient login/network failures clear saved credentials
-- Location: `app/src/main/java/com/example/vod/LoginActivity.kt:178`
-- Evidence: IO and generic exceptions call `showLoginError(null)`, which clears prefs (`clear()`).
-- Impact: Users can be logged out by temporary outages.
-- Suggested fix:
-  - Only clear credentials on explicit auth failure (e.g. 401/invalid credentials).
-  - Keep encrypted credentials on network timeouts/offline conditions.
-
-### 5) Medium: Duplicate/conflicting dependency declarations
-- Location: `app/build.gradle.kts:48`
-- Evidence:
-  - `core-ktx` declared via version catalog and again explicitly.
-  - `material` declared via version catalog and again explicitly with different version.
-- Impact: Version drift, harder upgrades, less predictable dependency graph.
-- Suggested fix:
-  - Keep a single source of truth via `libs.versions.toml`.
-  - Remove explicit duplicate declarations.
-
-### 6) Medium: Runtime error handling still uses `printStackTrace()`
-- Location: `app/src/main/java/com/example/vod/MainActivity.kt:1429`
-- Evidence: Multiple UI/network paths print stack traces directly.
-- Impact: Inconsistent observability and noisy logs in production.
-- Suggested fix:
-  - Replace with structured logging (`Log.e/w`) and user-safe messaging.
-  - Optionally route critical errors through a crash/reporting pipeline.
-
-### 7) Medium: README is stale and encoded as UTF-16
-- Location: `README.md`
-- Evidence:
-  - File encoding is UTF-16 LE with CRLF.
-  - Docs still reference old hardcoded HTTP base URL and outdated min SDK value.
-- Impact: Poor Git/web rendering interoperability and onboarding confusion.
-- Suggested fix:
-  - Convert to UTF-8.
-  - Align config sections with `BuildConfig.BASE_URL` and current Gradle settings.
+  - Add retry throttling/lockout behavior.
 
 ### 8) Low: Automated test coverage is still placeholder-only
-- Location: `app/src/test/java/com/example/vod/ExampleUnitTest.kt:12`
-- Evidence: Default template tests only.
-- Impact: Regressions are harder to catch during refactors.
-- Suggested fix:
-  - Add unit tests for URL building, profile PIN gate, and cancellation handling.
-  - Add one instrumentation test for profile-selection auth flow.
+- Locations:
+  - `app/src/test/java/com/example/vod/ExampleUnitTest.kt`
+  - `app/src/androidTest/java/com/example/vod/ExampleInstrumentedTest.kt`
+- Required fix:
+  - Add unit tests for URL resolution and login credential-clear behavior.
+  - Add instrumentation coverage for PIN-gated profile selection flow.
 
-## Suggested New Features (Post-Fix Priority)
+## Recommended Next Steps
 
-1. PIN verification flow with lockout and optional recovery path.
-2. "Manage Continue Watching" actions (hide item, mark as watched, reset progress).
-3. Offline action queue for watchlist/progress sync with background retry.
-4. Quality/subtitle preference persistence per profile and per series.
-5. Playback diagnostics screen (last error, stream endpoint, retry status).
-
-## Suggested Markdown/Documentation Changes
-
-1. Update `README.md` to UTF-8 and remove hardcoded HTTP examples.
-2. Add a short "Known Risks" section to `docs/SECURITY_FIXES.md` for unresolved items.
-3. Add a "Near-Term (Next Sprint)" feature subsection to `docs/FEATURE_IMPROVEMENTS.md`.
+1. Implement PIN verification flow end-to-end (UI + backend API integration).
+2. Add focused unit tests for fixes already delivered.
+3. Re-run Gradle tests once Java runtime is available in this environment.

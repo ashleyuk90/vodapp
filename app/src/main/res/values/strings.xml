@@ -62,6 +62,17 @@
     <string name="filter_horror">Horror</string>
     <string name="filter_scifi">Sci-Fi</string>
     <string name="filter_animation">Animation</string>
+    <string name="filter_year_label">Year</string>
+    <string name="filter_year_any">Any Year</string>
+    <string name="filter_year_2020s">2020s</string>
+    <string name="filter_year_2010s">2010s</string>
+    <string name="filter_year_2000s">2000s</string>
+    <string name="filter_year_before_2000">Before 2000</string>
+    <string name="filter_rating_label">Minimum Rating</string>
+    <string name="filter_rating_any">Any Rating</string>
+    <string name="filter_rating_6_plus">6.0+</string>
+    <string name="filter_rating_7_plus">7.0+</string>
+    <string name="filter_rating_8_plus">8.0+</string>
     <string name="filter_clear">Clear</string>
     <string name="search_results_filtered">Showing %1$d results with filters</string>
     

@@ -4,6 +4,7 @@ import android.content.Intent
 import android.content.res.ColorStateList
 import android.graphics.Color
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.widget.ImageButton
 import android.widget.ImageView
@@ -30,6 +31,10 @@ import java.io.IOException
 import java.lang.ref.WeakReference
 
 class DetailsActivity : AppCompatActivity() {
+    companion object {
+        private const val TAG = "DetailsActivity"
+    }
+
 
     private lateinit var imgBackdrop: ImageView
     private lateinit var imgPoster: ImageView
@@ -120,7 +125,7 @@ class DetailsActivity : AppCompatActivity() {
                     updateWatchLaterUI()
                 }
             } catch (e: Exception) {
-                e.printStackTrace()
+                Log.w(TAG, "Failed to load watch list status for videoId=$id", e)
             }
         }
     }
@@ -148,7 +153,14 @@ class DetailsActivity : AppCompatActivity() {
                             }
                         }
                     } catch (e: Exception) {
-                        e.printStackTrace()
+                        Log.e(TAG, "Failed to update watch list for videoId=$id", e)
+                        withContext(Dispatchers.Main) {
+                            ErrorHandler.handleNetworkError(
+                                this@DetailsActivity,
+                                e,
+                                getString(R.string.watch_list_error)
+                            )
+                        }
                     } finally {
                         withContext(Dispatchers.Main) { isWatchLaterProcessing = false }
                     }

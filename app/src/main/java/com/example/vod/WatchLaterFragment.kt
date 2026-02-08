@@ -2,6 +2,7 @@ package com.example.vod
 
 import android.content.Intent
 import android.os.Bundle
+import android.util.Log
 import android.view.View
 import android.widget.ProgressBar
 import android.widget.TextView
@@ -15,6 +16,10 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 class WatchLaterFragment : Fragment(R.layout.fragment_library) {
+    companion object {
+        private const val TAG = "WatchLaterFragment"
+    }
+
     // Reusing fragment_library layout (assuming it has a RecyclerView and ProgressBar)
 
     private lateinit var recyclerView: RecyclerView
@@ -82,7 +87,7 @@ class WatchLaterFragment : Fragment(R.layout.fragment_library) {
                     }
                 }
             } catch (e: Exception) {
-                e.printStackTrace()
+                Log.e(TAG, "Error loading watch later list", e)
                 withContext(Dispatchers.Main) {
                     progressBar.visibility = View.GONE
                     txtEmpty.setText(R.string.watch_list_error)

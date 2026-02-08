@@ -75,6 +75,46 @@ data class VideoItem(
     @SerializedName("intro_marker") val introMarker: ContentMarker? = null,
     @SerializedName("credits_marker") val creditsMarker: ContentMarker? = null
 ) {
+    companion object {
+        private const val IMAGES_PATH_SEGMENT = "images/"
+
+        private fun normalizedSecureBaseUrl(): String {
+            val rawBaseUrl = BuildConfig.BASE_URL.trim().ifEmpty { "https://localhost/" }
+            val schemeSeparatorIndex = rawBaseUrl.indexOf("://")
+            val withoutScheme = if (schemeSeparatorIndex >= 0) {
+                rawBaseUrl.substring(schemeSeparatorIndex + 3)
+            } else {
+                rawBaseUrl
+            }
+            val withScheme = when {
+                rawBaseUrl.startsWith("https://", ignoreCase = true) -> rawBaseUrl
+                else -> "https://$withoutScheme"
+            }
+            return if (withScheme.endsWith("/")) withScheme else "$withScheme/"
+        }
+
+        private fun resolveImageUrl(raw: String?, treatAsPath: Boolean = false): String? {
+            val trimmed = raw?.trim()?.takeIf { it.isNotEmpty() } ?: return null
+
+            return when {
+                trimmed.startsWith("https://", ignoreCase = true) -> trimmed
+                trimmed.startsWith("http://", ignoreCase = true) -> {
+                    val schemeSeparatorIndex = trimmed.indexOf("://")
+                    val withoutScheme = if (schemeSeparatorIndex >= 0) {
+                        trimmed.substring(schemeSeparatorIndex + 3)
+                    } else {
+                        trimmed
+                    }
+                    "https://$withoutScheme"
+                }
+                treatAsPath -> "${normalizedSecureBaseUrl()}$IMAGES_PATH_SEGMENT${trimmed.trimStart('/')}"
+                trimmed.startsWith("/") ->
+                    "${normalizedSecureBaseUrl()}${trimmed.trimStart('/')}"
+                else -> null
+            }
+        }
+    }
+
     fun normalizedType(): String = type?.trim()?.lowercase().orEmpty()
 
     fun isEpisodeType(): Boolean {
@@ -102,19 +142,16 @@ data class VideoItem(
     fun getPlaybackTargetId(): Int = resumeEpisodeId ?: id
 
     fun getDisplayImage(): String {
-        return when {
-            !posterUrl.isNullOrEmpty() -> posterUrl
-            else -> "http://77.74.196.120/vod/images/$posterPath"
-        }
+        return resolveImageUrl(posterUrl)
+            ?: resolveImageUrl(posterPath, treatAsPath = true)
+            ?: ""
     }
 
     // Add helper for Backdrop
     fun getBackdropImage(): String {
-        return if (!backdropPath.isNullOrEmpty()) {
-            "http://77.74.196.120/vod/images/$backdropPath"
-        } else {
-            getDisplayImage() // Fallback to poster if no backdrop
-        }
+        return resolveImageUrl(backdropPath)
+            ?: resolveImageUrl(backdropPath, treatAsPath = true)
+            ?: getDisplayImage()
     }
 }
 

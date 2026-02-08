@@ -44,20 +44,21 @@ This document outlines recommended feature enhancements for the VOD app, organiz
 
 ---
 
-### 3. Improved Search with Filters ⚠️ PARTIALLY IMPLEMENTED
+### 3. Improved Search with Filters ✅ IMPLEMENTED
 
 **Description**: Enhance search with genre, year, and rating filters.
 
-**Status**: ⚠️ **PARTIAL**
+**Status**: ✅ **IMPLEMENTED**
 
 **Implementation Details**:
 - Filter chips below search bar
 - Content type filters: Movies, Series
 - Genre filters: Action, Comedy, Drama, Horror, Sci-Fi, Animation
+- Year range filters: 2020s, 2010s, 2000s, Before 2000
+- Minimum rating filters: 6.0+, 7.0+, 8.0+
 - Clear Filters button with red styling
 - Filters persist during search session
-- Real-time filtering of search results
-- **Missing UI**: Year range and minimum rating inputs are supported in `SearchFilters` and API params but not exposed in the UI yet.
+- Filters are applied when the user submits a search query
 
 **Complexity**: Low-Medium
 

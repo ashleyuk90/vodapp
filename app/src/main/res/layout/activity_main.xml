@@ -440,6 +440,140 @@
                         android:textColor="@android:color/white"
                         app:chipBackgroundColor="@color/selector_chip_bg" />
                 </com.google.android.material.chip.ChipGroup>
+
+                <TextView
+                    android:id="@+id/txtYearFilterLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    android:text="@string/filter_year_label"
+                    android:textColor="@color/text_secondary"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.chip.ChipGroup
+                    android:id="@+id/chipGroupYear"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    app:chipSpacingHorizontal="10dp"
+                    app:chipSpacingVertical="10dp"
+                    app:singleLine="false"
+                    app:singleSelection="true"
+                    app:selectionRequired="false">
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chipYearAny"
+                        style="@style/Widget.MaterialComponents.Chip.Filter"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:checked="true"
+                        android:focusable="true"
+                        android:text="@string/filter_year_any"
+                        android:textColor="@android:color/white"
+                        app:chipBackgroundColor="@color/selector_chip_bg" />
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chipYear2020s"
+                        style="@style/Widget.MaterialComponents.Chip.Filter"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:focusable="true"
+                        android:text="@string/filter_year_2020s"
+                        android:textColor="@android:color/white"
+                        app:chipBackgroundColor="@color/selector_chip_bg" />
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chipYear2010s"
+                        style="@style/Widget.MaterialComponents.Chip.Filter"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:focusable="true"
+                        android:text="@string/filter_year_2010s"
+                        android:textColor="@android:color/white"
+                        app:chipBackgroundColor="@color/selector_chip_bg" />
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chipYear2000s"
+                        style="@style/Widget.MaterialComponents.Chip.Filter"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:focusable="true"
+                        android:text="@string/filter_year_2000s"
+                        android:textColor="@android:color/white"
+                        app:chipBackgroundColor="@color/selector_chip_bg" />
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chipYearBefore2000"
+                        style="@style/Widget.MaterialComponents.Chip.Filter"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:focusable="true"
+                        android:text="@string/filter_year_before_2000"
+                        android:textColor="@android:color/white"
+                        app:chipBackgroundColor="@color/selector_chip_bg" />
+                </com.google.android.material.chip.ChipGroup>
+
+                <TextView
+                    android:id="@+id/txtRatingFilterLabel"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="14dp"
+                    android:text="@string/filter_rating_label"
+                    android:textColor="@color/text_secondary"
+                    android:textStyle="bold" />
+
+                <com.google.android.material.chip.ChipGroup
+                    android:id="@+id/chipGroupRating"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="10dp"
+                    app:chipSpacingHorizontal="10dp"
+                    app:chipSpacingVertical="10dp"
+                    app:singleLine="false"
+                    app:singleSelection="true"
+                    app:selectionRequired="false">
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chipRatingAny"
+                        style="@style/Widget.MaterialComponents.Chip.Filter"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:checked="true"
+                        android:focusable="true"
+                        android:text="@string/filter_rating_any"
+                        android:textColor="@android:color/white"
+                        app:chipBackgroundColor="@color/selector_chip_bg" />
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chipRating60"
+                        style="@style/Widget.MaterialComponents.Chip.Filter"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:focusable="true"
+                        android:text="@string/filter_rating_6_plus"
+                        android:textColor="@android:color/white"
+                        app:chipBackgroundColor="@color/selector_chip_bg" />
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chipRating70"
+                        style="@style/Widget.MaterialComponents.Chip.Filter"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:focusable="true"
+                        android:text="@string/filter_rating_7_plus"
+                        android:textColor="@android:color/white"
+                        app:chipBackgroundColor="@color/selector_chip_bg" />
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chipRating80"
+                        style="@style/Widget.MaterialComponents.Chip.Filter"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:focusable="true"
+                        android:text="@string/filter_rating_8_plus"
+                        android:textColor="@android:color/white"
+                        app:chipBackgroundColor="@color/selector_chip_bg" />
+                </com.google.android.material.chip.ChipGroup>
             </LinearLayout>
             
             <!-- Search Empty State -->
