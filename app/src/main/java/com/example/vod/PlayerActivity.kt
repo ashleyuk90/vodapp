@@ -29,6 +29,7 @@ import com.example.vod.utils.ErrorHandler
 import com.example.vod.utils.AnimationHelper
 import com.example.vod.utils.NetworkUtils
 import com.example.vod.utils.OrientationUtils
+import com.google.gson.Gson
 import com.google.android.material.button.MaterialButton
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -36,6 +37,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
 import java.io.IOException
 import java.lang.ref.WeakReference
+import retrofit2.HttpException
 
 // Fix 1: Opt-in to Media3 Unstable API to fix the red errors
 @OptIn(UnstableApi::class)
@@ -52,6 +54,8 @@ class PlayerActivity : AppCompatActivity() {
         private const val MAX_RETRY_ATTEMPTS = 3
         private const val INITIAL_RETRY_DELAY_MS = 2000L
         private const val MAX_RETRY_DELAY_MS = 16000L
+        private const val PLAYBACK_STATUS_CHECK_TICK_INTERVAL = 10
+        private const val PLAYBACK_LIMIT_EXCEEDED_CODE = "playback_limit_exceeded"
     }
 
     private var videoId: Int = -1
@@ -82,6 +86,7 @@ class PlayerActivity : AppCompatActivity() {
     private var lastSubUrl: String? = null
     private var lastSubLang: String? = null
     private var isRetrying = false
+    private var hasTerminatedForPlaybackLimit = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -202,7 +207,11 @@ class PlayerActivity : AppCompatActivity() {
                 }
             }
 
-            if (tickCount % Constants.PROGRESS_SYNC_TICK_INTERVAL == 0) {
+            val shouldCheckPlaybackStatus = isPlaying &&
+                tickCount % PLAYBACK_STATUS_CHECK_TICK_INTERVAL == 0
+            val shouldRunProgressSync = tickCount % Constants.PROGRESS_SYNC_TICK_INTERVAL == 0
+
+            if (shouldRunProgressSync || shouldCheckPlaybackStatus) {
                 val shouldSyncPaused = if (isPausedState) {
                     val pausedAt = pausedSinceElapsedMs ?: SystemClock.elapsedRealtime()
                     val pausedDurationMs = SystemClock.elapsedRealtime() - pausedAt
@@ -210,25 +219,69 @@ class PlayerActivity : AppCompatActivity() {
                 } else {
                     false
                 }
+                val shouldSyncProgress = shouldRunProgressSync && (isPlaying || shouldSyncPaused)
 
-                if (isPlaying || shouldSyncPaused) {
+                if (shouldSyncProgress || shouldCheckPlaybackStatus) {
                     val profileId = ProfileManager.getActiveProfileId()
-                    val bufferSeconds = ((p.bufferedPosition - currentPosMs).coerceAtLeast(0L) / 1000L).toInt()
+                    val bufferSeconds =
+                        ((p.bufferedPosition - currentPosMs).coerceAtLeast(0L) / 1000L).toInt()
                     val paused = if (isPlaying) 0 else 1
 
                     lifecycleScope.launch(Dispatchers.IO) {
                         try {
-                            withTimeout(Constants.NETWORK_TIMEOUT_MS) {
-                                NetworkClient.api.syncProgress(
-                                    id = videoId,
-                                    time = currentPosSec.toLong(),
-                                    paused = paused,
-                                    bufferSeconds = bufferSeconds,
-                                    profileId = profileId
-                                )
+                            if (shouldSyncProgress) {
+                                val progressResponse = withTimeout(Constants.NETWORK_TIMEOUT_MS) {
+                                    NetworkClient.api.syncProgress(
+                                        id = videoId,
+                                        time = currentPosSec.toLong(),
+                                        paused = paused,
+                                        bufferSeconds = bufferSeconds,
+                                        profileId = profileId
+                                    )
+                                }
+
+                                if (progressResponse.stopPlayback) {
+                                    withContext(Dispatchers.Main) {
+                                        handlePlaybackLimitExceeded(
+                                            limit = progressResponse.limit,
+                                            activePlaybacks = progressResponse.activePlaybacks,
+                                            serverMessage = progressResponse.message
+                                        )
+                                    }
+                                    return@launch
+                                }
+                            }
+
+                            if (shouldCheckPlaybackStatus) {
+                                val playbackStatus = withTimeout(Constants.NETWORK_TIMEOUT_MS) {
+                                    NetworkClient.api.getPlaybackStatus(
+                                        id = videoId,
+                                        profileId = profileId
+                                    )
+                                }
+                                if (playbackStatus.revoke) {
+                                    withContext(Dispatchers.Main) {
+                                        handlePlaybackLimitExceeded(
+                                            limit = playbackStatus.limit,
+                                            activePlaybacks = playbackStatus.activePlaybacks,
+                                            serverMessage = playbackStatus.message
+                                        )
+                                    }
+                                }
+                            }
+                        } catch (e: HttpException) {
+                            val apiError = parseApiError(e)
+                            if (isPlaybackLimitHttpError(e, apiError)) {
+                                withContext(Dispatchers.Main) {
+                                    handlePlaybackLimitExceeded(
+                                        limit = apiError?.limit,
+                                        activePlaybacks = apiError?.activePlaybacks,
+                                        serverMessage = apiError?.message
+                                    )
+                                }
                             }
                         } catch (_: Exception) {
-                            // Ignore transient sync failures; next tick will retry.
+                            // Ignore transient sync/status failures; next tick will retry.
                         }
                     }
                 }
@@ -343,14 +396,18 @@ class PlayerActivity : AppCompatActivity() {
         // Use lifecycleScope instead of CoroutineScope for automatic cancellation
         lifecycleScope.launch(Dispatchers.IO) {
             try {
-                val response = NetworkClient.api.getStreamInfo(id)
+                val profileId = ProfileManager.getActiveProfileId()
+                val response = NetworkClient.api.getStreamInfo(id, profileId)
                 val data = response.data
 
-                if (data?.streamUrl == null) {
+                if (data?.streamUrl.isNullOrBlank()) {
                     Log.e(TAG, "ERROR: Stream URL is NULL")
                     withContext(Dispatchers.Main) {
                         weakActivity.get()?.let { activity ->
-                            ErrorHandler.showError(activity, "Video stream unavailable")
+                            ErrorHandler.showError(
+                                activity,
+                                response.message ?: activity.getString(R.string.error_stream_unavailable)
+                            )
                             activity.finish()
                         }
                     }
@@ -384,6 +441,26 @@ class PlayerActivity : AppCompatActivity() {
                     )
                 }
 
+            } catch (e: HttpException) {
+                Log.w(TAG, "HTTP error in initializePlayer: code=${e.code()}", e)
+                val apiError = parseApiError(e)
+                withContext(Dispatchers.Main) {
+                    weakActivity.get()?.let { activity ->
+                        if (isPlaybackLimitHttpError(e, apiError)) {
+                            activity.handlePlaybackLimitExceeded(
+                                limit = apiError?.limit,
+                                activePlaybacks = apiError?.activePlaybacks,
+                                serverMessage = apiError?.message
+                            )
+                        } else {
+                            ErrorHandler.showError(
+                                activity,
+                                apiError?.message ?: activity.getString(R.string.error_loading_video)
+                            )
+                            activity.finish()
+                        }
+                    }
+                }
             } catch (e: IOException) {
                 Log.e(TAG, "Network error in initializePlayer", e)
                 withContext(Dispatchers.Main) {
@@ -396,7 +473,11 @@ class PlayerActivity : AppCompatActivity() {
                 Log.e(TAG, "CRITICAL EXCEPTION in initializePlayer", e)
                 withContext(Dispatchers.Main) {
                     weakActivity.get()?.let { activity ->
-                        ErrorHandler.handleNetworkError(activity, e, "Error loading video")
+                        ErrorHandler.handleNetworkError(
+                            activity,
+                            e,
+                            activity.getString(R.string.error_loading_video)
+                        )
                         activity.finish()
                     }
                 }
@@ -491,6 +572,13 @@ class PlayerActivity : AppCompatActivity() {
         }
 
         val cause = error.cause
+        if (cause is androidx.media3.datasource.HttpDataSource.InvalidResponseCodeException &&
+            cause.responseCode == 429
+        ) {
+            handlePlaybackLimitExceeded()
+            return
+        }
+
         val errorMessage = when {
             cause is androidx.media3.datasource.HttpDataSource.InvalidResponseCodeException -> {
                 "Server error: HTTP ${cause.responseCode}"
@@ -605,6 +693,66 @@ class PlayerActivity : AppCompatActivity() {
         retryAttempt = 0
         currentRetryDelay = INITIAL_RETRY_DELAY_MS
         isRetrying = false
+    }
+
+    private fun parseApiError(httpException: HttpException): ApiErrorResponse? {
+        return try {
+            val raw = httpException.response()?.errorBody()?.string().orEmpty()
+            if (raw.isBlank()) null else Gson().fromJson(raw, ApiErrorResponse::class.java)
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    private fun isPlaybackLimitHttpError(
+        httpException: HttpException,
+        apiError: ApiErrorResponse? = null
+    ): Boolean {
+        if (httpException.code() != 429) return false
+        val code = apiError?.code?.trim()
+        return code.isNullOrEmpty() || code.equals(PLAYBACK_LIMIT_EXCEEDED_CODE, ignoreCase = true)
+    }
+
+    private fun handlePlaybackLimitExceeded(
+        limit: Int? = null,
+        activePlaybacks: Int? = null,
+        serverMessage: String? = null
+    ) {
+        if (hasTerminatedForPlaybackLimit || isFinishing || isDestroyed) return
+        hasTerminatedForPlaybackLimit = true
+
+        val message = buildPlaybackLimitMessage(limit, activePlaybacks, serverMessage)
+        Log.w(TAG, "Playback ended due to concurrent limit. limit=$limit active=$activePlaybacks")
+
+        progressHandler.removeCallbacks(progressRunnable)
+        resetRetryState()
+        player?.stop()
+        player?.release()
+        player = null
+
+        Toast.makeText(this, message, Toast.LENGTH_LONG).show()
+        finish()
+    }
+
+    private fun buildPlaybackLimitMessage(
+        limit: Int?,
+        activePlaybacks: Int?,
+        serverMessage: String?
+    ): String {
+        val cleanServerMessage = serverMessage?.trim().orEmpty()
+        if (cleanServerMessage.isNotEmpty()) {
+            return cleanServerMessage
+        }
+
+        return when {
+            limit != null && activePlaybacks != null -> {
+                getString(R.string.playback_limit_reached_with_counts, limit, activePlaybacks)
+            }
+            limit != null -> {
+                getString(R.string.playback_limit_reached_with_limit, limit)
+            }
+            else -> getString(R.string.playback_limit_reached_generic)
+        }
     }
 
     // Fix 6: Suppress SetTextI18n (Hardcoded text) warning so you don't have to make an XML resource right now

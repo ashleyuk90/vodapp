@@ -15,7 +15,9 @@ interface ApiService {
     @POST("api/login")
     suspend fun login(
         @Field("username") user: String,
-        @Field("password") pass: String
+        @Field("password") pass: String,
+        @Field("app_version_name") appVersionName: String? = null,
+        @Field("app_version_code") appVersionCode: Int? = null
     ): ApiResponse<User>
 
     @GET("api/library")
@@ -29,7 +31,10 @@ interface ApiService {
     suspend fun getLibraries(): LibraryListResponse
 
     @GET("api/play")
-    suspend fun getStreamInfo(@Query("id") id: Int): ApiResponse<PlayResponse>
+    suspend fun getStreamInfo(
+        @Query("id") id: Int,
+        @Query("profile_id") profileId: Int? = null
+    ): ApiResponse<PlayResponse>
 
     @GET("api/details")
     suspend fun getDetails(
@@ -46,6 +51,12 @@ interface ApiService {
         @Field("buffer_seconds") bufferSeconds: Int? = null,
         @Field("profile_id") profileId: Int? = null
     ): ProgressResponse
+
+    @GET("api/playback_status")
+    suspend fun getPlaybackStatus(
+        @Query("id") id: Int,
+        @Query("profile_id") profileId: Int? = null
+    ): PlaybackStatusResponse
 
     @GET("api/dashboard")
     suspend fun getDashboard(
@@ -143,16 +154,17 @@ object NetworkClient {
             val isLoginRequest = isPathLoginRequest || isLegacyQueryLoginRequest
             val shouldAttachCsrf = request.method.equals("POST", ignoreCase = true) && !isLoginRequest
             val token = csrfToken?.takeIf { it.isNotBlank() }
+            val requestBuilder = request.newBuilder()
+                .header("X-Client-Platform", "android")
+                .header("X-App-Package", BuildConfig.APPLICATION_ID)
+                .header("X-App-Version-Name", BuildConfig.VERSION_NAME.ifBlank { "unknown" })
+                .header("X-App-Version-Code", BuildConfig.VERSION_CODE.toString())
 
-            val requestWithSecurity = if (shouldAttachCsrf && token != null) {
-                request.newBuilder()
-                    .header("X-CSRF-Token", token)
-                    .build()
-            } else {
-                request
+            if (shouldAttachCsrf && token != null) {
+                requestBuilder.header("X-CSRF-Token", token)
             }
 
-            chain.proceed(requestWithSecurity)
+            chain.proceed(requestBuilder.build())
         }
         // Only log in debug builds to prevent credential exposure
         .addInterceptor(HttpLoggingInterceptor().apply {

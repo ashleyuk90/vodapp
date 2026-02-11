@@ -12,6 +12,15 @@ data class ApiResponse<T>(
     @SerializedName("account_expiry") val accountExpiry: String? = null
 )
 
+data class ApiErrorResponse(
+    val status: String = "",
+    val message: String? = null,
+    val code: String? = null,
+    val limit: Int? = null,
+    @SerializedName("active_playbacks") val activePlaybacks: Int? = null,
+    @SerializedName("projected_playbacks") val projectedPlaybacks: Int? = null
+)
+
 data class User(
     val id: Int = 0,
     val username: String = "",
@@ -167,6 +176,9 @@ data class EpisodeItem(
     val total_duration: Long = 0L,
     val progress_percent: Int = 0,
     val can_resume: Boolean = false,
+    @SerializedName("has_subtitles") val hasSubtitles: Boolean = false,
+    @SerializedName("subtitle_url") val subtitleUrl: String? = null,
+    @SerializedName("subtitle_language") val subtitleLanguage: String? = null,
     @SerializedName("poster_path") val posterPath: String? = null,
     val next_episode: NextEpisode? = null
 )
@@ -244,7 +256,19 @@ data class PlayResponse(
 )
 
 data class ProgressResponse(
-    val status: String = ""
+    val status: String = "",
+    @SerializedName("stop_playback") val stopPlayback: Boolean = false,
+    val limit: Int? = null,
+    @SerializedName("active_playbacks") val activePlaybacks: Int? = null,
+    val message: String? = null
+)
+
+data class PlaybackStatusResponse(
+    val revoke: Boolean = false,
+    val limit: Int? = null,
+    @SerializedName("active_playbacks") val activePlaybacks: Int? = null,
+    @SerializedName("projected_playbacks") val projectedPlaybacks: Int? = null,
+    val message: String? = null
 )
 
 data class WatchStatusResponse(

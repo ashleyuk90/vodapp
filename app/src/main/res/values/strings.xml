@@ -86,6 +86,34 @@
     <string name="error_generic">We couldn\'t load the content. Please check your connection and try again.</string>
     <string name="error_network">No internet connection. Please check your network settings.</string>
     <string name="error_server">Our servers are having issues. Please try again later.</string>
+    <string name="error_loading_video">Error loading video.</string>
+    <string name="error_stream_unavailable">Video stream unavailable.</string>
+    <string name="playback_limit_reached_generic">Playback limit reached. Stop playback on another device and try again.</string>
+    <string name="playback_limit_reached_with_limit">Playback limit reached. Your account allows %1$d concurrent playback(s). Stop another stream and try again.</string>
+    <string name="playback_limit_reached_with_counts">Playback limit reached. %2$d stream(s) are active and your limit is %1$d. Stop another stream and try again.</string>
+    <string name="update_available_title">Update available</string>
+    <string name="update_required_title">Update required</string>
+    <string name="update_version_current">Current version: %1$s</string>
+    <string name="update_version_latest">New version: %1$s</string>
+    <string name="update_required_message">This update is required to continue using the app.</string>
+    <string name="update_changelog_heading">What\'s new:</string>
+    <string name="update_action_now">Update now</string>
+    <string name="update_action_later">Later</string>
+    <string name="update_action_skip">Skip this version</string>
+    <string name="update_check_failed">Unable to check for updates right now.</string>
+    <string name="update_download_starting">Downloading update...</string>
+    <string name="update_download_failed">Update download failed. Please try again later.</string>
+    <string name="update_download_failed_network">Unable to download update. Check your internet connection and try again.</string>
+    <string name="update_download_failed_timeout">Update download timed out. Please try again.</string>
+    <string name="update_download_failed_http">Update file is unavailable right now (server error %1$d).</string>
+    <string name="update_download_failed_storage">Not enough storage space to download the update.</string>
+    <string name="update_download_failed_ssl">Secure connection failed while downloading the update.</string>
+    <string name="update_download_failed_invalid_url">Update link is invalid. Please contact support.</string>
+    <string name="update_invalid_file">Update file is invalid. Please try again later.</string>
+    <string name="update_checksum_failed">Downloaded update failed verification.</string>
+    <string name="update_install_permission_required">Install permission required to update this app.</string>
+    <string name="update_install_opening">Opening installer...</string>
+    <string name="update_up_to_date">You are on the latest version.</string>
     <string name="go_back">Go Back</string>
     
     <!-- Profile Menu -->
@@ -133,6 +161,12 @@
     <string name="playback_pref_autoplay_next_desc">Start the next episode automatically after playback ends.</string>
     <string name="playback_prefs_account_expiry_label">Account Expiry</string>
     <string name="playback_prefs_account_expiry_value">Expires %1$s</string>
+    <string name="playback_prefs_app_updates_title">App Updates</string>
+    <string name="playback_prefs_installed_version_label">Installed Version</string>
+    <string name="playback_prefs_installed_version_value">%1$s (%2$d)</string>
+    <string name="playback_prefs_check_updates_title">Check for Updates</string>
+    <string name="playback_prefs_check_updates_desc">Check the update feed now and prompt if a new version is available.</string>
+    <string name="playback_prefs_checking_updates">Checking for updates…</string>
     <string name="playback_prefs_saved">Playback preferences updated</string>
     
     <!-- Accessibility -->
@@ -151,12 +185,16 @@
     <string name="a11y_filter_active">Filter active: %1$s</string>
     <string name="a11y_filter_cleared">Filters cleared</string>
     <string name="a11y_episode_item">Episode %1$d, %2$s, %3$s</string>
+    <string name="a11y_play_episode">Play episode</string>
+    <string name="a11y_play_episode_with_subtitles">Play episode with subtitles</string>
     <string name="a11y_hero_section">Featured content: %1$s</string>
     <string name="a11y_section_header">Section: %1$s</string>
     <string name="a11y_watchlist_add">Add to watch list</string>
     <string name="a11y_watchlist_remove">Remove from watch list</string>
     <string name="a11y_subtitles_available">Subtitles available</string>
+    <string name="cc_short">CC</string>
     <string name="a11y_navigation_hint">Use D-pad to navigate, press OK to select</string>
+    <string name="a11y_update_available">Update available</string>
     
     <!-- High Contrast Mode -->
     <string name="settings_high_contrast">High Contrast Mode</string>

@@ -42,6 +42,7 @@ import com.example.vod.utils.AccessibilityUtils
 import com.example.vod.utils.OrientationUtils
 import com.example.vod.utils.RatingUtils
 import com.example.vod.utils.ResponsiveUtils
+import com.example.vod.update.SelfHostedUpdateManager
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
@@ -76,6 +77,7 @@ class MainActivity : AppCompatActivity() {
     private lateinit var btnMenuProfile: LinearLayout
     private lateinit var txtProfileName: TextView
     private lateinit var txtProfileInitial: TextView
+    private lateinit var txtProfileUpdateBadge: TextView
     private lateinit var viewProfileAvatar: View
     private var fetchJob: kotlinx.coroutines.Job? = null
 
@@ -148,6 +150,8 @@ class MainActivity : AppCompatActivity() {
     private var dashboardDescendantFocusabilityBeforeSearch = ViewGroup.FOCUS_BEFORE_DESCENDANTS
     private var gridDescendantFocusabilityBeforeSearch = ViewGroup.FOCUS_BEFORE_DESCENDANTS
     private var fragmentDescendantFocusabilityBeforeSearch: Int? = null
+    private lateinit var updateManager: SelfHostedUpdateManager
+    private var hasTriggeredInitialUpdateCheck = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -157,6 +161,7 @@ class MainActivity : AppCompatActivity() {
 
         // Initialize ProfileManager
         ProfileManager.init(this)
+        updateManager = SelfHostedUpdateManager(this)
 
         // 1. Initialize Views
         sideMenu = findViewById(R.id.sideMenu)
@@ -177,6 +182,7 @@ class MainActivity : AppCompatActivity() {
         btnMenuProfile = findViewById(R.id.btnMenuProfile)
         txtProfileName = findViewById(R.id.txtProfileName)
         txtProfileInitial = findViewById(R.id.txtProfileInitial)
+        txtProfileUpdateBadge = findViewById(R.id.txtProfileUpdateBadge)
         viewProfileAvatar = findViewById(R.id.viewProfileAvatar)
 
         layoutSearchOverlay = findViewById(R.id.layoutSearchOverlay)
@@ -258,6 +264,22 @@ class MainActivity : AppCompatActivity() {
         loadDashboard()
         setupSearchLogic()
         setupBackPressedHandler()
+    }
+
+    override fun onResume() {
+        super.onResume()
+        updateManager.resumePendingInstallIfPermitted()
+        setProfileUpdateBadgeVisible(updateManager.hasCachedAvailableUpdate())
+        if (!hasTriggeredInitialUpdateCheck) {
+            hasTriggeredInitialUpdateCheck = true
+            updateManager.checkForUpdatesIfNeeded(
+                force = true,
+                showPromptIfAvailable = false,
+                onAvailabilityEvaluated = { isAvailable ->
+                    setProfileUpdateBadgeVisible(isAvailable)
+                }
+            )
+        }
     }
 
     /**
@@ -1324,6 +1346,11 @@ class MainActivity : AppCompatActivity() {
             txtProfileName.text = getString(R.string.profile_switch)
             txtProfileInitial.text = "?"
         }
+        setProfileUpdateBadgeVisible(updateManager.hasCachedAvailableUpdate())
+    }
+
+    private fun setProfileUpdateBadgeVisible(isVisible: Boolean) {
+        txtProfileUpdateBadge.visibility = if (isVisible) View.VISIBLE else View.GONE
     }
 
     /**

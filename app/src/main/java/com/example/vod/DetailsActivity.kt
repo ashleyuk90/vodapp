@@ -216,6 +216,15 @@ class DetailsActivity : AppCompatActivity() {
         }
     }
 
+    private fun startEpisodePlayback(episodeId: Int, enableSubtitles: Boolean = false) {
+        val intent = Intent(this, PlayerActivity::class.java)
+        intent.putExtra("VIDEO_ID", episodeId)
+        intent.putExtra("RESUME_TIME", 0L)
+        intent.putExtra("ENABLE_SUBTITLES", enableSubtitles)
+        startActivity(intent)
+        AnimationHelper.applyOpenTransition(this)
+    }
+
     private fun setupNavigation() {
         btnBack.setOnClickListener { 
             AnimationHelper.runWithPressEffect(btnBack) {
@@ -437,14 +446,23 @@ class DetailsActivity : AppCompatActivity() {
 
                             activity.video.episodes?.let { episodes ->
                                 if (episodes.isNotEmpty()) {
-                                    activity.rvEpisodes.adapter = EpisodeAdapter(episodes) { episode ->
-                                        val intent = Intent(activity, DetailsActivity::class.java)
-                                        intent.putExtra("VIDEO_ID", episode.id)
-                                        intent.putExtra("IS_EPISODE_VIEW", true)
-                                        intent.putExtra("FALLBACK_POSTER", seriesPosterUrl)
-                                        activity.startActivity(intent)
-                                        AnimationHelper.applyOpenTransition(activity)
-                                    }
+                                    activity.rvEpisodes.adapter = EpisodeAdapter(
+                                        allEpisodes = episodes,
+                                        onEpisodeClick = { episode ->
+                                            val intent = Intent(activity, DetailsActivity::class.java)
+                                            intent.putExtra("VIDEO_ID", episode.id)
+                                            intent.putExtra("IS_EPISODE_VIEW", true)
+                                            intent.putExtra("FALLBACK_POSTER", seriesPosterUrl)
+                                            activity.startActivity(intent)
+                                            AnimationHelper.applyOpenTransition(activity)
+                                        },
+                                        onEpisodePlayClick = { episode ->
+                                            activity.startEpisodePlayback(episode.id, enableSubtitles = false)
+                                        },
+                                        onEpisodePlayWithSubtitlesClick = { episode ->
+                                            activity.startEpisodePlayback(episode.id, enableSubtitles = true)
+                                        }
+                                    )
                                     activity.rvEpisodes.post { activity.rvEpisodes.requestFocus() }
                                 }
                             }

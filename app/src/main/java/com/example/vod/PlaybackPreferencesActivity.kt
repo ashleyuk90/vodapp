@@ -12,9 +12,11 @@ import com.example.vod.utils.Constants
 import androidx.appcompat.widget.SwitchCompat
 import androidx.security.crypto.EncryptedSharedPreferences
 import androidx.security.crypto.MasterKey
+import com.example.vod.update.SelfHostedUpdateManager
 import com.example.vod.utils.OrientationUtils
 import java.text.SimpleDateFormat
 import java.util.Locale
+import android.os.Build
 
 class PlaybackPreferencesActivity : AppCompatActivity() {
 
@@ -28,6 +30,9 @@ class PlaybackPreferencesActivity : AppCompatActivity() {
     private lateinit var switchAutoplayNext: SwitchCompat
     private lateinit var layoutAccountExpiry: LinearLayout
     private lateinit var txtAccountExpiryValue: TextView
+    private lateinit var txtInstalledVersionValue: TextView
+    private lateinit var rowCheckForUpdates: LinearLayout
+    private lateinit var updateManager: SelfHostedUpdateManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -36,6 +41,7 @@ class PlaybackPreferencesActivity : AppCompatActivity() {
 
         // Ensure ProfileManager is initialized
         ProfileManager.init(this)
+        updateManager = SelfHostedUpdateManager(this)
 
         btnBack = findViewById(R.id.btnBack)
         txtSubtitle = findViewById(R.id.txtSubtitle)
@@ -47,6 +53,8 @@ class PlaybackPreferencesActivity : AppCompatActivity() {
         switchAutoplayNext = findViewById(R.id.switchAutoplayNext)
         layoutAccountExpiry = findViewById(R.id.layoutAccountExpiry)
         txtAccountExpiryValue = findViewById(R.id.txtAccountExpiryValue)
+        txtInstalledVersionValue = findViewById(R.id.txtInstalledVersionValue)
+        rowCheckForUpdates = findViewById(R.id.rowCheckForUpdates)
 
         val profile = ProfileManager.getActiveProfile()
         if (profile == null) {
@@ -57,6 +65,8 @@ class PlaybackPreferencesActivity : AppCompatActivity() {
 
         txtSubtitle.text = getString(R.string.playback_prefs_subtitle, profile.name)
         bindAccountExpiry()
+        bindInstalledVersion()
+        bindUpdaterActions()
 
         setSwitchState(switchAutoSkipIntro, profile.autoSkipIntro)
         setSwitchState(switchAutoSkipCredits, profile.autoSkipCredits)
@@ -71,7 +81,12 @@ class PlaybackPreferencesActivity : AppCompatActivity() {
             AnimationHelper.applyCloseTransition(this)
         }
 
-        rowAutoSkipIntro.post { rowAutoSkipIntro.requestFocus() }
+        rowCheckForUpdates.post { rowCheckForUpdates.requestFocus() }
+    }
+
+    override fun onResume() {
+        super.onResume()
+        updateManager.resumePendingInstallIfPermitted()
     }
 
     private fun bindAccountExpiry() {
@@ -96,6 +111,44 @@ class PlaybackPreferencesActivity : AppCompatActivity() {
         val formattedExpiry = formatAccountExpiry(rawExpiry)
         txtAccountExpiryValue.text = getString(R.string.playback_prefs_account_expiry_value, formattedExpiry)
         layoutAccountExpiry.visibility = View.VISIBLE
+    }
+
+    private fun bindInstalledVersion() {
+        val versionName = BuildConfig.VERSION_NAME.ifBlank { "N/A" }
+        val versionCode = getInstalledVersionCode()
+        txtInstalledVersionValue.text = getString(
+            R.string.playback_prefs_installed_version_value,
+            versionName,
+            versionCode
+        )
+    }
+
+    private fun getInstalledVersionCode(): Int {
+        val packageInfo = packageManager.getPackageInfo(packageName, 0)
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            packageInfo.longVersionCode.toInt()
+        } else {
+            @Suppress("DEPRECATION")
+            packageInfo.versionCode
+        }
+    }
+
+    private fun bindUpdaterActions() {
+        rowCheckForUpdates.setOnClickListener {
+            Toast.makeText(this, R.string.playback_prefs_checking_updates, Toast.LENGTH_SHORT).show()
+            updateManager.checkForUpdatesIfNeeded(
+                force = true,
+                showErrors = true,
+                showNoUpdateMessage = true
+            )
+        }
+        rowCheckForUpdates.setOnFocusChangeListener { v, hasFocus ->
+            if (hasFocus) {
+                AnimationHelper.scaleUp(v, Constants.FOCUS_SCALE_SMALL)
+            } else {
+                AnimationHelper.scaleDown(v)
+            }
+        }
     }
 
     private fun formatAccountExpiry(rawExpiry: String): String {

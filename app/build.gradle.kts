@@ -2,6 +2,17 @@ plugins {
     alias(libs.plugins.android.application)
 }
 
+fun envString(name: String, defaultValue: String): String {
+    return System.getenv(name)?.takeIf { it.isNotBlank() } ?: defaultValue
+}
+
+fun toBuildConfigString(value: String): String {
+    val escaped = value
+        .replace("\\", "\\\\")
+        .replace("\"", "\\\"")
+    return "\"$escaped\""
+}
+
 android {
     namespace = "com.example.vod"
     compileSdk {
@@ -14,12 +25,47 @@ android {
     }
 
     defaultConfig {
+        val updateApkBaseUrl = envString(
+            "VOD_UPDATE_APK_BASE_URL",
+            "https://sini3.net:7443/vod/android/"
+        )
+        val updateFeedUrl = envString(
+            "VOD_UPDATE_FEED_URL",
+            "https://sini3.net:7443/vod/android/update.xml"
+        )
+        val updateChannel = envString("VOD_UPDATE_CHANNEL", "stable")
+        val updateCheckIntervalHours = envString(
+            "VOD_UPDATE_CHECK_INTERVAL_HOURS",
+            "24"
+        ).toIntOrNull()?.coerceAtLeast(1) ?: 24
+
         applicationId = "com.example.vod"
         minSdk = 24
         targetSdk = 34
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 20200
+        versionName = "2.2"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        buildConfigField(
+            "String",
+            "UPDATE_APK_BASE_URL",
+            toBuildConfigString(updateApkBaseUrl)
+        )
+        buildConfigField(
+            "String",
+            "UPDATE_FEED_URL",
+            toBuildConfigString(updateFeedUrl)
+        )
+        buildConfigField(
+            "String",
+            "UPDATE_CHANNEL",
+            toBuildConfigString(updateChannel)
+        )
+        buildConfigField(
+            "int",
+            "UPDATE_CHECK_INTERVAL_HOURS",
+            updateCheckIntervalHours.toString()
+        )
     }
 
     buildTypes {

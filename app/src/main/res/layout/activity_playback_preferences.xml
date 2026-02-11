@@ -77,6 +77,99 @@
     </LinearLayout>
 
     <LinearLayout
+        android:id="@+id/layoutAppUpdates"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/spacing_md"
+        android:orientation="vertical"
+        android:clipChildren="false"
+        android:clipToPadding="false">
+
+        <TextView
+            android:id="@+id/txtAppUpdatesTitle"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginBottom="@dimen/spacing_sm"
+            android:text="@string/playback_prefs_app_updates_title"
+            android:textColor="@color/text_secondary"
+            android:textSize="@dimen/episode_metadata_text_size"
+            android:textStyle="bold" />
+
+        <LinearLayout
+            android:id="@+id/layoutInstalledVersion"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="@drawable/selector_card_border"
+            android:orientation="vertical"
+            android:padding="@dimen/spacing_md">
+
+            <TextView
+                android:id="@+id/txtInstalledVersionLabel"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="@string/playback_prefs_installed_version_label"
+                android:textColor="@color/text_secondary"
+                android:textSize="@dimen/episode_metadata_text_size"
+                android:textStyle="bold" />
+
+            <TextView
+                android:id="@+id/txtInstalledVersionValue"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="@dimen/spacing_xs"
+                android:textColor="@color/text_primary"
+                android:textSize="@dimen/episode_title_text_size"
+                android:textStyle="bold" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/rowCheckForUpdates"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="@dimen/spacing_md"
+            android:background="@drawable/selector_card_border"
+            android:padding="@dimen/spacing_lg"
+            android:orientation="horizontal"
+            android:gravity="center_vertical"
+            android:clickable="true"
+            android:focusable="true"
+            android:focusableInTouchMode="true">
+
+            <LinearLayout
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:orientation="vertical">
+
+                <TextView
+                    android:id="@+id/lblCheckForUpdates"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="@string/playback_prefs_check_updates_title"
+                    android:textColor="@color/text_primary"
+                    android:textSize="@dimen/episode_title_text_size"
+                    android:textStyle="bold" />
+
+                <TextView
+                    android:id="@+id/descCheckForUpdates"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="@dimen/spacing_xs"
+                    android:text="@string/playback_prefs_check_updates_desc"
+                    android:textColor="@color/text_secondary"
+                    android:textSize="@dimen/episode_metadata_text_size" />
+            </LinearLayout>
+
+            <ImageView
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:contentDescription="@null"
+                android:src="@drawable/ic_refresh"
+                app:tint="@color/text_primary" />
+        </LinearLayout>
+    </LinearLayout>
+
+    <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:orientation="vertical"

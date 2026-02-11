@@ -10,7 +10,9 @@ import androidx.recyclerview.widget.RecyclerView
 
 class EpisodeAdapter(
     private val allEpisodes: List<EpisodeItem>,
-    private val onEpisodeClick: (EpisodeItem) -> Unit
+    private val onEpisodeClick: (EpisodeItem) -> Unit,
+    private val onEpisodePlayClick: (EpisodeItem) -> Unit,
+    private val onEpisodePlayWithSubtitlesClick: (EpisodeItem) -> Unit
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     companion object {
@@ -111,6 +113,8 @@ class EpisodeAdapter(
         private val txtPlot: TextView = itemView.findViewById(R.id.txtEpPlot)
         private val txtDuration: TextView = itemView.findViewById(R.id.txtEpDuration)
         private val episodePlaybackProgress: ProgressBar = itemView.findViewById(R.id.episodePlaybackProgress)
+        private val btnEpPlay: ImageView = itemView.findViewById(R.id.btnEpPlay)
+        private val btnEpCc: TextView = itemView.findViewById(R.id.btnEpCc)
 
         fun bind(ep: EpisodeItem) {
             txtNum.text = ep.episode.toString()
@@ -142,6 +146,15 @@ class EpisodeAdapter(
             }
 
             itemView.setOnClickListener { onEpisodeClick(ep) }
+            btnEpPlay.setOnClickListener { onEpisodePlayClick(ep) }
+
+            val showCcButton = ep.hasSubtitles && !ep.subtitleUrl.isNullOrBlank()
+            btnEpCc.visibility = if (showCcButton) View.VISIBLE else View.GONE
+            btnEpCc.setOnClickListener {
+                if (showCcButton) {
+                    onEpisodePlayWithSubtitlesClick(ep)
+                }
+            }
         }
     }
 }

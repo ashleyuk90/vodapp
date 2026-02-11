@@ -130,7 +130,12 @@ class LoginActivity : AppCompatActivity() {
         // Use lifecycleScope for automatic cancellation on activity destruction
         lifecycleScope.launch(Dispatchers.IO) {
             try {
-                val response = NetworkClient.api.login(user, pass)
+                val response = NetworkClient.api.login(
+                    user = user,
+                    pass = pass,
+                    appVersionName = BuildConfig.VERSION_NAME.ifBlank { "unknown" },
+                    appVersionCode = BuildConfig.VERSION_CODE
+                )
 
                 withContext(Dispatchers.Main) {
                     val activity = weakActivity.get() ?: return@withContext

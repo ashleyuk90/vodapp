@@ -28,7 +28,7 @@
         android:layout_marginStart="14dp"
         android:layout_marginEnd="18dp"
         app:layout_constraintStart_toEndOf="@id/txtEpNumber"
-        app:layout_constraintEnd_toStartOf="@id/btnEpPlay"
+        app:layout_constraintEnd_toStartOf="@id/btnEpCc"
         app:layout_constraintTop_toTopOf="parent">
 
         <TextView
@@ -78,9 +78,31 @@
         android:src="@drawable/ic_play"
         android:padding="@dimen/icon_button_padding"
         android:background="@drawable/bg_badge_dark_enhanced"
+        android:contentDescription="@string/a11y_play_episode"
+        android:clickable="true"
+        android:focusable="false"
         app:tint="@color/text_primary"
         app:layout_constraintEnd_toEndOf="parent"
         app:layout_constraintTop_toTopOf="parent"
         app:layout_constraintBottom_toBottomOf="parent"/>
+
+    <TextView
+        android:id="@+id/btnEpCc"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginEnd="10dp"
+        android:background="@drawable/bg_badge_dark_enhanced"
+        android:clickable="true"
+        android:contentDescription="@string/a11y_play_episode_with_subtitles"
+        android:focusable="false"
+        android:paddingHorizontal="9dp"
+        android:paddingVertical="7dp"
+        android:text="@string/cc_short"
+        android:textColor="@color/text_primary"
+        android:textStyle="bold"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="@id/btnEpPlay"
+        app:layout_constraintEnd_toStartOf="@id/btnEpPlay"
+        app:layout_constraintTop_toTopOf="@id/btnEpPlay" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>

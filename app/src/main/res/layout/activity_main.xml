@@ -217,6 +217,8 @@
             android:layout_height="wrap_content"
             android:orientation="horizontal"
             android:gravity="center_vertical"
+            android:clipChildren="false"
+            android:clipToPadding="false"
             android:paddingVertical="@dimen/side_menu_item_padding_vertical"
             android:paddingHorizontal="@dimen/side_menu_item_padding_horizontal"
             android:background="@drawable/focus_menu_item_enhanced"
@@ -229,6 +231,8 @@
             <FrameLayout
                 android:layout_width="28dp"
                 android:layout_height="28dp"
+                android:clipChildren="false"
+                android:clipToPadding="false"
                 android:layout_marginEnd="@dimen/side_menu_icon_margin">
 
                 <View
@@ -246,6 +250,22 @@
                     android:textSize="12sp"
                     android:textStyle="bold"
                     android:text="D" />
+
+                <TextView
+                    android:id="@+id/txtProfileUpdateBadge"
+                    android:layout_width="14dp"
+                    android:layout_height="14dp"
+                    android:layout_gravity="top|end"
+                    android:background="@drawable/bg_profile_update_badge"
+                    android:contentDescription="@string/a11y_update_available"
+                    android:gravity="center"
+                    android:text="!"
+                    android:textColor="@color/text_on_primary"
+                    android:textSize="10sp"
+                    android:textStyle="bold"
+                    android:translationX="4dp"
+                    android:translationY="-4dp"
+                    android:visibility="gone" />
             </FrameLayout>
 
             <TextView
