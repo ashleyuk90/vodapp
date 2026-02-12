@@ -15,7 +15,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="VOD Login"
+            android:text="@string/login_title"
             android:textColor="@color/text_primary"
             android:textSize="24sp"
             android:textStyle="bold"
@@ -25,7 +25,8 @@
             android:id="@+id/etUsername"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Username"
+            android:hint="@string/login_username_hint"
+            android:autofillHints="username"
             android:textColorHint="@color/text_tertiary"
             android:textColor="@color/text_primary"
             android:backgroundTint="@color/text_primary"
@@ -37,7 +38,8 @@
             android:id="@+id/etPassword"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:hint="Password"
+            android:hint="@string/login_password_hint"
+            android:autofillHints="password"
             android:textColorHint="@color/text_tertiary"
             android:textColor="@color/text_primary"
             android:backgroundTint="@color/text_primary"
@@ -50,7 +52,7 @@
             style="@style/VOD.Button.Accent"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Sign In" />
+            android:text="@string/login_sign_in" />
     </LinearLayout>
 
     <LinearLayout
@@ -70,7 +72,7 @@
         <TextView
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Logging in..."
+            android:text="@string/login_loading"
             android:textColor="@color/text_primary"
             android:layout_marginTop="16dp"/>
     </LinearLayout>

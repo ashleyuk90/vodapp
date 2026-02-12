@@ -2,8 +2,8 @@ package com.example.vod
 
 import android.content.Context
 import android.content.SharedPreferences
-import androidx.security.crypto.EncryptedSharedPreferences
-import androidx.security.crypto.MasterKey
+import androidx.core.content.edit
+import com.example.vod.utils.SecurePrefs
 
 /**
  * Singleton manager for user profile state.
@@ -43,17 +43,7 @@ object ProfileManager {
     fun init(context: Context) {
         if (prefs != null) return
 
-        val masterKey = MasterKey.Builder(context)
-            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-            .build()
-
-        prefs = EncryptedSharedPreferences.create(
-            context,
-            PREFS_NAME,
-            masterKey,
-            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-        )
+        prefs = SecurePrefs.get(context, PREFS_NAME)
 
         // Load cached profile if exists
         loadCachedProfile()
@@ -211,6 +201,6 @@ object ProfileManager {
      * Clear the default profile setting.
      */
     fun clearDefaultProfile() {
-        prefs?.edit()?.remove(KEY_DEFAULT_PROFILE_ID)?.apply()
+        prefs?.edit { remove(KEY_DEFAULT_PROFILE_ID) }
     }
 }

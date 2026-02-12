@@ -13,6 +13,7 @@ import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.FileProvider
 import androidx.core.content.edit
+import androidx.core.net.toUri
 import androidx.lifecycle.lifecycleScope
 import com.example.vod.BuildConfig
 import com.example.vod.R
@@ -607,14 +608,20 @@ class SelfHostedUpdateManager(
 
     private fun rootCause(error: Throwable): Throwable {
         var current = error
-        while (current.cause != null && current.cause !== current) {
-            current = current.cause!!
+        while (true) {
+            val next = current.cause ?: break
+            if (next === current) break
+            current = next
         }
         return current
     }
 
     private fun maybeInstallOrRequestPermission(apkFile: File, versionCode: Int) {
         if (!canRequestPackageInstalls()) {
+            Log.w(
+                TAG,
+                "Install permission not granted. Deferring install for versionCode=$versionCode, file=${apkFile.absolutePath}"
+            )
             prefs.edit {
                 putString(Constants.KEY_PENDING_UPDATE_APK_PATH, apkFile.absolutePath)
                 putInt(Constants.KEY_PENDING_UPDATE_VERSION_CODE, versionCode)
@@ -625,14 +632,16 @@ class SelfHostedUpdateManager(
                 Toast.LENGTH_LONG
             ).show()
 
-            val intent = Intent(
-                Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
-                Uri.parse("package:${activity.packageName}")
-            )
-            try {
-                activity.startActivity(intent)
-            } catch (e: Exception) {
-                Log.e(TAG, "Failed to open unknown-app-sources settings", e)
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                val intent = Intent(
+                    Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES,
+                    "package:${activity.packageName}".toUri()
+                )
+                try {
+                    activity.startActivity(intent)
+                } catch (e: Exception) {
+                    Log.e(TAG, "Failed to open unknown-app-sources settings", e)
+                }
             }
             return
         }
@@ -659,11 +668,22 @@ class SelfHostedUpdateManager(
             return
         }
 
-        val apkUri = FileProvider.getUriForFile(
-            activity,
-            "${activity.packageName}.fileprovider",
-            apkFile
-        )
+        Log.d(TAG, "Launching installer for APK file: ${apkFile.absolutePath}")
+        val apkUri = runCatching {
+            FileProvider.getUriForFile(
+                activity,
+                "${activity.packageName}.fileprovider",
+                apkFile
+            )
+        }.getOrElse { error ->
+            Log.e(TAG, "Failed to create install URI for APK: ${apkFile.absolutePath}", error)
+            Toast.makeText(
+                activity,
+                activity.getString(R.string.update_invalid_file),
+                Toast.LENGTH_LONG
+            ).show()
+            return
+        }
         val installIntent = Intent(Intent.ACTION_VIEW).apply {
             setDataAndType(apkUri, "application/vnd.android.package-archive")
             addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)

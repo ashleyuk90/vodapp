@@ -4,7 +4,6 @@
     <!-- ========================================= -->
     
     <!-- Home (Dashboard) scale -->
-    <dimen name="home_bottom_padding">24dp</dimen>
     <dimen name="home_hero_height">260dp</dimen>
     <dimen name="home_hero_padding">14dp</dimen>
 
@@ -20,9 +19,6 @@
     <dimen name="home_list_side_padding">16dp</dimen>
     <dimen name="home_list_bottom_margin">24dp</dimen>
 
-    <!-- Horizontal card width on Home rows -->
-    <dimen name="home_horizontal_card_width">130dp</dimen>
-    
     <!-- Grid settings for default screens -->
     <integer name="grid_span_count">2</integer>
     
@@ -82,18 +78,12 @@
     <dimen name="episode_metadata_text_size">12sp</dimen>
     <dimen name="episode_plot_text_size">12sp</dimen>
     
-    <!-- Focus States -->
-    <dimen name="focus_border_width">4dp</dimen>
-    <dimen name="focus_scale_factor">1.06</dimen>
-    
     <!-- Spacing -->
     <dimen name="spacing_xs">4dp</dimen>
     <dimen name="spacing_sm">8dp</dimen>
     <dimen name="spacing_md">12dp</dimen>
     <dimen name="spacing_lg">16dp</dimen>
     <dimen name="spacing_xl">24dp</dimen>
-    <dimen name="spacing_xxl">32dp</dimen>
-
     <!-- Dialogs -->
     <dimen name="create_profile_dialog_top_offset">56dp</dimen>
 </resources>

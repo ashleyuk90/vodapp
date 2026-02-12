@@ -3,6 +3,7 @@ package com.example.vod.utils
 import android.animation.ValueAnimator
 import android.app.Activity
 import android.graphics.drawable.AnimationDrawable
+import android.os.Build
 import android.view.View
 import android.view.animation.AnimationUtils
 import android.view.animation.Interpolator
@@ -14,7 +15,14 @@ import com.example.vod.R
  */
 object AnimationHelper {
 
-    private fun animationsEnabled(): Boolean = ValueAnimator.areAnimatorsEnabled()
+    private fun animationsEnabled(): Boolean {
+        return if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            ValueAnimator.areAnimatorsEnabled()
+        } else {
+            // API 24/25 don't expose the global animator-enabled toggle.
+            true
+        }
+    }
 
     private fun resolveDuration(duration: Long): Long = if (animationsEnabled()) duration else 0L
 

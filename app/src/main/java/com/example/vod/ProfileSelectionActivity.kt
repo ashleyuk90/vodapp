@@ -2,7 +2,6 @@ package com.example.vod
 
 import android.content.Intent
 import android.graphics.Color
-import android.graphics.drawable.ColorDrawable
 import android.os.Bundle
 import android.text.InputType
 import android.view.Gravity
@@ -19,6 +18,8 @@ import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.graphics.toColorInt
+import androidx.core.graphics.drawable.toDrawable
 import androidx.core.view.isVisible
 import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
@@ -219,7 +220,7 @@ class ProfileSelectionActivity : AppCompatActivity() {
 
         dialog.setOnShowListener {
             dialog.window?.let { window ->
-                window.setBackgroundDrawable(ColorDrawable(Color.TRANSPARENT))
+                window.setBackgroundDrawable(Color.TRANSPARENT.toDrawable())
                 window.setLayout(
                     (resources.displayMetrics.widthPixels * 0.86f).toInt(),
                     ViewGroup.LayoutParams.WRAP_CONTENT
@@ -331,20 +332,22 @@ class ProfileSelectionActivity : AppCompatActivity() {
         if (isDefault) {
             optionLabels += getString(R.string.remove_default)
             optionActions += {
+                val previousDefaultId = ProfileManager.getDefaultProfileId()
                 ProfileManager.clearDefaultProfile()
                 Toast.makeText(this, R.string.default_profile_cleared, Toast.LENGTH_SHORT).show()
-                rvProfiles.adapter?.notifyDataSetChanged()
+                refreshDefaultProfileIndicators(previousDefaultId, null)
             }
         } else {
             optionLabels += getString(R.string.set_as_default)
             optionActions += {
+                val previousDefaultId = ProfileManager.getDefaultProfileId()
                 ProfileManager.setDefaultProfileId(profile.id)
                 Toast.makeText(
                     this,
                     getString(R.string.default_profile_set, profile.name),
                     Toast.LENGTH_SHORT
                 ).show()
-                rvProfiles.adapter?.notifyDataSetChanged()
+                refreshDefaultProfileIndicators(previousDefaultId, profile.id)
             }
         }
 
@@ -359,6 +362,24 @@ class ProfileSelectionActivity : AppCompatActivity() {
                 optionActions.getOrNull(which)?.invoke()
             }
             .show()
+    }
+
+    private fun refreshDefaultProfileIndicators(previousDefaultId: Int?, newDefaultId: Int?) {
+        val adapter = rvProfiles.adapter ?: return
+        val positionsToRefresh = linkedSetOf<Int>()
+
+        previousDefaultId?.let { oldId ->
+            val oldPosition = profiles.indexOfFirst { it.id == oldId }
+            if (oldPosition >= 0) positionsToRefresh.add(oldPosition)
+        }
+        newDefaultId?.let { currentId ->
+            val newPosition = profiles.indexOfFirst { it.id == currentId }
+            if (newPosition >= 0) positionsToRefresh.add(newPosition)
+        }
+
+        positionsToRefresh.forEach { position ->
+            adapter.notifyItemChanged(position)
+        }
     }
 
     private fun confirmDeleteProfile(profile: Profile) {
@@ -528,7 +549,7 @@ class ProfileSelectionActivity : AppCompatActivity() {
                 txtProfileName.text = profile.name
 
                 // Set avatar background color
-                viewAvatarBg.background.setTint(Color.parseColor(colorHex))
+                viewAvatarBg.background.setTint(colorHex.toColorInt())
 
                 // Show rating limit if parental controls enabled
                 if (profile.hasParentalControls()) {
@@ -537,7 +558,7 @@ class ProfileSelectionActivity : AppCompatActivity() {
                 } else if (ProfileManager.isDefaultProfile(profile.id)) {
                     // Show default indicator
                     txtRatingLimit.isVisible = true
-                    txtRatingLimit.text = "★ Default"
+                    txtRatingLimit.text = getString(R.string.default_profile_badge)
                 } else {
                     txtRatingLimit.isVisible = false
                 }
@@ -607,7 +628,7 @@ class ProfileSelectionActivity : AppCompatActivity() {
                 txtRatingLimit.isVisible = true
                 txtRatingLimit.text = getString(R.string.create_profile_hint)
                 imgLock.isVisible = false
-                viewAvatarBg.background.setTint(Color.parseColor("#2A2A2A"))
+                viewAvatarBg.background.setTint("#2A2A2A".toColorInt())
 
                 itemView.setOnClickListener {
                     onCreateProfileClick()

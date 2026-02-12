@@ -10,10 +10,9 @@ import androidx.appcompat.app.AppCompatActivity
 import com.example.vod.utils.AnimationHelper
 import com.example.vod.utils.Constants
 import androidx.appcompat.widget.SwitchCompat
-import androidx.security.crypto.EncryptedSharedPreferences
-import androidx.security.crypto.MasterKey
 import com.example.vod.update.SelfHostedUpdateManager
 import com.example.vod.utils.OrientationUtils
+import com.example.vod.utils.SecurePrefs
 import java.text.SimpleDateFormat
 import java.util.Locale
 import android.os.Build
@@ -90,17 +89,7 @@ class PlaybackPreferencesActivity : AppCompatActivity() {
     }
 
     private fun bindAccountExpiry() {
-        val masterKey = MasterKey.Builder(this)
-            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-            .build()
-
-        val prefs = EncryptedSharedPreferences.create(
-            this,
-            Constants.PREFS_NAME,
-            masterKey,
-            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-        )
+        val prefs = SecurePrefs.get(this, Constants.PREFS_NAME)
 
         val rawExpiry = prefs.getString(Constants.KEY_ACCOUNT_EXPIRY, null)?.trim().orEmpty()
         if (rawExpiry.isBlank()) {

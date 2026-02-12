@@ -14,6 +14,8 @@
         android:layout_height="match_parent"
         android:scaleType="centerCrop"
         android:alpha="0.5"
+        android:contentDescription="@null"
+        android:importantForAccessibility="no"
         tools:src="@tools:sample/backgrounds/scenic" />
 
     <View
@@ -56,6 +58,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="match_parent"
                     android:scaleType="centerCrop"
+                    android:contentDescription="@null"
+                    android:importantForAccessibility="no"
                     android:background="#222222" />
 
                 <ProgressBar
@@ -169,17 +173,16 @@
                         android:id="@+id/txtRating"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="★ 5.9"
                         android:textColor="@color/brand_accent"
                         android:textSize="@dimen/details_rating_text_size"
-                        android:textStyle="bold" />
+                        android:textStyle="bold"
+                        tools:text="★ 5.9" />
 
                     <TextView
                         android:id="@+id/txtRottenTomatoes"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginStart="16dp"
-                        android:text="95%"
                         android:textColor="@color/text_primary"
                         android:textSize="@dimen/details_rating_text_size"
                         android:textStyle="bold"
@@ -187,6 +190,7 @@
                         app:drawableStartCompat="@drawable/ic_tomato"
                         android:drawablePadding="6dp"
                         android:visibility="gone"
+                        tools:text="95%"
                         tools:visibility="visible"/>
                 </LinearLayout>
             </LinearLayout>
@@ -224,8 +228,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="10dp"
-                    android:text="RESUME"
-                    android:contentDescription="Resume playback from where you left off"
+                    android:text="@string/btn_resume"
+                    android:contentDescription="@string/a11y_resume_playback"
                     app:icon="@drawable/ic_play"
                     android:visibility="gone" />
 
@@ -235,8 +239,8 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="10dp"
-                    android:text="PLAY"
-                    android:contentDescription="Play video from the beginning"
+                    android:text="@string/btn_play"
+                    android:contentDescription="@string/a11y_play_from_start"
                     app:icon="@drawable/ic_play" />
 
                 <com.google.android.material.button.MaterialButton
@@ -245,7 +249,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginBottom="10dp"
-                    android:text="WATCH LATER"
+                    android:text="@string/btn_watch_later"
                     android:contentDescription="@string/a11y_watchlist_add"
                     app:icon="@drawable/ic_add" />
 
@@ -254,7 +258,7 @@
                     style="@style/VOD.Button.Icon"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="CC"
+                    android:text="@string/cc_short"
                     android:contentDescription="@string/a11y_subtitles_available"
                     app:icon="@drawable/ic_subtitles"
                     android:visibility="gone" />
@@ -313,7 +317,7 @@
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Episodes"
+                    android:text="@string/details_episodes_title"
                     android:textColor="#FFFFFF"
                     android:textSize="18sp"
                     android:textStyle="bold"
@@ -325,7 +329,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:nestedScrollingEnabled="false"
-                    android:contentDescription="List of episodes"/>
+                    android:contentDescription="@string/a11y_episode_list"/>
             </LinearLayout>
 
         </androidx.constraintlayout.widget.ConstraintLayout>

@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
+    xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="wrap_content"
     android:paddingVertical="16dp"
@@ -14,10 +15,10 @@
         android:id="@+id/txtEpNumber"
         android:layout_width="36dp"
         android:layout_height="wrap_content"
-        android:text="1"
         android:textColor="@color/text_tertiary"
         android:textSize="@dimen/episode_title_text_size"
         android:textStyle="bold"
+        tools:text="1"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent" />
 
@@ -35,29 +36,29 @@
             android:id="@+id/txtEpTitle"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Episode Title"
             android:textColor="@color/text_primary"
             android:textSize="@dimen/episode_title_text_size"
-            android:textStyle="bold" />
+            android:textStyle="bold"
+            tools:text="Episode Title" />
 
         <TextView
             android:id="@+id/txtEpDuration"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="45m"
             android:textColor="@color/text_secondary"
             android:textSize="@dimen/episode_metadata_text_size"
+            tools:text="45m"
             android:layout_marginTop="3dp"/>
 
         <TextView
             android:id="@+id/txtEpPlot"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="Short plot description goes here..."
             android:textColor="@color/text_tertiary"
             android:textSize="@dimen/episode_plot_text_size"
             android:maxLines="2"
             android:ellipsize="end"
+            tools:text="Short plot description goes here..."
             android:layout_marginTop="6dp"/>
 
         <ProgressBar
@@ -79,7 +80,6 @@
         android:padding="@dimen/icon_button_padding"
         android:background="@drawable/bg_badge_dark_enhanced"
         android:contentDescription="@string/a11y_play_episode"
-        android:clickable="true"
         android:focusable="false"
         app:tint="@color/text_primary"
         app:layout_constraintEnd_toEndOf="parent"
@@ -92,7 +92,6 @@
         android:layout_height="wrap_content"
         android:layout_marginEnd="10dp"
         android:background="@drawable/bg_badge_dark_enhanced"
-        android:clickable="true"
         android:contentDescription="@string/a11y_play_episode_with_subtitles"
         android:focusable="false"
         android:paddingHorizontal="9dp"

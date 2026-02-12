@@ -2,6 +2,7 @@ package com.example.vod
 
 import android.content.Intent
 import android.content.res.ColorStateList
+import android.content.res.Configuration
 import android.graphics.Color
 import android.os.Bundle
 import android.util.Log
@@ -24,7 +25,9 @@ import android.util.TypedValue
 import androidx.activity.OnBackPressedCallback
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.ContextCompat
+import androidx.core.graphics.toColorInt
 import androidx.core.view.children
+import androidx.core.view.isNotEmpty
 import androidx.core.view.isVisible
 import androidx.core.view.isGone
 import androidx.fragment.app.Fragment
@@ -50,6 +53,7 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.isActive
 import java.io.IOException
 import java.lang.ref.WeakReference
+import java.text.NumberFormat
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
 
@@ -158,6 +162,10 @@ class MainActivity : AppCompatActivity() {
         OrientationUtils.applyPreferredOrientation(this)
         setContentView(R.layout.activity_main)
         isPhone = ResponsiveUtils.getScreenSize(this) == ResponsiveUtils.ScreenSize.PHONE
+        Log.i(
+            TAG,
+            "onCreate formFactor=${formFactorLabel()} screen=${ResponsiveUtils.getScreenSize(this)} isPhone=$isPhone"
+        )
 
         // Initialize ProfileManager
         ProfileManager.init(this)
@@ -268,6 +276,7 @@ class MainActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        Log.d(TAG, "onResume currentLibId=$currentLibId hasTriggeredInitialUpdateCheck=$hasTriggeredInitialUpdateCheck")
         updateManager.resumePendingInstallIfPermitted()
         setProfileUpdateBadgeVisible(updateManager.hasCachedAvailableUpdate())
         if (!hasTriggeredInitialUpdateCheck) {
@@ -280,6 +289,12 @@ class MainActivity : AppCompatActivity() {
                 }
             )
         }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        Log.d(TAG, "onDestroy cancelling fetch job=${fetchJob?.isActive == true}")
+        fetchJob?.cancel()
     }
 
     /**
@@ -515,7 +530,7 @@ class MainActivity : AppCompatActivity() {
             when (keyCode) {
                 KeyEvent.KEYCODE_DPAD_UP -> {
                     // Go to last library item, or Watch Later if no libraries
-                    if (sideMenuContainer.childCount > 0) {
+                    if (sideMenuContainer.isNotEmpty()) {
                         val lastLib = sideMenuContainer.getChildAt(sideMenuContainer.childCount - 1)
                         lastLib.requestFocus()
                     } else {
@@ -698,7 +713,7 @@ class MainActivity : AppCompatActivity() {
         findViewById<Chip>(R.id.chipSciFi)?.nextFocusUpId = R.id.chipSeries
         findViewById<Chip>(R.id.chipAnimation)?.nextFocusUpId = R.id.chipSeries
 
-        val horrorUpId = if (chipClearFilters.visibility == View.VISIBLE) {
+        val horrorUpId = if (chipClearFilters.isVisible) {
             R.id.chipClearFilters
         } else {
             R.id.chipSeries
@@ -747,7 +762,7 @@ class MainActivity : AppCompatActivity() {
 
         if (restoreFocus) {
             val restored = previousFocusedViewBeforeSearch?.get()?.let { view ->
-                if (view.isAttachedToWindow && view.visibility == View.VISIBLE && view.isFocusable) {
+                if (view.isAttachedToWindow && view.isVisible && view.isFocusable) {
                     view.requestFocus()
                 } else {
                     false
@@ -803,12 +818,50 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun loadFragment(fragment: Fragment) {
-        supportFragmentManager.beginTransaction()
+        Log.d(
+            TAG,
+            "Navigating to fragment=${fragment::class.java.simpleName} currentLibId=$currentLibId"
+        )
+        val transaction = supportFragmentManager.beginTransaction()
             .replace(R.id.fragment_container, fragment)
-            .commit()
+        if (supportFragmentManager.isStateSaved) {
+            Log.w(
+                TAG,
+                "Fragment state already saved; committing ${fragment::class.java.simpleName} allowing state loss."
+            )
+            transaction.commitAllowingStateLoss()
+        } else {
+            transaction.commit()
+        }
+    }
+
+    private fun removeCurrentFragmentIfPresent(immediateWhenPossible: Boolean = false) {
+        val current = supportFragmentManager.findFragmentById(R.id.fragment_container) ?: return
+        Log.d(
+            TAG,
+            "Removing fragment=${current::class.java.simpleName} immediate=$immediateWhenPossible stateSaved=${supportFragmentManager.isStateSaved}"
+        )
+        val transaction = supportFragmentManager.beginTransaction().remove(current)
+        when {
+            supportFragmentManager.isStateSaved -> {
+                Log.w(
+                    TAG,
+                    "Fragment state already saved; removing ${current::class.java.simpleName} allowing state loss."
+                )
+                transaction.commitAllowingStateLoss()
+            }
+            immediateWhenPossible -> transaction.commitNow()
+            else -> transaction.commit()
+        }
     }
 
     private fun loadWatchLater() {
+        Log.d(TAG, "Switching to Watch Later view")
+        if (fetchJob?.isActive == true) {
+            Log.d(TAG, "Cancelling active library fetch before switching to Watch Later.")
+        }
+        fetchJob?.cancel()
+        fetchJob = null
         currentLibId = -2
         dashboardView.visibility = View.GONE
         layoutGridContainer.visibility = View.GONE
@@ -841,6 +894,11 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun openDetails(video: VideoItem) {
+        if (video.id <= 0) {
+            Log.w(TAG, "Ignoring details navigation for invalid videoId=${video.id}")
+            return
+        }
+        Log.d(TAG, "Opening details videoId=${video.id} title=${video.title}")
         val intent = Intent(this, DetailsActivity::class.java)
         intent.putExtra("VIDEO_ID", video.id)
         intent.putExtra("RESUME_TIME", video.resume_time)
@@ -849,6 +907,11 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun openPlayer(videoId: Int, resumeTime: Long) {
+        if (videoId <= 0) {
+            Log.w(TAG, "Ignoring player navigation for invalid videoId=$videoId resume=$resumeTime")
+            return
+        }
+        Log.d(TAG, "Opening player videoId=$videoId resumeSeconds=$resumeTime")
         val intent = Intent(this, PlayerActivity::class.java)
         intent.putExtra("VIDEO_ID", videoId)
         intent.putExtra("RESUME_TIME", resumeTime)
@@ -965,7 +1028,7 @@ class MainActivity : AppCompatActivity() {
         val shouldShowClear = hasGenreFilter || hasTypeFilter || hasYearFilter || hasRatingFilter
 
         // Prevent focus trap when clear chip disappears while focused
-        if (!shouldShowClear && chipClearFilters.visibility == View.VISIBLE && chipClearFilters.hasFocus()) {
+        if (!shouldShowClear && chipClearFilters.isVisible && chipClearFilters.hasFocus()) {
             if (!chipAll.requestFocus()) {
                 editSearch.requestFocus()
             }
@@ -993,19 +1056,23 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun performSearch(query: String, filters: SearchFilters = SearchFilters()) {
+        Log.d(TAG, "Performing search query=\"$query\" filters=$filters")
         // Check network before search
         if (!NetworkUtils.isNetworkAvailable(this)) {
             ErrorHandler.showError(this, "No internet connection")
+            Log.w(TAG, "Search aborted due to missing network")
             return
         }
 
+        if (fetchJob?.isActive == true) {
+            Log.d(TAG, "Cancelling active library fetch before starting search.")
+        }
+        fetchJob?.cancel()
+        fetchJob = null
+
         currentLibId = -999
         highlightMenu(null)
-
-        val fragment = supportFragmentManager.findFragmentById(R.id.fragment_container)
-        if (fragment != null) {
-            supportFragmentManager.beginTransaction().remove(fragment).commit()
-        }
+        removeCurrentFragmentIfPresent()
 
         dashboardView.visibility = View.GONE
         layoutGridContainer.visibility = View.VISIBLE
@@ -1340,11 +1407,20 @@ class MainActivity : AppCompatActivity() {
                 "#E50914", "#1DB954", "#5865F2", "#FF6B35",
                 "#9B59B6", "#3498DB", "#E91E63", "#00BCD4"
             )
-            val colorIndex = (profile.id - 1) % colors.size
-            viewProfileAvatar.background.setTint(android.graphics.Color.parseColor(colors[colorIndex]))
+            val colorSeed = (profile.id - 1).coerceAtLeast(0)
+            if (profile.id <= 0) {
+                Log.w(TAG, "Profile ID is non-positive (${profile.id}); using fallback avatar color.")
+            }
+            val colorIndex = colorSeed % colors.size
+            viewProfileAvatar.background.setTint(colors[colorIndex].toColorInt())
+            btnMenuProfile.contentDescription = getString(R.string.a11y_profile_button, profile.name)
         } else {
             txtProfileName.text = getString(R.string.profile_switch)
             txtProfileInitial.text = "?"
+            btnMenuProfile.contentDescription = getString(
+                R.string.a11y_profile_button,
+                getString(R.string.profile_switch)
+            )
         }
         setProfileUpdateBadgeVisible(updateManager.hasCachedAvailableUpdate())
     }
@@ -1377,19 +1453,24 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun loadDashboard() {
+        Log.d(TAG, "Switching to dashboard view")
         closeSearchOverlay(restoreFocus = false)
 
         // Check network before loading dashboard
         if (!NetworkUtils.isNetworkAvailable(this)) {
             ErrorHandler.showError(this, "No internet connection")
+            Log.w(TAG, "Dashboard load aborted due to missing network")
             return
         }
 
-        currentLibId = -1
-        val fragment = supportFragmentManager.findFragmentById(R.id.fragment_container)
-        if (fragment != null) {
-            supportFragmentManager.beginTransaction().remove(fragment).commit()
+        if (fetchJob?.isActive == true) {
+            Log.d(TAG, "Cancelling active library fetch before loading dashboard.")
         }
+        fetchJob?.cancel()
+        fetchJob = null
+
+        currentLibId = -1
+        removeCurrentFragmentIfPresent()
         highlightMenu(btnMenuHome)
 
         dashboardView.visibility = View.VISIBLE
@@ -1464,24 +1545,23 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun fetchLibrary(libId: Int, title: String) {
+        Log.d(TAG, "Switching to library libId=$libId title=$title")
         closeSearchOverlay(restoreFocus = false)
 
         // Check network before loading library
         if (!NetworkUtils.isNetworkAvailable(this)) {
             ErrorHandler.showError(this, "No internet connection")
+            Log.w(TAG, "Library load aborted due to missing network. libId=$libId")
             return
         }
 
-        // Ensure Watch Later fragment is removed so grid can render
-        supportFragmentManager.findFragmentById(R.id.fragment_container)?.let { fragment ->
-            if (!supportFragmentManager.isStateSaved) {
-                supportFragmentManager.beginTransaction().remove(fragment).commitNow()
-            } else {
-                supportFragmentManager.beginTransaction().remove(fragment).commit()
-            }
+        if (fetchJob?.isActive == true) {
+            Log.d(TAG, "Cancelling active library fetch before loading libId=$libId.")
         }
-
         fetchJob?.cancel()
+        fetchJob = null
+        // Ensure Watch Later fragment is removed so grid can render
+        removeCurrentFragmentIfPresent(immediateWhenPossible = true)
         currentLibId = libId
 
         dashboardView.isGone = true
@@ -1558,6 +1638,13 @@ class MainActivity : AppCompatActivity() {
                     activity.gridAdapter.setLoadingState(false)
                 }
             }
+        }
+    }
+
+    private fun formFactorLabel(): String {
+        return when (resources.configuration.uiMode and Configuration.UI_MODE_TYPE_MASK) {
+            Configuration.UI_MODE_TYPE_TELEVISION -> "tv"
+            else -> "mobile_tablet"
         }
     }
 
@@ -1679,10 +1766,10 @@ class LibraryAdapter(
         fun bind(video: VideoItem, onClick: (VideoItem) -> Unit) {
             val displayTitle = if (!video.seriesTitle.isNullOrEmpty()) video.seriesTitle else video.title
             txtTitle.text = displayTitle
-            txtYear.text = video.year.toString()
+            txtYear.text = NumberFormat.getIntegerInstance().format(video.year)
             txtQuality.text = video.quality ?: "HD"
             val formattedRating = RatingUtils.formatImdbRating(video.rating) ?: "5.0"
-            txtRating.text = "★ $formattedRating"
+            txtRating.text = itemView.context.getString(R.string.rating_format, formattedRating)
 
             val progressPercent = when {
                 video.progressPercent > 0 -> video.progressPercent.coerceIn(0, 100)

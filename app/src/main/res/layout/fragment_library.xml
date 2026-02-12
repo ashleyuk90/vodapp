@@ -24,7 +24,7 @@
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:layout_gravity="center"
-        android:text="Your list is empty."
+        android:text="@string/watch_list_empty"
         android:textColor="@color/text_tertiary"
         android:textSize="18sp"
         android:visibility="gone" />

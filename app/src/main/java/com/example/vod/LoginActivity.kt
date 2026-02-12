@@ -11,12 +11,11 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.edit
 import androidx.lifecycle.lifecycleScope
-import androidx.security.crypto.EncryptedSharedPreferences
-import androidx.security.crypto.MasterKey
 import com.example.vod.utils.Constants
 import com.example.vod.utils.ErrorHandler
 import com.example.vod.utils.NetworkUtils
 import com.example.vod.utils.OrientationUtils
+import com.example.vod.utils.SecurePrefs
 import com.google.gson.Gson
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
@@ -45,18 +44,8 @@ class LoginActivity : AppCompatActivity() {
         etPass = findViewById(R.id.etPassword)
         val btnLogin = findViewById<Button>(R.id.btnLogin)
 
-        // 2. Init Storage (EncryptedSharedPreferences for secure credential storage)
-        val masterKey = MasterKey.Builder(this)
-            .setKeyScheme(MasterKey.KeyScheme.AES256_GCM)
-            .build()
-
-        prefs = EncryptedSharedPreferences.create(
-            this,
-            Constants.PREFS_NAME,
-            masterKey,
-            EncryptedSharedPreferences.PrefKeyEncryptionScheme.AES256_SIV,
-            EncryptedSharedPreferences.PrefValueEncryptionScheme.AES256_GCM
-        )
+        // 2. Init secure storage with crash-safe fallback.
+        prefs = SecurePrefs.get(this, Constants.PREFS_NAME)
 
         // 3. CHECK FOR SAVED CREDENTIALS
         val savedUser = prefs.getString(Constants.KEY_USER, null)

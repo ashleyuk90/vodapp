@@ -10,6 +10,4 @@
     <!-- Hero section - keep reasonable for landscape -->
     <dimen name="home_hero_height">320dp</dimen>
     
-    <!-- Horizontal card width - larger for TV -->
-    <dimen name="home_horizontal_card_width">200dp</dimen>
 </resources>

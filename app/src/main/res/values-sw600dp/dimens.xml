@@ -4,7 +4,6 @@
 <!-- ========================================= -->
 <resources>
     <!-- Home (Dashboard) scale for tablets -->
-    <dimen name="home_bottom_padding">32dp</dimen>
     <dimen name="home_hero_height">340dp</dimen>
     <dimen name="home_hero_padding">24dp</dimen>
 
@@ -20,9 +19,6 @@
     <dimen name="home_list_side_padding">24dp</dimen>
     <dimen name="home_list_bottom_margin">32dp</dimen>
 
-    <!-- Horizontal card width on Home rows - larger for tablets -->
-    <dimen name="home_horizontal_card_width">180dp</dimen>
-    
     <!-- Grid settings for tablets -->
     <integer name="grid_span_count">5</integer>
     
@@ -79,17 +75,12 @@
     <dimen name="episode_metadata_text_size">14sp</dimen>
     <dimen name="episode_plot_text_size">14sp</dimen>
     
-    <!-- Focus States (tablet) -->
-    <dimen name="focus_border_width">4dp</dimen>
-    
     <!-- Spacing (tablet) -->
     <dimen name="spacing_xs">4dp</dimen>
     <dimen name="spacing_sm">8dp</dimen>
     <dimen name="spacing_md">14dp</dimen>
     <dimen name="spacing_lg">20dp</dimen>
     <dimen name="spacing_xl">28dp</dimen>
-    <dimen name="spacing_xxl">40dp</dimen>
-
     <!-- Dialogs -->
     <dimen name="create_profile_dialog_top_offset">72dp</dimen>
 </resources>

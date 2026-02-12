@@ -10,6 +10,4 @@
     <!-- Hero section - optimized for landscape -->
     <dimen name="home_hero_height">280dp</dimen>
     
-    <!-- Horizontal card width - optimized for landscape -->
-    <dimen name="home_horizontal_card_width">160dp</dimen>
 </resources>

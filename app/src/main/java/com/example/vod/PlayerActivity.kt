@@ -2,6 +2,7 @@ package com.example.vod
 
 import android.annotation.SuppressLint
 import android.content.Intent
+import android.content.res.Configuration
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
@@ -120,6 +121,10 @@ class PlayerActivity : AppCompatActivity() {
         videoId = intent.getIntExtra("VIDEO_ID", -1)
         resumeTimeMs = intent.getLongExtra("RESUME_TIME", 0L) * 1000
         enableSubtitles = intent.getBooleanExtra("ENABLE_SUBTITLES", false)
+        Log.i(
+            TAG,
+            "onCreate formFactor=${formFactorLabel()} videoId=$videoId resumeMs=$resumeTimeMs subtitles=$enableSubtitles"
+        )
 
         // Load intro/credits markers from intent (passed from DetailsActivity)
         loadMarkersFromIntent()
@@ -127,6 +132,7 @@ class PlayerActivity : AppCompatActivity() {
         if (videoId != -1) {
             initializePlayer(videoId)
         } else {
+            Log.e(TAG, "Player launch failed: missing VIDEO_ID extra")
             Toast.makeText(this, "Error: No Video ID passed", Toast.LENGTH_SHORT).show()
             finish()
         }
@@ -383,9 +389,11 @@ class PlayerActivity : AppCompatActivity() {
     // Fix 4: Suppress typo check for PHPSESSID
     @Suppress("SpellCheckingInspection")
     private fun initializePlayer(id: Int) {
+        Log.d(TAG, "initializePlayer start videoId=$id subtitles=$enableSubtitles")
         // Check network before loading video
         if (!NetworkUtils.isNetworkAvailable(this)) {
             ErrorHandler.showError(this, "No internet connection")
+            Log.w(TAG, "initializePlayer aborted due to missing network. videoId=$id")
             finish()
             return
         }
@@ -486,10 +494,17 @@ class PlayerActivity : AppCompatActivity() {
     }
 
     private fun setupExoPlayer(url: String, cookieHeader: String, subUrl: String?, subLang: String?) {
+        val resolvedSubtitleUrl = resolveSubtitleUrl(subUrl)
+        val streamHost = runCatching { url.toUri().host.orEmpty() }.getOrDefault("")
+        Log.d(
+            TAG,
+            "setupExoPlayer videoId=$videoId host=$streamHost resumeMs=$resumeTimeMs subtitlesEnabled=$enableSubtitles hasSubtitleUrl=${!resolvedSubtitleUrl.isNullOrEmpty()} cookieBytes=${cookieHeader.length}"
+        )
+
         // Store stream parameters for retry
         lastStreamUrl = url
         lastCookieHeader = cookieHeader
-        lastSubUrl = subUrl
+        lastSubUrl = resolvedSubtitleUrl
         lastSubLang = subLang
 
         val dataSourceFactory = DefaultHttpDataSource.Factory()
@@ -513,17 +528,21 @@ class PlayerActivity : AppCompatActivity() {
         // Fix 5: Used KTX extension .toUri() instead of Uri.parse()
         val mediaItemBuilder = MediaItem.Builder().setUri(url.toUri())
 
-        if (!subUrl.isNullOrEmpty()) {
-            // Fix 5 (repeated): Used .toUri()
-            val subtitleConfig = MediaItem.SubtitleConfiguration.Builder(subUrl.toUri())
-                .setMimeType(MimeTypes.APPLICATION_SUBRIP)
-                .setLanguage(subLang ?: "en")
-                .setSelectionFlags(
-                    if (enableSubtitles) C.SELECTION_FLAG_DEFAULT else 0
-                )
-                .build()
+        if (!resolvedSubtitleUrl.isNullOrEmpty()) {
+            // Guard subtitle parsing to avoid crashes on malformed backend subtitle URLs.
+            runCatching {
+                val subtitleConfig = MediaItem.SubtitleConfiguration.Builder(resolvedSubtitleUrl.toUri())
+                    .setMimeType(MimeTypes.APPLICATION_SUBRIP)
+                    .setLanguage(subLang ?: "en")
+                    .setSelectionFlags(
+                        if (enableSubtitles) C.SELECTION_FLAG_DEFAULT else 0
+                    )
+                    .build()
 
-            mediaItemBuilder.setSubtitleConfigurations(listOf(subtitleConfig))
+                mediaItemBuilder.setSubtitleConfigurations(listOf(subtitleConfig))
+            }.onFailure { error ->
+                Log.w(TAG, "Skipping invalid subtitle URL: $resolvedSubtitleUrl", error)
+            }
         }
 
         val mediaItem = mediaItemBuilder.build()
@@ -557,6 +576,19 @@ class PlayerActivity : AppCompatActivity() {
         }
         player?.prepare()
         player?.play()
+    }
+
+    private fun resolveSubtitleUrl(rawUrl: String?): String? {
+        val trimmed = rawUrl?.trim()?.takeIf { it.isNotEmpty() } ?: return null
+        val baseUrl = BuildConfig.BASE_URL.trim().trimEnd('/')
+
+        return when {
+            trimmed.startsWith("https://", ignoreCase = true) -> trimmed
+            trimmed.startsWith("http://", ignoreCase = true) -> trimmed
+            trimmed.startsWith("//") -> "https:$trimmed"
+            trimmed.startsWith("/") -> "$baseUrl$trimmed"
+            else -> "$baseUrl/${trimmed.trimStart('/')}"
+        }
     }
 
     /**
@@ -777,6 +809,7 @@ class PlayerActivity : AppCompatActivity() {
 
     private fun loadNextEpisode() {
         nextEpisodeData?.let { next ->
+            Log.d(TAG, "Loading next episode from videoId=$videoId to nextId=${next.id} subtitles=$enableSubtitles")
             progressHandler.removeCallbacks(progressRunnable)
             player?.stop()
             player?.release()
@@ -793,6 +826,7 @@ class PlayerActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
+        Log.d(TAG, "onResume playerExists=${player != null} isPlaying=${player?.isPlaying == true}")
         // Fixed: Use safe call instead of forced non-null assertion
         if (player?.isPlaying == true) {
             progressHandler.post(progressRunnable)
@@ -801,21 +835,31 @@ class PlayerActivity : AppCompatActivity() {
 
     override fun onPause() {
         super.onPause()
+        Log.d(TAG, "onPause currentPositionMs=${player?.currentPosition ?: -1L}")
         progressHandler.removeCallbacks(progressRunnable)
         player?.pause()
     }
 
     override fun onStop() {
         super.onStop()
+        Log.d(TAG, "onStop releasing player for videoId=$videoId")
         player?.release()
         player = null
     }
 
     override fun onDestroy() {
         super.onDestroy()
+        Log.d(TAG, "onDestroy clearing callbacks and releasing player for videoId=$videoId")
         // Ensure all handler callbacks are removed to prevent leaks
         progressHandler.removeCallbacksAndMessages(null)
         player?.release()
         player = null
+    }
+
+    private fun formFactorLabel(): String {
+        return when (resources.configuration.uiMode and Configuration.UI_MODE_TYPE_MASK) {
+            Configuration.UI_MODE_TYPE_TELEVISION -> "tv"
+            else -> "mobile_tablet"
+        }
     }
 }

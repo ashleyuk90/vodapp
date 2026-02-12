@@ -44,6 +44,11 @@ class WatchLaterFragment : Fragment(R.layout.fragment_library) {
         loadWatchLater()
     }
 
+    override fun onDestroyView() {
+        recyclerView.adapter = null
+        super.onDestroyView()
+    }
+
     private fun setupRecyclerView() {
         val spanCount = ResponsiveUtils.getGridSpanCountFromResources(requireContext())
         recyclerView.layoutManager = GridLayoutManager(context, spanCount)
@@ -64,13 +69,17 @@ class WatchLaterFragment : Fragment(R.layout.fragment_library) {
         recyclerView.visibility = View.GONE
         txtEmpty.visibility = View.GONE
 
-        lifecycleScope.launch(Dispatchers.IO) {
+        viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
             try {
                 // Call the NEW API Endpoint with profile_id
                 val profileId = ProfileManager.getActiveProfileId()
                 val response = NetworkClient.api.getWatchList(page = 1, profileId)
 
                 withContext(Dispatchers.Main) {
+                    if (!isAdded || view == null) {
+                        Log.d(TAG, "Skipping watch-later UI update because fragment view is not attached.")
+                        return@withContext
+                    }
                     progressBar.visibility = View.GONE
 
                     if (response.status == "success" && !response.videos.isNullOrEmpty()) {
@@ -89,6 +98,10 @@ class WatchLaterFragment : Fragment(R.layout.fragment_library) {
             } catch (e: Exception) {
                 Log.e(TAG, "Error loading watch later list", e)
                 withContext(Dispatchers.Main) {
+                    if (!isAdded || view == null) {
+                        Log.d(TAG, "Skipping watch-later error UI update because fragment view is not attached.")
+                        return@withContext
+                    }
                     progressBar.visibility = View.GONE
                     txtEmpty.setText(R.string.watch_list_error)
                     txtEmpty.visibility = View.VISIBLE

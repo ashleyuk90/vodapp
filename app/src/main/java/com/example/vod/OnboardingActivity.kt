@@ -12,6 +12,7 @@ import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.edit
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.recyclerview.widget.RecyclerView
@@ -239,7 +240,7 @@ class OnboardingActivity : AppCompatActivity() {
 
         fun setOnboardingCompleted(context: Context) {
             val prefs = context.getSharedPreferences(PREF_ONBOARDING, Context.MODE_PRIVATE)
-            prefs.edit().putBoolean(KEY_COMPLETED, true).apply()
+            prefs.edit { putBoolean(KEY_COMPLETED, true) }
         }
 
         /**
@@ -247,7 +248,7 @@ class OnboardingActivity : AppCompatActivity() {
          */
         fun resetOnboarding(context: Context) {
             val prefs = context.getSharedPreferences(PREF_ONBOARDING, Context.MODE_PRIVATE)
-            prefs.edit().remove(KEY_COMPLETED).apply()
+            prefs.edit { remove(KEY_COMPLETED) }
         }
     }
 }

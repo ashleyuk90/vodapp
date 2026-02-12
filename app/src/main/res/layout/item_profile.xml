@@ -43,6 +43,7 @@
             android:layout_height="@dimen/icon_size"
             android:layout_gravity="bottom|end"
             android:background="@drawable/bg_badge_dark"
+            android:contentDescription="@string/a11y_profile_pin_locked"
             android:padding="4dp"
             android:src="@drawable/ic_lock"
             android:visibility="gone"

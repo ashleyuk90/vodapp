@@ -29,6 +29,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.IOException
 import java.lang.ref.WeakReference
+import java.text.NumberFormat
 
 class DetailsActivity : AppCompatActivity() {
     companion object {
@@ -183,6 +184,9 @@ class DetailsActivity : AppCompatActivity() {
 
     private fun startPlayback(startTime: Long, enableSubtitles: Boolean = false) {
         if (::video.isInitialized) {
+            if (enableSubtitles && video.subtitleUrl.isNullOrBlank()) {
+                Log.w(TAG, "Subtitle playback requested but no subtitleUrl available for videoId=${video.id}")
+            }
             val intent = Intent(this, PlayerActivity::class.java)
             intent.putExtra("VIDEO_ID", video.id)
             intent.putExtra("RESUME_TIME", startTime)
@@ -213,10 +217,18 @@ class DetailsActivity : AppCompatActivity() {
             }
             startActivity(intent)
             AnimationHelper.applyOpenTransition(this)
+        } else {
+            Log.w(TAG, "Ignoring playback request before video is initialized. subtitles=$enableSubtitles")
         }
     }
 
     private fun startEpisodePlayback(episodeId: Int, enableSubtitles: Boolean = false) {
+        if (episodeId <= 0) {
+            Log.w(TAG, "Ignoring episode playback request with invalid id: $episodeId")
+            Toast.makeText(this, R.string.error_loading_video, Toast.LENGTH_SHORT).show()
+            return
+        }
+        Log.d(TAG, "Starting episode playback episodeId=$episodeId subtitles=$enableSubtitles")
         val intent = Intent(this, PlayerActivity::class.java)
         intent.putExtra("VIDEO_ID", episodeId)
         intent.putExtra("RESUME_TIME", 0L)
@@ -343,7 +355,7 @@ class DetailsActivity : AppCompatActivity() {
 
                         activity.txtTitle.text = activity.video.title
                         activity.txtPlot.text = activity.video.plot
-                        activity.txtYear.text = activity.video.year.toString()
+                        activity.txtYear.text = NumberFormat.getIntegerInstance().format(activity.video.year)
 
                         val formattedRating = RatingUtils.formatImdbRating(activity.video.rating) ?: "N/A"
                         activity.txtRating.text = activity.getString(R.string.rating_format, formattedRating)
@@ -367,7 +379,10 @@ class DetailsActivity : AppCompatActivity() {
                             activity.txtRottenTomatoes.visibility = View.GONE
                         }
 
-                        activity.btnSubtitles.visibility = if (activity.video.hasSubtitles) View.VISIBLE else View.GONE
+                        val hasStandaloneSubtitles =
+                            activity.video.hasSubtitles && !activity.video.subtitleUrl.isNullOrBlank()
+                        activity.btnSubtitles.visibility =
+                            if (hasStandaloneSubtitles) View.VISIBLE else View.GONE
 
                         if (activity.video.runtime > 0) {
                             val hours = activity.video.runtime / 60
@@ -446,6 +461,7 @@ class DetailsActivity : AppCompatActivity() {
 
                             activity.video.episodes?.let { episodes ->
                                 if (episodes.isNotEmpty()) {
+                                    Log.d(TAG, "Binding episodes list count=${episodes.size} for seriesId=${activity.video.id}")
                                     activity.rvEpisodes.adapter = EpisodeAdapter(
                                         allEpisodes = episodes,
                                         onEpisodeClick = { episode ->
@@ -460,7 +476,15 @@ class DetailsActivity : AppCompatActivity() {
                                             activity.startEpisodePlayback(episode.id, enableSubtitles = false)
                                         },
                                         onEpisodePlayWithSubtitlesClick = { episode ->
-                                            activity.startEpisodePlayback(episode.id, enableSubtitles = true)
+                                            if (episode.hasSubtitles && !episode.subtitleUrl.isNullOrBlank()) {
+                                                activity.startEpisodePlayback(episode.id, enableSubtitles = true)
+                                            } else {
+                                                Log.w(
+                                                    TAG,
+                                                    "Subtitle play requested without subtitle metadata for episodeId=${episode.id}. Falling back to regular playback."
+                                                )
+                                                activity.startEpisodePlayback(episode.id, enableSubtitles = false)
+                                            }
                                         }
                                     )
                                     activity.rvEpisodes.post { activity.rvEpisodes.requestFocus() }

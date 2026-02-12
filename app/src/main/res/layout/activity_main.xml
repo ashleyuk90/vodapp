@@ -62,7 +62,7 @@
                 android:id="@+id/txtMenuSearch"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Search"
+                android:text="@string/menu_search"
                 android:textSize="@dimen/side_menu_text_size"
                 android:textColor="@color/sel_menu_text_color"
                 android:fontFamily="sans-serif-medium"
@@ -89,7 +89,7 @@
             android:focusableInTouchMode="true"
             android:nextFocusUp="@id/btnMenuSearch"
             android:nextFocusDown="@id/btnMenuWatchLater"
-            android:contentDescription="Home, navigate to dashboard">
+            android:contentDescription="@string/a11y_menu_home">
 
             <ImageView
                 android:layout_width="@dimen/side_menu_icon_size"
@@ -104,7 +104,7 @@
                 android:id="@+id/txtMenuHome"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Home"
+                android:text="@string/menu_home"
                 android:textSize="@dimen/side_menu_text_size"
                 android:textColor="@color/sel_menu_text_color"
                 android:fontFamily="sans-serif-medium"
@@ -126,7 +126,7 @@
             android:focusableInTouchMode="true"
             android:nextFocusUp="@id/btnMenuHome"
             android:nextFocusDown="@id/sideMenuScroll"
-            android:contentDescription="Watch Later, view your saved content">
+            android:contentDescription="@string/a11y_menu_watch_later">
 
             <ImageView
                 android:layout_width="@dimen/side_menu_icon_size"
@@ -141,7 +141,7 @@
                 android:id="@+id/txtMenuWatchLater"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="Watch Later"
+                android:text="@string/menu_watch_later"
                 android:textSize="@dimen/side_menu_text_size"
                 android:textColor="@color/sel_menu_text_color"
                 android:fontFamily="sans-serif-medium"
@@ -153,7 +153,7 @@
             android:id="@+id/txtLibraryLabel"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="LIBRARY"
+            android:text="@string/menu_library"
             android:textColor="@color/text_muted"
             android:textSize="@dimen/side_menu_label_text_size"
             android:textStyle="bold"
@@ -249,7 +249,7 @@
                     android:textColor="@android:color/white"
                     android:textSize="12sp"
                     android:textStyle="bold"
-                    android:text="D" />
+                    tools:text="D" />
 
                 <TextView
                     android:id="@+id/txtProfileUpdateBadge"
@@ -259,7 +259,7 @@
                     android:background="@drawable/bg_profile_update_badge"
                     android:contentDescription="@string/a11y_update_available"
                     android:gravity="center"
-                    android:text="!"
+                    android:text="@string/update_badge_symbol"
                     android:textColor="@color/text_on_primary"
                     android:textSize="10sp"
                     android:textStyle="bold"
@@ -309,6 +309,7 @@
                 android:layout_height="wrap_content"
                 android:background="@drawable/bg_search_input"
                 android:hint="@string/search_hint"
+                android:importantForAutofill="no"
                 android:textColorHint="@color/text_muted"
                 android:textColor="@color/text_primary"
                 android:textSize="24sp"
@@ -726,7 +727,7 @@
                     android:id="@+id/lblContinue"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Continue Watching"
+                    android:text="@string/home_continue_watching"
                     android:textColor="@color/brand_accent"
                     android:textSize="@dimen/home_section_title_text"
                     android:textStyle="bold"
@@ -743,12 +744,12 @@
                     android:paddingStart="@dimen/home_list_side_padding"
                     android:paddingEnd="@dimen/home_list_side_padding"
                     android:layout_marginBottom="@dimen/home_list_bottom_margin"
-                    android:contentDescription="Continue watching section, horizontal list of videos"/>
+                    android:contentDescription="@string/a11y_continue_watching_list"/>
                 <TextView
                     android:id="@+id/lblRecentMovies"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Recently Added Movies"
+                    android:text="@string/home_recent_movies"
                     android:textColor="@color/text_primary"
                     android:textSize="@dimen/home_section_title_text"
                     android:textStyle="bold"
@@ -764,12 +765,12 @@
                     android:paddingStart="@dimen/home_list_side_padding"
                     android:paddingEnd="@dimen/home_list_side_padding"
                     android:layout_marginBottom="@dimen/home_list_bottom_margin"
-                    android:contentDescription="Recently added movies, horizontal list"/>
+                    android:contentDescription="@string/a11y_recent_movies_list"/>
                 <TextView
                     android:id="@+id/lblRecentShows"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="Recently Added TV"
+                    android:text="@string/home_recent_tv"
                     android:textColor="@color/text_primary"
                     android:textSize="@dimen/home_section_title_text"
                     android:textStyle="bold"
@@ -781,7 +782,7 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="horizontal"
-                    android:contentDescription="Recently added TV shows, horizontal list"
+                    android:contentDescription="@string/a11y_recent_tv_list"
                     android:clipToPadding="false"
                     android:paddingStart="@dimen/home_list_side_padding"
                     android:paddingEnd="@dimen/home_list_side_padding"/>

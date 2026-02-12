@@ -6,7 +6,9 @@ import android.view.ViewGroup
 import android.widget.ImageView
 import android.widget.ProgressBar
 import android.widget.TextView
+import androidx.recyclerview.widget.DiffUtil
 import androidx.recyclerview.widget.RecyclerView
+import java.text.NumberFormat
 
 class EpisodeAdapter(
     private val allEpisodes: List<EpisodeItem>,
@@ -45,6 +47,36 @@ class EpisodeAdapter(
                 displayList.addAll(episodes)
             }
         }
+    }
+
+    private fun rebuildDisplayListAndDispatchDiff() {
+        val oldList = displayList.toList()
+        initialBuild()
+        val newList = displayList.toList()
+
+        val diff = DiffUtil.calculateDiff(
+            object : DiffUtil.Callback() {
+                override fun getOldListSize(): Int = oldList.size
+                override fun getNewListSize(): Int = newList.size
+
+                override fun areItemsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean {
+                    val oldItem = oldList[oldItemPosition]
+                    val newItem = newList[newItemPosition]
+                    return when {
+                        oldItem is SeasonHeader && newItem is SeasonHeader ->
+                            oldItem.seasonNumber == newItem.seasonNumber
+                        oldItem is EpisodeItem && newItem is EpisodeItem ->
+                            oldItem.id == newItem.id
+                        else -> false
+                    }
+                }
+
+                override fun areContentsTheSame(oldItemPosition: Int, newItemPosition: Int): Boolean {
+                    return oldList[oldItemPosition] == newList[newItemPosition]
+                }
+            }
+        )
+        diff.dispatchUpdatesTo(this)
     }
 
     data class SeasonHeader(val seasonNumber: Int)
@@ -87,22 +119,15 @@ class EpisodeAdapter(
                 val pos = bindingAdapterPosition
                 if (pos == RecyclerView.NO_POSITION) return@setOnClickListener
 
-                // Find episodes for this season
-                val seasonEpisodes = allEpisodes.filter { it.season == header.seasonNumber }
-
-                if (isExpanded) {
-                    // COLLAPSE: Remove items below header
+                val currentlyExpanded = expandedSeasons.contains(header.seasonNumber)
+                if (currentlyExpanded) {
                     expandedSeasons.remove(header.seasonNumber)
-                    displayList.removeAll(seasonEpisodes)
-                    notifyItemRangeRemoved(pos + 1, seasonEpisodes.size)
                 } else {
-                    // EXPAND: Add items below header
                     expandedSeasons.add(header.seasonNumber)
-                    displayList.addAll(pos + 1, seasonEpisodes)
-                    notifyItemRangeInserted(pos + 1, seasonEpisodes.size)
                 }
-                // Animate arrow rotation without breaking list focus
-                notifyItemChanged(pos)
+
+                // Rebuild list atomically to avoid RecyclerView inconsistencies on rapid taps.
+                rebuildDisplayListAndDispatchDiff()
             }
         }
     }
@@ -113,11 +138,11 @@ class EpisodeAdapter(
         private val txtPlot: TextView = itemView.findViewById(R.id.txtEpPlot)
         private val txtDuration: TextView = itemView.findViewById(R.id.txtEpDuration)
         private val episodePlaybackProgress: ProgressBar = itemView.findViewById(R.id.episodePlaybackProgress)
-        private val btnEpPlay: ImageView = itemView.findViewById(R.id.btnEpPlay)
-        private val btnEpCc: TextView = itemView.findViewById(R.id.btnEpCc)
+        private val btnEpPlay: ImageView? = itemView.findViewById(R.id.btnEpPlay)
+        private val btnEpCc: TextView? = itemView.findViewById(R.id.btnEpCc)
 
         fun bind(ep: EpisodeItem) {
-            txtNum.text = ep.episode.toString()
+            txtNum.text = NumberFormat.getIntegerInstance().format(ep.episode)
             txtTitle.text = ep.title
             txtDuration.text = itemView.context.getString(R.string.duration_format, ep.runtime)
             txtPlot.text = ep.plot ?: ""
@@ -146,14 +171,18 @@ class EpisodeAdapter(
             }
 
             itemView.setOnClickListener { onEpisodeClick(ep) }
-            btnEpPlay.setOnClickListener { onEpisodePlayClick(ep) }
+            btnEpPlay?.setOnClickListener { onEpisodePlayClick(ep) }
 
             val showCcButton = ep.hasSubtitles && !ep.subtitleUrl.isNullOrBlank()
-            btnEpCc.visibility = if (showCcButton) View.VISIBLE else View.GONE
-            btnEpCc.setOnClickListener {
-                if (showCcButton) {
-                    onEpisodePlayWithSubtitlesClick(ep)
-                }
+            btnEpCc?.apply {
+                visibility = if (showCcButton) View.VISIBLE else View.GONE
+                setOnClickListener(
+                    if (showCcButton) {
+                        View.OnClickListener { onEpisodePlayWithSubtitlesClick(ep) }
+                    } else {
+                        null
+                    }
+                )
             }
         }
     }
