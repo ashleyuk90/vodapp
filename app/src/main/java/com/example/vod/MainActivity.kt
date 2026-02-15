@@ -46,6 +46,7 @@ import com.example.vod.utils.OrientationUtils
 import com.example.vod.utils.RatingUtils
 import com.example.vod.utils.ResponsiveUtils
 import com.example.vod.update.SelfHostedUpdateManager
+import com.example.vod.utils.SecurePrefs
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
@@ -54,6 +55,7 @@ import kotlinx.coroutines.isActive
 import java.io.IOException
 import java.lang.ref.WeakReference
 import java.text.NumberFormat
+import androidx.core.content.edit
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
 
@@ -277,6 +279,7 @@ class MainActivity : AppCompatActivity() {
     override fun onResume() {
         super.onResume()
         Log.d(TAG, "onResume currentLibId=$currentLibId hasTriggeredInitialUpdateCheck=$hasTriggeredInitialUpdateCheck")
+        refreshSessionFeedUrl()
         updateManager.resumePendingInstallIfPermitted()
         setProfileUpdateBadgeVisible(updateManager.hasCachedAvailableUpdate())
         if (!hasTriggeredInitialUpdateCheck) {
@@ -288,6 +291,38 @@ class MainActivity : AppCompatActivity() {
                     setProfileUpdateBadgeVisible(isAvailable)
                 }
             )
+        }
+    }
+
+    /**
+     * Call /api/session on resume to refresh the stored update feed URL.
+     * Admin may have changed the user's update channel since last login.
+     */
+    private fun refreshSessionFeedUrl() {
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val session = NetworkClient.api.getSession()
+                if (session.status == "success") {
+                    val feedUrl = session.updateFeedUrl?.takeIf { it.isNotBlank() }
+                    val csrfToken = session.csrfToken?.takeIf { it.isNotBlank() }
+                    if (csrfToken != null) {
+                        NetworkClient.updateCsrfToken(csrfToken)
+                    }
+                    val prefs = SecurePrefs.get(applicationContext, Constants.PREFS_NAME)
+                    prefs.edit {
+                        // Only update feed URL if session provides one;
+                        // preserve the login-stored URL otherwise.
+                        if (feedUrl != null) {
+                            putString(Constants.KEY_UPDATE_FEED_URL, feedUrl)
+                        }
+                        if (csrfToken != null) {
+                            putString(Constants.KEY_CSRF_TOKEN, csrfToken)
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to refresh session feed URL", e)
+            }
         }
     }
 

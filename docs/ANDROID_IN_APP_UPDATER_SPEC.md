@@ -34,13 +34,28 @@ Optional env vars:
   - Default: `24`
 - `VOD_UPDATE_CHANNEL`
   - Default: `stable`
-  - Enables channel-specific feed filtering when needed (`stable`, `beta`, etc.).
+  - Build-time default channel. Overridden at runtime by server-provided `update_feed_url` (see below).
 
 Recommended `BuildConfig` names:
 - `UPDATE_APK_BASE_URL`
 - `UPDATE_FEED_URL`
 - `UPDATE_CHECK_INTERVAL_HOURS`
 - `UPDATE_CHANNEL`
+
+## Server-Driven Per-User Update Channel
+
+The server assigns each user an update channel (`stable` or `beta`). Admins set this via Admin -> Users -> Edit User.
+
+Both `/api/login` and `/api/session` responses include an `update_feed_url` field containing the XML feed URL for the user's assigned channel.
+
+### App Integration
+
+1. **After login:** Store `update_feed_url` from the login response. Use it for all subsequent update checks.
+2. **On app resume:** Call `/api/session` and refresh the stored `update_feed_url` (admin may have changed the user's channel).
+3. **Pre-login / no server URL:** Use the build-time `VOD_UPDATE_FEED_URL` (stable channel).
+4. **Fallback:** If `update_feed_url` is absent in the API response (older server version), use the build-time `VOD_UPDATE_FEED_URL`.
+
+This means the build-time `VOD_UPDATE_CHANNEL` env var is only used as a default. Once logged in, the server controls which feed the app checks. A single app build can receive stable or beta updates depending on the user's server-side setting.
 
 ## XML Feed Contract
 

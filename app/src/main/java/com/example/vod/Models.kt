@@ -9,7 +9,8 @@ data class ApiResponse<T>(
     val data: T? = null,
     @SerializedName("user") val user: T? = null,
     @SerializedName("csrf_token") val csrfToken: String? = null,
-    @SerializedName("account_expiry") val accountExpiry: String? = null
+    @SerializedName("account_expiry") val accountExpiry: String? = null,
+    @SerializedName("update_feed_url") val updateFeedUrl: String? = null
 )
 
 data class ApiErrorResponse(
@@ -24,7 +25,8 @@ data class ApiErrorResponse(
 data class User(
     val id: Int = 0,
     val username: String = "",
-    @SerializedName("expiry_date") val expiryDate: String? = null
+    @SerializedName("expiry_date") val expiryDate: String? = null,
+    @SerializedName("update_channel") val updateChannel: String? = null
 )
 
 data class VideoItem(
@@ -364,6 +366,14 @@ data class ProfileRemoveResponse(
  * Filters for enhanced search functionality.
  * All filters are optional and combine with AND logic.
  */
+data class SessionResponse(
+    val status: String = "",
+    val user: User? = null,
+    @SerializedName("csrf_token") val csrfToken: String? = null,
+    @SerializedName("active_profile") val activeProfile: Profile? = null,
+    @SerializedName("update_feed_url") val updateFeedUrl: String? = null
+)
+
 data class SearchFilters(
     val genre: String? = null,
     val yearMin: Int? = null,

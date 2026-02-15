@@ -133,6 +133,7 @@ class LoginActivity : AppCompatActivity() {
                         val csrfToken = response.csrfToken?.takeIf { it.isNotBlank() }
                         val accountExpiry = response.accountExpiry?.takeIf { it.isNotBlank() }
                             ?: response.user?.expiryDate?.takeIf { it.isNotBlank() }
+                        val updateFeedUrl = response.updateFeedUrl?.takeIf { it.isNotBlank() }
                         NetworkClient.updateCsrfToken(csrfToken)
 
                         prefs.edit {
@@ -147,6 +148,11 @@ class LoginActivity : AppCompatActivity() {
                                 putString(Constants.KEY_ACCOUNT_EXPIRY, accountExpiry)
                             } else {
                                 remove(Constants.KEY_ACCOUNT_EXPIRY)
+                            }
+                            if (updateFeedUrl != null) {
+                                putString(Constants.KEY_UPDATE_FEED_URL, updateFeedUrl)
+                            } else {
+                                remove(Constants.KEY_UPDATE_FEED_URL)
                             }
                         }
 

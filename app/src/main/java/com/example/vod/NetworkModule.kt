@@ -20,6 +20,9 @@ interface ApiService {
         @Field("app_version_code") appVersionCode: Int? = null
     ): ApiResponse<User>
 
+    @GET("api/session")
+    suspend fun getSession(): SessionResponse
+
     @GET("api/library")
     suspend fun getLibrary(
         @Query("lib_id") libId: Int,

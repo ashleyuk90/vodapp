@@ -29,13 +29,15 @@ Body:
 - `app_version_code` (optional but recommended for telemetry)
 
 Success includes:
-- `user`
+- `user` (includes `update_channel`: `stable` or `beta`)
 - `csrf_token`
 - optional `account_expiry`
+- `update_feed_url` — use this as the feed URL for update checks instead of the hardcoded build-time value. If missing (older server), fall back to build-time `VOD_UPDATE_FEED_URL`.
 
 Store:
 - session cookie(s)
 - CSRF token value
+- `update_feed_url` (for app update checks)
 
 ### 2. Session Usage
 
@@ -58,12 +60,13 @@ These values are used for admin telemetry:
 `GET /api/session`
 
 Returns current session state including:
-- `user` object
-- `active_profile` 
+- `user` object (includes `update_channel`)
+- `active_profile`
 - `csrf_token` (refreshed)
 - `login_time`
 - `client_platform`
 - `app_version_name`
+- `update_feed_url` — same as login response; use to refresh the update feed URL on app resume
 
 Use this to restore session state after app restart.
 
@@ -246,7 +249,23 @@ Build-time environment variables (mapped to `BuildConfig`):
 - `VOD_UPDATE_FEED_URL` (example: `https://updates.example.com/vod/android/update.xml`)
 - optional `VOD_UPDATE_CHECK_INTERVAL_HOURS` (default `24`)
 
-Update feed and behavior:
+### Per-User Update Channel
+
+The server assigns each user an update channel (`stable` or `beta`). Admins can change a user's channel from Admin -> Users -> Edit User.
+
+Both `/api/login` and `/api/session` return:
+- `update_feed_url` — the XML feed URL for this user's assigned channel
+
+**App behavior:**
+1. On login, store the `update_feed_url` from the response.
+2. On app resume, call `/api/session` and refresh the stored `update_feed_url`.
+3. Use the stored `update_feed_url` for all update checks instead of the build-time `VOD_UPDATE_FEED_URL`.
+4. **Fallback:** If `update_feed_url` is missing (older server), use the build-time `VOD_UPDATE_FEED_URL`.
+5. **Pre-login checks:** Before the user has logged in, use the build-time `VOD_UPDATE_FEED_URL` (stable channel).
+
+This allows the admin to move any user to the beta channel server-side without requiring a different app build.
+
+### Update feed and behavior
 - XML feed provides `versionCode`, `versionName`, `mandatory`, `apkFileName`, `apkSha256`, and changelog fields.
 - App compares feed version against installed version code.
 - For non-mandatory updates, prompt includes:

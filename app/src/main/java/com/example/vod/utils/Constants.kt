@@ -112,6 +112,7 @@ object Constants {
     const val KEY_PASS = "KEY_PASS"
     const val KEY_CSRF_TOKEN = "KEY_CSRF_TOKEN"
     const val KEY_ACCOUNT_EXPIRY = "KEY_ACCOUNT_EXPIRY"
+    const val KEY_UPDATE_FEED_URL = "KEY_UPDATE_FEED_URL"
 
     // ===== In-App Updater =====
     const val PREFS_UPDATER_NAME = "VOD_UPDATER_PREFS"

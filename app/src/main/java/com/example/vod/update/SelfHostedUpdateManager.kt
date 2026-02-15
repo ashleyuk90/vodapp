@@ -8,8 +8,12 @@ import android.os.Build
 import android.provider.Settings
 import android.util.Log
 import android.util.Xml
+import android.view.LayoutInflater
+import android.view.View
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
+import com.google.android.material.button.MaterialButton
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.FileProvider
 import androidx.core.content.edit
@@ -19,6 +23,7 @@ import com.example.vod.BuildConfig
 import com.example.vod.R
 import com.example.vod.utils.Constants
 import com.example.vod.utils.NetworkUtils
+import com.example.vod.utils.SecurePrefs
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
@@ -80,6 +85,22 @@ class SelfHostedUpdateManager(
     @Volatile
     private var isDownloadingUpdate = false
 
+    /**
+     * Resolve the effective update feed URL.
+     * Prefers server-provided URL (stored on login), falls back to build-time default.
+     * Returns pair of (url, isServerProvided).
+     */
+    private fun getEffectiveFeedUrl(): Pair<String, Boolean> {
+        val serverUrl = SecurePrefs.get(activity, Constants.PREFS_NAME)
+            .getString(Constants.KEY_UPDATE_FEED_URL, null)
+            ?.takeIf { it.isNotBlank() }
+        if (serverUrl != null) {
+            Log.d(TAG, "Using server-provided update feed URL")
+            return serverUrl to true
+        }
+        return BuildConfig.UPDATE_FEED_URL to false
+    }
+
     fun checkForUpdatesIfNeeded(
         force: Boolean = false,
         showErrors: Boolean = false,
@@ -89,8 +110,9 @@ class SelfHostedUpdateManager(
     ) {
         if (isCheckingForUpdates) return
         if (!force && !shouldRunAutomaticCheck()) return
-        if (BuildConfig.UPDATE_FEED_URL.isBlank()) {
-            Log.w(TAG, "UPDATE_FEED_URL is blank. Skipping updater.")
+        val (feedUrl, isServerProvided) = getEffectiveFeedUrl()
+        if (feedUrl.isBlank()) {
+            Log.w(TAG, "No update feed URL available. Skipping updater.")
             onAvailabilityEvaluated?.invoke(hasCachedAvailableUpdate())
             if (showErrors) {
                 showShortToast(R.string.update_check_failed)
@@ -102,7 +124,7 @@ class SelfHostedUpdateManager(
 
         activity.lifecycleScope.launch(Dispatchers.IO) {
             try {
-                val updateInfo = fetchUpdateInfo()
+                val updateInfo = fetchUpdateInfo(feedUrl, isServerProvided)
                 markCheckAttemptNow()
                 if (updateInfo == null) {
                     val cachedAvailability = hasCachedAvailableUpdate()
@@ -243,9 +265,9 @@ class SelfHostedUpdateManager(
         }
     }
 
-    private fun fetchUpdateInfo(): AndroidUpdateInfo? {
+    private fun fetchUpdateInfo(feedUrl: String, isServerProvidedUrl: Boolean = false): AndroidUpdateInfo? {
         val request = Request.Builder()
-            .url(BuildConfig.UPDATE_FEED_URL)
+            .url(feedUrl)
             .header("Cache-Control", "no-cache")
             .build()
 
@@ -254,11 +276,11 @@ class SelfHostedUpdateManager(
                 throw IOException("Update feed request failed with HTTP ${response.code}")
             }
             val body = response.body ?: return null
-            parseUpdateXml(body.byteStream())
+            parseUpdateXml(body.byteStream(), isServerProvidedUrl)
         }
     }
 
-    private fun parseUpdateXml(inputStream: InputStream): AndroidUpdateInfo? {
+    private fun parseUpdateXml(inputStream: InputStream, isServerProvidedUrl: Boolean = false): AndroidUpdateInfo? {
         inputStream.use { stream ->
             val parser = Xml.newPullParser()
             parser.setFeature(XmlPullParser.FEATURE_PROCESS_NAMESPACES, false)
@@ -308,16 +330,20 @@ class SelfHostedUpdateManager(
             if (apkFileName.isNullOrBlank()) return null
             if (apkSha256.isNullOrBlank()) return null
 
-            val configuredChannel = BuildConfig.UPDATE_CHANNEL.trim()
-            if (channel != null &&
-                configuredChannel.isNotBlank() &&
-                !channel.equals(configuredChannel, ignoreCase = true)
-            ) {
-                Log.w(
-                    TAG,
-                    "Feed channel mismatch. expected=$configuredChannel actual=$channel"
-                )
-                return null
+            // Only enforce channel validation when using build-time fallback URL.
+            // Server-provided feed URLs already point to the correct channel.
+            if (!isServerProvidedUrl) {
+                val configuredChannel = BuildConfig.UPDATE_CHANNEL.trim()
+                if (channel != null &&
+                    configuredChannel.isNotBlank() &&
+                    !channel.equals(configuredChannel, ignoreCase = true)
+                ) {
+                    Log.w(
+                        TAG,
+                        "Feed channel mismatch. expected=$configuredChannel actual=$channel"
+                    )
+                    return null
+                }
             }
 
             return AndroidUpdateInfo(
@@ -347,68 +373,86 @@ class SelfHostedUpdateManager(
         val installedVersionLabel = BuildConfig.VERSION_NAME.ifBlank {
             installedVersionCode.toString()
         }
-        val message = buildUpdatePromptMessage(
-            installedVersionLabel = installedVersionLabel,
-            updateInfo = updateInfo,
-            isMandatory = isMandatory
-        )
 
-        val dialogBuilder = AlertDialog.Builder(activity)
-            .setTitle(
-                if (isMandatory) {
-                    R.string.update_required_title
-                } else {
-                    R.string.update_available_title
-                }
-            )
-            .setMessage(message)
-            .setPositiveButton(R.string.update_action_now) { _, _ ->
-                prefs.edit {
-                    remove(Constants.KEY_SKIPPED_UPDATE_VERSION_CODE)
-                }
-                downloadAndInstall(updateInfo)
-            }
+        val dialogView = LayoutInflater.from(activity)
+            .inflate(R.layout.dialog_update, null)
+
+        val txtTitle = dialogView.findViewById<TextView>(R.id.txtUpdateTitle)
+        val txtCurrentVersion = dialogView.findViewById<TextView>(R.id.txtCurrentVersion)
+        val txtNewVersion = dialogView.findViewById<TextView>(R.id.txtNewVersion)
+        val txtMandatory = dialogView.findViewById<TextView>(R.id.txtMandatoryMessage)
+        val layoutChangelog = dialogView.findViewById<View>(R.id.layoutChangelog)
+        val txtChangelog = dialogView.findViewById<TextView>(R.id.txtChangelog)
+        val btnSkip = dialogView.findViewById<MaterialButton>(R.id.btnSkipVersion)
+        val btnLater = dialogView.findViewById<MaterialButton>(R.id.btnLater)
+        val btnUpdateNow = dialogView.findViewById<MaterialButton>(R.id.btnUpdateNow)
+
+        txtTitle.text = activity.getString(
+            if (isMandatory) R.string.update_required_title else R.string.update_available_title
+        )
+        txtCurrentVersion.text = activity.getString(R.string.update_version_current, installedVersionLabel)
+        txtNewVersion.text = activity.getString(R.string.update_version_latest, updateInfo.versionName)
+
+        if (isMandatory) {
+            txtMandatory.visibility = View.VISIBLE
+        }
+
+        val changelogLines = mutableListOf<String>()
+        updateInfo.changelogSummary?.takeIf { it.isNotBlank() }?.let { changelogLines.add(it) }
+        updateInfo.changelogItems.forEach { changelogLines.add("\u2022 $it") }
+        if (changelogLines.isNotEmpty()) {
+            layoutChangelog.visibility = View.VISIBLE
+            txtChangelog.text = changelogLines.joinToString("\n")
+        }
+
+        val dialog = AlertDialog.Builder(activity)
+            .setView(dialogView)
             .setCancelable(!isMandatory)
+            .create()
+
+        dialog.window?.apply {
+            setBackgroundDrawableResource(android.R.color.transparent)
+            // Constrain dialog to 80% of screen width, max 70% height so content scrolls
+            val displayMetrics = activity.resources.displayMetrics
+            val dialogWidth = (displayMetrics.widthPixels * 0.55).toInt()
+            val dialogMaxHeight = (displayMetrics.heightPixels * 0.70).toInt()
+            setLayout(dialogWidth, android.view.WindowManager.LayoutParams.WRAP_CONTENT)
+            decorView.post {
+                if (decorView.height > dialogMaxHeight) {
+                    setLayout(dialogWidth, dialogMaxHeight)
+                }
+            }
+        }
+        dialog.setCanceledOnTouchOutside(!isMandatory)
+
+        btnUpdateNow.setOnClickListener {
+            prefs.edit { remove(Constants.KEY_SKIPPED_UPDATE_VERSION_CODE) }
+            dialog.dismiss()
+            downloadAndInstall(updateInfo)
+        }
 
         if (!isMandatory) {
-            dialogBuilder.setNegativeButton(R.string.update_action_later, null)
-            dialogBuilder.setNeutralButton(R.string.update_action_skip) { _, _ ->
+            btnLater.visibility = View.VISIBLE
+            btnSkip.visibility = View.VISIBLE
+
+            btnLater.setOnClickListener { dialog.dismiss() }
+            btnSkip.setOnClickListener {
                 prefs.edit {
                     putInt(Constants.KEY_SKIPPED_UPDATE_VERSION_CODE, updateInfo.versionCode)
                 }
                 setAvailableUpdateVersionCode(null)
                 onAvailabilityEvaluated?.invoke(false)
+                dialog.dismiss()
             }
+
+            btnSkip.nextFocusRightId = R.id.btnLater
+            btnLater.nextFocusLeftId = R.id.btnSkipVersion
+            btnLater.nextFocusRightId = R.id.btnUpdateNow
+            btnUpdateNow.nextFocusLeftId = R.id.btnLater
         }
 
-        val dialog = dialogBuilder.create()
-        dialog.setCanceledOnTouchOutside(!isMandatory)
         dialog.show()
-    }
-
-    private fun buildUpdatePromptMessage(
-        installedVersionLabel: String,
-        updateInfo: AndroidUpdateInfo,
-        isMandatory: Boolean
-    ): String {
-        val lines = mutableListOf<String>()
-        lines.add(activity.getString(R.string.update_version_current, installedVersionLabel))
-        lines.add(activity.getString(R.string.update_version_latest, updateInfo.versionName))
-
-        if (isMandatory) {
-            lines.add("")
-            lines.add(activity.getString(R.string.update_required_message))
-        }
-
-        val hasChangelog = !updateInfo.changelogSummary.isNullOrBlank() || updateInfo.changelogItems.isNotEmpty()
-        if (hasChangelog) {
-            lines.add("")
-            lines.add(activity.getString(R.string.update_changelog_heading))
-            updateInfo.changelogSummary?.takeIf { it.isNotBlank() }?.let { lines.add(it) }
-            updateInfo.changelogItems.forEach { lines.add("• $it") }
-        }
-
-        return lines.joinToString(separator = "\n")
+        btnUpdateNow.requestFocus()
     }
 
     private fun downloadAndInstall(updateInfo: AndroidUpdateInfo) {
