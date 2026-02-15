@@ -1,6 +1,6 @@
 # API Endpoints Reference
 
-Canonical API reference for actions handled in `includes/ApiController.php`.
+Canonical API reference for actions handled in `src/Http/Controller/ApiController.php`.
 
 ## Base URL
 
@@ -23,6 +23,11 @@ Android app requests include these headers on all `/api/{action}` requests:
 - `X-App-Version-Name: <BuildConfig.VERSION_NAME>`
 - `X-App-Version-Code: <BuildConfig.VERSION_CODE>`
 
+Server telemetry usage:
+- Metadata is persisted onto active playback rows (`video_progress`) and surfaced in:
+  - `Admin -> Live` current sessions cards
+  - `Admin -> Usage Analytics` app-version chart (last 24h unique users)
+
 Login also includes optional form fields:
 - `app_version_name`
 - `app_version_code`
@@ -34,6 +39,7 @@ Login also includes optional form fields:
 - Login brute-force protection uses:
   - `RATE_LIMIT_MAX_ATTEMPTS` (default `5`)
   - `RATE_LIMIT_WINDOW_MINUTES` (default `15`)
+- PIN verification: `5` attempts / `60` seconds / user
 
 ### Mutation Protection
 These actions require:
@@ -47,6 +53,8 @@ Protected actions:
 - `profiles_select`
 - `profiles_add`
 - `profiles_remove`
+- `verify_pin`
+- `logout`
 
 Token can be sent as:
 - Header: `X-CSRF-Token: <token>`
@@ -55,15 +63,25 @@ Token can be sent as:
 Legacy Android compatibility is enabled by default for clients that do not send Origin/Referer and use Android-like User-Agent strings (`okhttp`/`ExoPlayer`). To disable this fallback, set:
 - `ALLOW_LEGACY_ANDROID_API_MUTATIONS=0`
 
+### Security Headers
+All API responses include:
+- `Content-Type: application/json; charset=utf-8`
+- `X-Content-Type-Options: nosniff`
+- `X-Frame-Options: DENY`
+- `Cache-Control: no-store, no-cache, must-revalidate, max-age=0`
+
 ## Endpoint Matrix
 
 | Action | Method | Auth | Admin |
 |---|---|---|---|
 | `login` | POST | No | No |
+| `logout` | POST | Yes | No |
+| `session` | GET | Yes | No |
 | `library` | GET | Yes | No |
 | `details` | GET | Yes | No |
 | `play` | GET | Yes | No |
 | `progress` | POST | Yes | No |
+| `playback_status` | GET | Yes | No |
 | `get_libraries` | GET | Yes | No |
 | `dashboard` | GET | Yes | No |
 | `search` | GET | Yes | No |
@@ -74,6 +92,7 @@ Legacy Android compatibility is enabled by default for clients that do not send 
 | `profiles_select` | POST | Yes | No |
 | `profiles_add` | POST | Yes | No |
 | `profiles_remove` | POST | Yes | No |
+| `verify_pin` | POST | Yes | No |
 | `validate_path` | GET | Yes | Yes |
 | `list_directories` | GET | Yes | Yes |
 | `fetch_libraries` | GET | Yes | Yes |
@@ -100,6 +119,24 @@ Errors:
 - `401` invalid credentials / expired account
 - `429` too many failed attempts from same IP
 
+### `POST /api/logout`
+Terminates the current session.
+
+Success:
+- `status: success`
+- `message: Logged out successfully`
+
+### `GET /api/session`
+Returns current session information for the authenticated user.
+
+Returns:
+- `user` object (without `password_hash`)
+- `active_profile` object with `id` and `name`
+- `csrf_token` (refreshed token)
+- `login_time` (Unix timestamp)
+- `client_platform` (detected platform)
+- `app_version_name` (if provided during login)
+
 ### `GET /api/library`
 Query:
 - `lib_id` optional
@@ -116,11 +153,23 @@ Query:
 - `profile_id` optional
 
 Returns `video` payload including:
+- `available` (boolean — `false` when the underlying file is missing from disk)
 - metadata fields
 - `resume_time`
 - subtitle availability (`has_subtitles`, `subtitle_url`, `subtitle_language`)
 - optional `intro_marker` / `credits_marker`
 - for episodes: `episodes[]` and `next_episode`
+
+`video.episodes[]` items include:
+- `id`, `title`, `season`, `episode`, `plot`, `runtime`, `poster_url`
+- resume/progress fields (`resume_time`, `total_duration`, `progress_percent`, `can_resume`)
+- subtitle availability fields:
+  - `has_subtitles` (`true` when subtitles are ready to use)
+  - `subtitle_url` (absolute URL when available, otherwise `null`)
+  - `subtitle_language` (language code, defaults to `en` when missing)
+
+Android UI note:
+- For series/episode rows, use each `video.episodes[i].has_subtitles` and `video.episodes[i].subtitle_url` to decide whether to show the subtitle action/button.
 
 ### `GET /api/play`
 Query:
@@ -129,8 +178,14 @@ Query:
 
 Returns stream metadata under `data`:
 - `stream_url`
-- subtitle fields
+- subtitle fields (`has_subtitles`, `subtitle_url`, `subtitle_language`)
 - optional `next_episode`
+
+Media file unavailable returns `410` with:
+- `code: file_unavailable`
+- `message: This media is currently unavailable.`
+
+This occurs when the database record exists but the underlying file has been moved, renamed, or deleted from disk. Clients should display a "Media Unavailable" message rather than attempting to stream.
 
 PIN-protected profile playback returns `403` with:
 - `code: pin_required`
@@ -143,7 +198,7 @@ Concurrent playback limit exceeded returns `429` with:
 ### `POST /api/progress`
 Body:
 - `id` required (video id)
-- `time` required (seconds)
+- `time` required (seconds, 0-259200)
 - `paused` optional (`0`/`1`)
 - `buffer_seconds` optional
 - `rebuffer_count` optional
@@ -180,7 +235,7 @@ Returns:
 
 ### `GET /api/search`
 Query:
-- `query` optional
+- `query` optional (max 200 characters)
 - `profile_id` optional
 
 Empty query returns empty `data` array.
@@ -243,6 +298,25 @@ Returns:
 - `400` if deleting last profile
 - `404` if profile not owned by the user
 
+### `POST /api/verify_pin`
+Verifies PIN for a profile-protected content access.
+
+Body:
+- `profile_id` required
+- `pin` required (max 10 characters)
+
+Success:
+- `status: success`
+- `message: PIN verified`
+- `verified_until` (Unix timestamp when PIN session expires)
+
+Errors:
+- `401` invalid PIN
+- `429` too many attempts (5 per 60 seconds)
+- `404` profile not found
+
+Rate limited to 5 attempts per 60 seconds per user.
+
 ### Admin-only Actions
 
 #### `GET /api/validate_path`
@@ -281,6 +355,7 @@ Returns session/runtime diagnostics (session file, cookie/session settings, effe
 - IMDb ratings are returned as formatted strings in multiple endpoints.
 - `profile_id` is optional in many endpoints; if omitted, active session profile is used.
 - All timestamps are MySQL-style datetime strings when applicable.
+- All responses include security headers (`X-Content-Type-Options`, `X-Frame-Options`, `Cache-Control`).
 
 ## Common Error Statuses
 
@@ -289,6 +364,8 @@ Returns session/runtime diagnostics (session file, cookie/session settings, effe
 - `403` forbidden / CSRF failure / PIN required
 - `404` not found
 - `405` wrong method for POST-only endpoint
+- `410` gone / file unavailable (DB record exists but file missing from disk)
+- `415` unsupported media type (invalid Content-Type)
 - `429` rate limit exceeded
 - `500` server-side failure
 

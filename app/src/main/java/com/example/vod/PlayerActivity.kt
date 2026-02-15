@@ -453,18 +453,29 @@ class PlayerActivity : AppCompatActivity() {
                 val apiError = parseApiError(e)
                 withContext(Dispatchers.Main) {
                     weakActivity.get()?.let { activity ->
-                        if (isPlaybackLimitHttpError(e, apiError)) {
-                            activity.handlePlaybackLimitExceeded(
-                                limit = apiError?.limit,
-                                activePlaybacks = apiError?.activePlaybacks,
-                                serverMessage = apiError?.message
-                            )
-                        } else {
-                            ErrorHandler.showError(
-                                activity,
-                                apiError?.message ?: activity.getString(R.string.error_loading_video)
-                            )
-                            activity.finish()
+                        when {
+                            e.code() == 410 -> {
+                                Log.w(TAG, "Media file unavailable (410) for videoId=$id")
+                                ErrorHandler.showError(
+                                    activity,
+                                    activity.getString(R.string.error_media_not_found)
+                                )
+                                activity.finish()
+                            }
+                            isPlaybackLimitHttpError(e, apiError) -> {
+                                activity.handlePlaybackLimitExceeded(
+                                    limit = apiError?.limit,
+                                    activePlaybacks = apiError?.activePlaybacks,
+                                    serverMessage = apiError?.message
+                                )
+                            }
+                            else -> {
+                                ErrorHandler.showError(
+                                    activity,
+                                    apiError?.message ?: activity.getString(R.string.error_loading_video)
+                                )
+                                activity.finish()
+                            }
                         }
                     }
                 }

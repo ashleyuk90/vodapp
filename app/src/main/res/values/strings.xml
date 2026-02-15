@@ -110,6 +110,7 @@
     <string name="error_server">Our servers are having issues. Please try again later.</string>
     <string name="error_loading_video">Error loading video.</string>
     <string name="error_stream_unavailable">Video stream unavailable.</string>
+    <string name="error_media_not_found">Media not found, please try later.</string>
     <string name="playback_limit_reached_generic">Playback limit reached. Stop playback on another device and try again.</string>
     <string name="playback_limit_reached_with_limit">Playback limit reached. Your account allows %1$d concurrent playback(s). Stop another stream and try again.</string>
     <string name="playback_limit_reached_with_counts">Playback limit reached. %2$d stream(s) are active and your limit is %1$d. Stop another stream and try again.</string>

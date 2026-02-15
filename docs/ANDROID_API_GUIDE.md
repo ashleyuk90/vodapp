@@ -14,6 +14,7 @@ Recommended client setup:
 - Persistent cookie jar (required)
 - Form-encoded POST bodies (`application/x-www-form-urlencoded`)
 - `X-CSRF-Token` header for mutation endpoints
+- Security headers are returned on all responses
 
 ## Authentication Flow
 
@@ -52,7 +53,27 @@ These values are used for admin telemetry:
 - shown on `Admin -> Live` session cards
 - aggregated in `Admin -> Usage Analytics` (users by app version, last 24h)
 
-### 3. CSRF for Mutations
+### 3. Session Info
+
+`GET /api/session`
+
+Returns current session state including:
+- `user` object
+- `active_profile` 
+- `csrf_token` (refreshed)
+- `login_time`
+- `client_platform`
+- `app_version_name`
+
+Use this to restore session state after app restart.
+
+### 4. Logout
+
+`POST /api/logout`
+
+Terminates the server session. Clear local cookies and auth state after calling.
+
+### 5. CSRF for Mutations
 
 For these POST endpoints, include CSRF token:
 - `/api/progress`
@@ -61,6 +82,8 @@ For these POST endpoints, include CSRF token:
 - `/api/profiles_select`
 - `/api/profiles_add`
 - `/api/profiles_remove`
+- `/api/verify_pin`
+- `/api/logout`
 
 Preferred header:
 - `X-CSRF-Token: <token>`
@@ -68,7 +91,7 @@ Preferred header:
 Fallback form field:
 - `csrf_token=<token>`
 
-Note: Legacy Android mutation fallback currently exists server-side (User-Agent based), but clients should still send CSRF tokens now.
+**Important:** Legacy Android mutation fallback exists for clients that do not send Origin/Referer and use Android-like User-Agent strings (`okhttp`/`ExoPlayer`). Always send CSRF tokens for best security.
 
 ## Profiles API
 
@@ -97,6 +120,19 @@ Rules:
 - Last profile cannot be deleted.
 - Profile must belong to logged-in user.
 
+### PIN Verification
+`POST /api/verify_pin`
+
+Body:
+- `profile_id` (required)
+- `pin` (required, max 10 characters)
+
+Success response:
+- `status: success`
+- `verified_until` (Unix timestamp)
+
+Rate limited to 5 attempts per 60 seconds. Use this when accessing PIN-protected content.
+
 ## Playback and Discovery Endpoints
 
 ### Library Listing
@@ -109,6 +145,10 @@ Notes:
 ### Search
 `GET /api/search?query=matrix`
 
+Notes:
+- Query limited to 200 characters
+- `profile_id` optional
+
 ### Dashboard Rows
 `GET /api/dashboard`
 
@@ -116,6 +156,8 @@ Notes:
 `GET /api/details?id=123`
 
 Returns metadata, resume state, subtitle metadata, and optional skip markers (`intro_marker`, `credits_marker`).
+
+The response includes an `available` boolean field. When `false`, the underlying video file is missing from disk (moved, renamed, or deleted). Use this to grey out or disable the play button before the user attempts playback.
 
 Episode/series subtitle fields (for episode list UI):
 - `video.episodes[]` now includes:
@@ -141,15 +183,31 @@ Playback integration note:
 - Use `/api/details` episode-level subtitle fields to render subtitle buttons in series/episode views.
 - Use `/api/play?id=<episodeId>` when the user starts playback, and trust that response for final playback URLs.
 
+File unavailable:
+- If the video file has been moved, renamed, or deleted from disk, API returns `410` with `code: file_unavailable`.
+- Display a "Media Unavailable" message to the user instead of attempting to stream.
+- This is distinct from `404` (database record doesn't exist at all).
+
 PIN behavior:
 - If profile PIN verification is required, API returns `403` with `code: pin_required`.
+- Call `/api/verify_pin` then retry.
 
 ### Save Progress
 `POST /api/progress`
 
 Body:
-- required: `id`, `time`
+- required: `id`, `time` (0-259200 seconds)
 - optional: `paused`, `buffer_seconds`, `rebuffer_count`, `rebuffer_seconds`, `rebuffered`, `profile_id`
+
+### Playback Status Check
+`GET /api/playback_status?id=123`
+
+Returns:
+- `revoke` (boolean - stop playback if true)
+- `limit`, `active_playbacks`, `projected_playbacks`
+- `message`
+
+Use this to check if playback should be revoked due to concurrent limits.
 
 ## Watch Later API
 
@@ -235,6 +293,7 @@ fun postWithCsrf(url: String, csrfToken: String, fields: Map<String, String>): R
     val request = Request.Builder()
         .url(url)
         .addHeader("X-CSRF-Token", csrfToken)
+        .addHeader("X-Client-Platform", "android")
         .post(formBuilder.build())
         .build()
 
@@ -256,6 +315,19 @@ postWithCsrf(
 )
 ```
 
+### Verify PIN
+
+```kotlin
+postWithCsrf(
+    "$apiBaseUrl/verify_pin",
+    csrfToken,
+    mapOf(
+        "profile_id" to profileId.toString(),
+        "pin" to enteredPin
+    )
+)
+```
+
 ## Error Handling Expectations
 
 - `400` invalid request data
@@ -263,30 +335,52 @@ postWithCsrf(
 - `403` forbidden / CSRF failure / `pin_required`
 - `404` not found
 - `405` wrong method
+- `410` gone / `file_unavailable` (file missing from disk)
+- `415` unsupported media type
 - `429` rate limit exceeded
 - `500` server errors
 
 When receiving `401`, clear local auth state and force re-login.
 When receiving `403` + `pin_required`, prompt for profile PIN in app flow.
+When receiving `410` + `file_unavailable`, show "Media Unavailable" — do not retry or attempt to stream.
+When receiving `429`, implement exponential backoff.
+
+## Security Notes
+
+1. **Always send CSRF tokens** - While legacy fallback exists, it requires both User-Agent pattern AND `X-Client-Platform` header.
+
+2. **PIN verification is rate-limited** - 5 attempts per 60 seconds per user. Implement UI feedback for remaining attempts.
+
+3. **Progress time validation** - Time values outside 0-259200 seconds (72 hours) are rejected.
+
+4. **Search query limits** - Queries are capped at 200 characters.
+
+5. **Security headers** - All responses include `X-Content-Type-Options: nosniff`, `X-Frame-Options: DENY`, and cache control headers.
 
 ## Recommended Android Flow
 
 1. Login and store cookies + CSRF token.
-2. Call `/api/profiles`; let user pick profile.
-3. Use `/api/library`, `/api/search`, `/api/details` for browsing.
-4. Use `/api/play` to get stream/subtitle URLs.
-5. Send periodic `/api/progress` updates.
-6. Use watch-later endpoints for user bookmarks.
+2. Call `/api/session` on app resume to restore state.
+3. Call `/api/profiles`; let user pick profile.
+4. Use `/api/library`, `/api/search`, `/api/details` for browsing.
+5. Use `/api/play` to get stream/subtitle URLs.
+6. Send periodic `/api/progress` updates.
+7. Use watch-later endpoints for user bookmarks.
+8. Call `/api/logout` when user explicitly logs out.
 
 ## Quick Endpoint Checklist
 
 - `POST /api/login`
+- `POST /api/logout`
+- `GET /api/session`
 - `GET /api/profiles`
 - `POST /api/profiles_select`
+- `POST /api/verify_pin`
 - `GET /api/get_libraries`
 - `GET /api/library`
 - `GET /api/details`
 - `GET /api/play`
+- `GET /api/playback_status`
 - `POST /api/progress`
 - `POST /api/watch_list_add`
 - `POST /api/watch_list_remove`
