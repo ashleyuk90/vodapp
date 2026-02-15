@@ -2,7 +2,7 @@
 
 This document outlines security vulnerabilities, code quality issues, and recommended fixes for the VOD app codebase.
 
-**Last Updated**: 5 February 2026
+**Last Updated**: 15 February 2026
 
 ---
 
@@ -60,9 +60,42 @@ This document outlines security vulnerabilities, code quality issues, and recomm
 
 ---
 
+### 5. ✅ FIXED: PIN-Protected Profile Bypass
+
+**Location**: [ProfileSelectionActivity.kt](../app/src/main/java/com/example/vod/ProfileSelectionActivity.kt)
+
+**Status**: ✅ **IMPLEMENTED** - PIN dialog now blocks profile selection until verified.
+
+**Changes Made**:
+- Added `showPinDialog()` method that displays a PIN entry dialog before selecting PIN-protected profiles
+- Profile selection is blocked until PIN is entered and validated
+- Auto-login path correctly skips PIN-protected profiles
+- Server-side PIN validation occurs via the profile selection API (returns 403 with `pin_required` on mismatch)
+
+---
+
+### 6. ⚠️ OPEN: SecurePrefs Silently Falls Back to Unencrypted Storage
+
+**Location**: [SecurePrefs.kt](../app/src/main/java/com/example/vod/utils/SecurePrefs.kt), lines 30-36
+
+**Issue**: If `EncryptedSharedPreferences` fails (keystore corruption after backup/restore, OEM firmware issues), the fallback stores credentials (username, password, CSRF token) in plain `SharedPreferences` — readable on rooted devices or via ADB backup.
+
+```kotlin
+}.getOrElse { error ->
+    Log.e(TAG, "EncryptedSharedPreferences unavailable...; using unencrypted fallback.", error)
+    appContext.getSharedPreferences(prefsName, Context.MODE_PRIVATE)  // UNENCRYPTED
+}
+```
+
+**Recommended Fix**:
+- Option A (fail-closed): Return null and force re-login instead of storing credentials unencrypted.
+- Option B (partial): Fall back to unencrypted prefs but skip storing passwords — only store non-sensitive preferences.
+
+---
+
 ## 🟠 High Priority Code Issues
 
-### 5. ✅ FIXED: Deprecated RenderScript Usage
+### 7. ✅ FIXED: Deprecated RenderScript Usage
 
 **Location**: [BlurTransformation.kt](../app/src/main/java/com/example/vod/BlurTransformation.kt)
 
@@ -75,7 +108,7 @@ This document outlines security vulnerabilities, code quality issues, and recomm
 
 ---
 
-### 6. ✅ FIXED: Memory Leaks from Coroutine Scopes
+### 8. ✅ FIXED: Memory Leaks from Coroutine Scopes
 
 **Location**: All Activities
 
@@ -88,7 +121,7 @@ This document outlines security vulnerabilities, code quality issues, and recomm
 
 ---
 
-### 7. ✅ FIXED: Deprecated `onBackPressed()` Override
+### 9. ✅ FIXED: Deprecated `onBackPressed()` Override
 
 **Location**: [MainActivity.kt](../app/src/main/java/com/example/vod/MainActivity.kt)
 
@@ -101,7 +134,7 @@ This document outlines security vulnerabilities, code quality issues, and recomm
 
 ---
 
-### 8. ✅ FIXED: Missing Error Handling for Network Failures
+### 10. ✅ FIXED: Missing Error Handling for Network Failures
 
 **Location**: All Activities
 
@@ -114,7 +147,7 @@ This document outlines security vulnerabilities, code quality issues, and recomm
 
 ---
 
-### 9. ✅ FIXED: Potential NullPointerException in PlayerActivity
+### 11. ✅ FIXED: Potential NullPointerException in PlayerActivity
 
 **Location**: [PlayerActivity.kt](../app/src/main/java/com/example/vod/PlayerActivity.kt)
 
@@ -127,9 +160,22 @@ This document outlines security vulnerabilities, code quality issues, and recomm
 
 ---
 
+### 12. ✅ FIXED: Manual Cookie Header Construction in PlayerActivity
+
+**Location**: [PlayerActivity.kt](../app/src/main/java/com/example/vod/PlayerActivity.kt)
+
+**Status**: ✅ **IMPLEMENTED** - Cookie values now sanitized before header construction.
+
+**Changes Made**:
+- Cookie values are sanitized by stripping `\r`, `\n`, and null bytes before header construction
+- Replaced imperative loop with functional `filter`/`joinToString` for clarity
+- Prevents header injection via malicious cookie values
+
+---
+
 ## 🟡 Medium Priority Issues
 
-### 10. ✅ FIXED: No Network Connectivity Check
+### 13. ✅ FIXED: No Network Connectivity Check
 
 **Location**: [NetworkUtils.kt](../app/src/main/java/com/example/vod/utils/NetworkUtils.kt)
 
@@ -142,7 +188,7 @@ This document outlines security vulnerabilities, code quality issues, and recomm
 
 ---
 
-### 11. ✅ FIXED: Missing Input Validation
+### 14. ✅ FIXED: Missing Input Validation
 
 **Location**: [LoginActivity.kt](../app/src/main/java/com/example/vod/LoginActivity.kt)
 
@@ -156,7 +202,7 @@ This document outlines security vulnerabilities, code quality issues, and recomm
 
 ---
 
-### 12. ✅ FIXED: Handler on Main Looper Not Removed
+### 15. ✅ FIXED: Handler on Main Looper Not Removed
 
 **Location**: [PlayerActivity.kt](../app/src/main/java/com/example/vod/PlayerActivity.kt)
 
@@ -168,9 +214,9 @@ This document outlines security vulnerabilities, code quality issues, and recomm
 
 ---
 
-### 13. No Certificate Pinning
+### 16. ⚠️ PENDING: No Certificate Pinning
 
-**Issue**: App doesn't verify server certificate authenticity.
+**Issue**: App doesn't verify server certificate authenticity. Vulnerable to MITM attacks if a rogue CA certificate is installed on the device.
 
 **Fix**: Add certificate pinning in OkHttp:
 ```kotlin
@@ -185,7 +231,7 @@ val okHttpClient = OkHttpClient.Builder()
 
 ---
 
-### 14. ✅ FIXED: Sensitive Data in Logs
+### 17. ✅ FIXED: Sensitive Data in Logs
 
 **Location**: [NetworkModule.kt](../app/src/main/java/com/example/vod/NetworkModule.kt)
 
@@ -197,7 +243,7 @@ val okHttpClient = OkHttpClient.Builder()
 
 ---
 
-### 15. ✅ FIXED: Missing Timeout Configuration
+### 18. ✅ FIXED: Missing Timeout Configuration
 
 **Location**: [NetworkModule.kt](../app/src/main/java/com/example/vod/NetworkModule.kt)
 
@@ -205,96 +251,91 @@ val okHttpClient = OkHttpClient.Builder()
 
 **Changes Made**:
 - Added `connectTimeout(30, TimeUnit.SECONDS)`
-- Added `readTimeout(30, TimeUnit.SECONDS)` 
+- Added `readTimeout(30, TimeUnit.SECONDS)`
 - Added `writeTimeout(30, TimeUnit.SECONDS)`
+
+---
+
+### 19. ✅ FIXED: `btnResume` Click Handler Missing Initialization Guard
+
+**Location**: [DetailsActivity.kt](../app/src/main/java/com/example/vod/DetailsActivity.kt)
+
+**Status**: ✅ **IMPLEMENTED** - Added `::video.isInitialized` guard to prevent crash.
+
+**Changes Made**:
+- Wrapped `btnResume` click lambda with `if (::video.isInitialized)` guard
+- Prevents `UninitializedPropertyAccessException` if clicked before details load
+
+---
+
+### 20. ✅ FIXED: Play Endpoint Called From Details Screen for Subtitle Check
+
+**Location**: [DetailsActivity.kt](../app/src/main/java/com/example/vod/DetailsActivity.kt)
+
+**Status**: ✅ **IMPLEMENTED** - Removed the `/api/play` call from the details screen.
+
+**Changes Made**:
+- Removed the `checkSubtitleAvailability()` method and its call entirely
+- Server-side fix now ensures `/api/details` returns `has_subtitles` and `subtitle_url` for all video types (movies and episodes)
+- Details screen checks both `hasSubtitles` flag and `subtitleUrl` presence from the details response
+
+---
+
+### 21. ✅ FIXED: Backup/Data Extraction Rules Not Restricted
+
+**Location**: [backup_rules.xml](../app/src/main/res/xml/backup_rules.xml), [data_extraction_rules.xml](../app/src/main/res/xml/data_extraction_rules.xml)
+
+**Status**: ✅ **IMPLEMENTED** - Sensitive shared preferences excluded from backup and device transfer.
+
+**Changes Made**:
+- `backup_rules.xml` (API ≤30) now excludes `VOD_PREFS_ENCRYPTED`, `VOD_PROFILE_PREFS`, and EncryptedSharedPreferences key metadata
+- `data_extraction_rules.xml` (API 31+) excludes the same files from both cloud backup and device transfer
+- Non-sensitive prefs (`onboarding_prefs`, `VOD_UPDATER_PREFS`) are still backed up normally
+- `allowBackup="true"` retained so users keep harmless app state across devices
 
 ---
 
 ## 🔵 Low Priority / Code Quality
 
-### 16. ✅ FIXED: Magic Numbers
+### 22. ✅ FIXED: Magic Numbers
 
 **Location**: [Constants.kt](../app/src/main/java/com/example/vod/utils/Constants.kt)
 
 **Status**: ✅ **IMPLEMENTED** - All magic numbers extracted to centralized constants.
 
-**Changes Made**:
-- Created `Constants.kt` with all configuration values
-- Includes grid settings, animation durations, focus effects, validation rules
-- All activities updated to use constants
-
 ---
 
-### 17. ✅ FIXED: Missing Null Safety in Models
+### 23. ✅ FIXED: Missing Null Safety in Models
 
 **Location**: [Models.kt](../app/src/main/java/com/example/vod/Models.kt)
 
 **Status**: ✅ **IMPLEMENTED** - All data classes now have safe defaults.
 
-**Changes Made**:
-- Added default values to all model properties
-- `VideoItem`, `EpisodeItem`, `NextEpisode`, `ApiResponse`, etc. all updated
-- Prevents NPE when API returns null fields
-
 ---
 
-### 18. ✅ FIXED: Inconsistent Error Messages
+### 24. ✅ FIXED: Inconsistent Error Messages
 
 **Location**: [ErrorHandler.kt](../app/src/main/java/com/example/vod/utils/ErrorHandler.kt)
 
 **Status**: ✅ **IMPLEMENTED** - Centralized error handling with consistent messaging.
 
-**Changes Made**:
-- Created `ErrorHandler` object with `showError()` and `handleNetworkError()`
-- Maps exception types to user-friendly messages
-- HTTP error codes mapped to specific messages (401, 403, 404, 500, etc.)
-- All activities updated to use `ErrorHandler`
-
 ---
 
-### 19. ✅ FIXED: No Loading State Management
+### 25. ✅ FIXED: No Loading State Management
 
 **Location**: [UiState.kt](../app/src/main/java/com/example/vod/utils/UiState.kt)
 
 **Status**: ✅ **IMPLEMENTED** - Sealed class for type-safe UI state management.
 
-**Changes Made**:
-- Created `UiState<T>` sealed class with `Loading`, `Success`, `Error`, `Empty` states
-- Includes helper properties (`isLoading`, `isSuccess`, `isError`)
-- Ready for ViewModel integration
-
 ---
 
-### 20. ✅ FIXED: Activity Leak in Network Callbacks
+### 26. ✅ FIXED: Activity Leak in Network Callbacks
 
 **Location**: All Activities
 
 **Status**: ✅ **IMPLEMENTED** - WeakReference used for activity contexts in coroutines.
 
-**Changes Made**:
-- All network callbacks now use `WeakReference<Activity>`
-- Pattern: `val weakActivity = WeakReference(this)` before coroutine launch
-- `weakActivity.get()?.let { ... }` used in callbacks
-- Files updated: `LoginActivity.kt`, `MainActivity.kt`, `DetailsActivity.kt`, `PlayerActivity.kt`
-
 ---
-
-### 21. ⚠️ PENDING: Backup/Data Extraction Rules Not Restricted
-
-**Location**: [AndroidManifest.xml](../app/src/main/AndroidManifest.xml), [backup_rules.xml](../app/src/main/res/xml/backup_rules.xml), [data_extraction_rules.xml](../app/src/main/res/xml/data_extraction_rules.xml)
-
-**Issue**: `android:allowBackup="true"` is enabled, but backup rules are still the default templates. This risks backing up sensitive preferences and profile data (even if encrypted, keys may not restore correctly across devices).
-
-**Recommended Fix**:
-- Either disable backups entirely (`android:allowBackup="false"`) **or**
-- Explicitly exclude sensitive shared prefs (credentials, profile data, tokens) in both backup rule files.
-
-**Example**:
-```xml
-<full-backup-content>
-    <exclude domain="sharedpref" path="."/>
-</full-backup-content>
-```
 
 ## Summary Priority Matrix
 
@@ -303,16 +344,22 @@ val okHttpClient = OkHttpClient.Builder()
 | Plain text credentials | Critical | Low | P0 | ✅ Done |
 | Cleartext HTTP | Critical | Medium | P0 | ✅ Done |
 | ProGuard disabled | High | Low | P0 | ✅ Done |
+| PIN-protected profile bypass | Critical | Medium | P0 | ✅ Done |
+| SecurePrefs unencrypted fallback | Critical | Low | P0 | ⚠️ Open |
 | Hardcoded server URL | High | Low | P1 | ✅ Done |
 | RenderScript deprecated | Medium | Medium | P1 | ✅ Done |
 | Coroutine scope leaks | Medium | Low | P1 | ✅ Done |
+| Manual cookie construction | Medium | Medium | P1 | ✅ Done |
 | Deprecated onBackPressed | Low | Low | P2 | ✅ Done |
 | Handler not cleaned up | Low | Low | P2 | ✅ Done |
 | Logging in production | Medium | Low | P2 | ✅ Done |
+| Certificate pinning | Medium | Medium | P2 | ⚠️ Pending |
+| btnResume initialization guard | Medium | Low | P2 | ✅ Done |
+| Play endpoint from details screen | Medium | Low | P2 | ✅ Done |
+| Backup/data extraction rules | Medium | Low | P2 | ✅ Done |
 | Network timeout config | Low | Low | P3 | ✅ Done |
 | Missing error handling | Medium | Medium | P2 | ✅ Done |
 | NPE in PlayerActivity | Medium | Low | P2 | ✅ Done |
-| Certificate pinning | Medium | Medium | P2 | Pending |
 | Network connectivity check | Low | Low | P3 | ✅ Done |
 | Input validation | Low | Low | P3 | ✅ Done |
 | Magic numbers | Low | Low | P3 | ✅ Done |
@@ -320,27 +367,27 @@ val okHttpClient = OkHttpClient.Builder()
 | Inconsistent errors | Low | Low | P3 | ✅ Done |
 | Loading state mgmt | Low | Low | P3 | ✅ Done |
 | Activity leak | Medium | Low | P3 | ✅ Done |
-| Backup/data extraction rules | Medium | Low | P2 | Pending |
 
 ---
 
 ## Remaining Items
 
 ### Still TODO:
-1. **Certificate Pinning** - Add SSL pinning for production server (requires server certificate SHA256 hash)
-2. **Backup/Data Extraction Rules** - Disable backups or explicitly exclude sensitive prefs
+1. **SecurePrefs Fallback** - Decide on fail-closed vs. partial-fallback approach for encryption failures
+2. **Certificate Pinning** - Add SSL pinning for production server (requires server certificate SHA256 hash)
+
+### Recently Completed:
+- ✅ **PIN Verification Flow** - Implemented PIN entry dialog with server-side validation
+- ✅ **Cookie Header Validation** - Cookie values sanitized before header construction
+- ✅ **btnResume Guard** - Added `::video.isInitialized` check in click listener
+- ✅ **Play endpoint subtitle fallback removed** - Server now returns subtitle metadata in details response
+- ✅ **Backup/Data Extraction Rules** - Sensitive prefs excluded from backup and device transfer
 
 ### Potential Future Security Enhancements:
 
-3. **Session Token Rotation** - Refresh authentication tokens periodically to limit exposure window
-
-4. **Biometric Authentication** - Optional fingerprint/face unlock for profile access on supported devices
-
-5. **Rate Limiting Awareness** - Handle 429 responses gracefully with retry-after headers
-
-6. **Secure Deep Links** - Validate deep link parameters to prevent injection attacks
-
-7. **Content Integrity Verification** - Verify downloaded content checksums for offline mode
+8. **Session Token Rotation** - Refresh authentication tokens periodically to limit exposure window
+9. **Biometric Authentication** - Optional fingerprint/face unlock for profile access on supported devices
+10. **Rate Limiting Awareness** - Handle 429 responses gracefully with retry-after headers
 
 ### All Quick Wins Completed:
 1. ✅ Enable ProGuard in release build
@@ -365,41 +412,3 @@ val okHttpClient = OkHttpClient.Builder()
 | [ErrorHandler.kt](../app/src/main/java/com/example/vod/utils/ErrorHandler.kt) | Consistent error messaging |
 | [NetworkUtils.kt](../app/src/main/java/com/example/vod/utils/NetworkUtils.kt) | Network connectivity checks |
 | [UiState.kt](../app/src/main/java/com/example/vod/utils/UiState.kt) | Type-safe UI state management |
-
----
-
-## 2026-02-08 Review Addendum (Open Issues)
-
-### A. Critical: PIN-Protected Profile Bypass
-
-**Location**: [ProfileSelectionActivity.kt](../app/src/main/java/com/example/vod/ProfileSelectionActivity.kt)
-
-**Issue**: The PIN branch is still TODO and selection continues without verification.
-
-**Recommendation**:
-- Block profile selection until PIN verification succeeds.
-- Validate PIN server-side and rate-limit attempts.
-
----
-
-### B. High: Hardcoded HTTP Image Fallbacks
-
-**Location**: [Models.kt](../app/src/main/java/com/example/vod/Models.kt)
-
-**Issue**: Fallback image URLs use hardcoded cleartext `http://77.74.196.120/...`.
-
-**Recommendation**:
-- Build image URLs from `BuildConfig.BASE_URL`.
-- Enforce HTTPS and null-safe path handling.
-
----
-
-### C. High: Credentials Cleared on Transient Network Failures
-
-**Location**: [LoginActivity.kt](../app/src/main/java/com/example/vod/LoginActivity.kt)
-
-**Issue**: Network errors route to a handler that clears encrypted saved credentials.
-
-**Recommendation**:
-- Clear credentials only for explicit authentication failures.
-- Preserve credentials for timeout/offline/temporary server failures.

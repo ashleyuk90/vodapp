@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <array name="profile_avatar_colors">
+        <item>@color/profile_red</item>
+        <item>@color/profile_green</item>
+        <item>@color/profile_blue</item>
+        <item>@color/profile_orange</item>
+        <item>@color/profile_purple</item>
+        <item>@color/profile_sky</item>
+        <item>@color/profile_pink</item>
+        <item>@color/profile_cyan</item>
+    </array>
+</resources>

@@ -1,19 +1,25 @@
-<?xml version="1.0" encoding="utf-8"?><!--
-   Sample data extraction rules file; uncomment and customize as necessary.
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+   Data extraction rules for Android 12 (API 31) and above.
+   Excludes sensitive shared preferences and EncryptedSharedPreferences
+   keystore metadata from both cloud backup and device transfer.
    See https://developer.android.com/about/versions/12/backup-restore#xml-changes
-   for details.
 -->
 <data-extraction-rules>
     <cloud-backup>
-        <!-- TODO: Use <include> and <exclude> to control what is backed up.
-        <include .../>
-        <exclude .../>
-        -->
+        <!-- Exclude credentials and profile prefs (sensitive) -->
+        <exclude domain="sharedpref" path="VOD_PREFS_ENCRYPTED.xml" />
+        <exclude domain="sharedpref" path="VOD_PROFILE_PREFS.xml" />
+
+        <!-- Exclude EncryptedSharedPreferences key metadata -->
+        <exclude domain="sharedpref" path="__androidx_security_crypto_encrypted_prefs__.xml" />
     </cloud-backup>
-    <!--
     <device-transfer>
-        <include .../>
-        <exclude .../>
+        <!-- Exclude credentials and profile prefs (sensitive) -->
+        <exclude domain="sharedpref" path="VOD_PREFS_ENCRYPTED.xml" />
+        <exclude domain="sharedpref" path="VOD_PROFILE_PREFS.xml" />
+
+        <!-- Exclude EncryptedSharedPreferences key metadata -->
+        <exclude domain="sharedpref" path="__androidx_security_crypto_encrypted_prefs__.xml" />
     </device-transfer>
-    -->
 </data-extraction-rules>

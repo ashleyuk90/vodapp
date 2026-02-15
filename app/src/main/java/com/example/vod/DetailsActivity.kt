@@ -244,8 +244,10 @@ class DetailsActivity : AppCompatActivity() {
         btnPlay.setOnClickListener { 
             AnimationHelper.runWithPressEffect(btnPlay) { startPlayback(0L) }
         }
-        btnResume.setOnClickListener { 
-            AnimationHelper.runWithPressEffect(btnResume) { startPlayback(video.resume_time) }
+        btnResume.setOnClickListener {
+            if (::video.isInitialized) {
+                AnimationHelper.runWithPressEffect(btnResume) { startPlayback(video.resume_time) }
+            }
         }
         btnSubtitles.setOnClickListener { 
             AnimationHelper.runWithPressEffect(btnSubtitles) { startPlayback(0L, true) }
@@ -434,6 +436,8 @@ class DetailsActivity : AppCompatActivity() {
                         // Load Poster
                         activity.imgPoster.load(imageUrl) {
                             crossfade(true)
+                            placeholder(R.drawable.ic_movie)
+                            error(R.drawable.ic_movie)
                         }
 
                         // Load Backdrop using the same imageUrl
@@ -491,10 +495,6 @@ class DetailsActivity : AppCompatActivity() {
                             activity.layoutEpisodes.visibility = View.GONE
                             activity.displayProgress(activity.video)
 
-                            // If details endpoint didn't report subtitles, check via play endpoint
-                            if (!activity.video.hasSubtitles && activity.video.subtitleUrl.isNullOrBlank()) {
-                                activity.checkSubtitleAvailability(activity.video.id)
-                            }
                         }
                     } else {
                         ErrorHandler.showError(activity, "Failed to load details")
@@ -515,23 +515,6 @@ class DetailsActivity : AppCompatActivity() {
                         activity.finish()
                     }
                 }
-            }
-        }
-    }
-
-    private fun checkSubtitleAvailability(videoId: Int) {
-        lifecycleScope.launch(Dispatchers.IO) {
-            try {
-                val profileId = ProfileManager.getActiveProfileId()
-                val response = NetworkClient.api.getStreamInfo(videoId, profileId)
-                val data = response.data
-                if (data != null && (data.hasSubtitles || !data.subtitleUrl.isNullOrBlank())) {
-                    withContext(Dispatchers.Main) {
-                        btnSubtitles.visibility = View.VISIBLE
-                    }
-                }
-            } catch (e: Exception) {
-                Log.w(TAG, "Failed to check subtitle availability for videoId=$videoId", e)
             }
         }
     }

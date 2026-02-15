@@ -206,4 +206,10 @@
     <string name="a11y_subtitles_available">Subtitles available</string>
     <string name="cc_short">CC</string>
     <string name="a11y_update_available">Update available</string>
+
+    <!-- PIN Entry -->
+    <string name="pin_entry_title">Enter PIN for %1$s</string>
+    <string name="pin_entry_hint">PIN</string>
+    <string name="pin_submit">Submit</string>
+    <string name="pin_required">Please enter your PIN</string>
 </resources>

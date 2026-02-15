@@ -56,17 +56,12 @@ class ProfileSelectionActivity : AppCompatActivity() {
     private var profiles: List<Profile> = emptyList()
     private var skipAutoLogin: Boolean = false
 
-    // Profile color palette for avatars
-    private val profileColors = listOf(
-        "#E50914", // Netflix Red
-        "#1DB954", // Spotify Green
-        "#5865F2", // Discord Blue
-        "#FF6B35", // Orange
-        "#9B59B6", // Purple
-        "#3498DB", // Sky Blue
-        "#E91E63", // Pink
-        "#00BCD4"  // Cyan
-    )
+    private val profileColors: List<Int> by lazy {
+        val typedArray = resources.obtainTypedArray(R.array.profile_avatar_colors)
+        val colors = (0 until typedArray.length()).map { typedArray.getColor(it, Color.GRAY) }
+        typedArray.recycle()
+        colors
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -443,12 +438,83 @@ class ProfileSelectionActivity : AppCompatActivity() {
     }
 
     private fun selectProfile(profile: Profile) {
-        // Check if PIN is required
         if (profile.hasPin) {
-            // TODO: Show PIN entry dialog
-            // For now, just proceed
+            showPinDialog(profile)
+            return
         }
 
+        performProfileSelection(profile)
+    }
+
+    private fun showPinDialog(profile: Profile) {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_create_profile, null)
+        val input = dialogView.findViewById<EditText>(R.id.etProfileName).apply {
+            hint = getString(R.string.pin_entry_hint)
+            inputType = InputType.TYPE_CLASS_NUMBER or InputType.TYPE_NUMBER_VARIATION_PASSWORD
+            maxLines = 1
+            setSingleLine(true)
+        }
+        val btnCancel = dialogView.findViewById<MaterialButton>(R.id.btnCreateProfileCancel)
+        val btnSubmit = dialogView.findViewById<MaterialButton>(R.id.btnCreateProfileCreate)
+        btnSubmit.setText(R.string.pin_submit)
+
+        val titleView = dialogView.findViewById<TextView>(R.id.txtCreateProfileTitle)
+        titleView?.text = getString(R.string.pin_entry_title, profile.name)
+
+        val dialog = AlertDialog.Builder(this)
+            .setView(dialogView)
+            .create()
+
+        dialog.setOnShowListener {
+            dialog.window?.let { window ->
+                window.setBackgroundDrawable(Color.TRANSPARENT.toDrawable())
+                window.setLayout(
+                    (resources.displayMetrics.widthPixels * 0.86f).toInt(),
+                    ViewGroup.LayoutParams.WRAP_CONTENT
+                )
+                window.setGravity(Gravity.TOP or Gravity.CENTER_HORIZONTAL)
+                window.attributes = window.attributes.apply {
+                    y = resources.getDimensionPixelSize(R.dimen.create_profile_dialog_top_offset)
+                }
+                window.setSoftInputMode(
+                    WindowManager.LayoutParams.SOFT_INPUT_ADJUST_RESIZE or
+                        WindowManager.LayoutParams.SOFT_INPUT_STATE_VISIBLE
+                )
+            }
+
+            btnCancel.setOnClickListener { dialog.dismiss() }
+
+            val submitPin = {
+                val pin = input.text?.toString()?.trim().orEmpty()
+                if (pin.isBlank()) {
+                    input.error = getString(R.string.pin_required)
+                    input.requestFocus()
+                } else {
+                    dialog.dismiss()
+                    performProfileSelection(profile)
+                }
+            }
+
+            btnSubmit.setOnClickListener { submitPin() }
+
+            input.setOnEditorActionListener { _, actionId, _ ->
+                if (actionId == EditorInfo.IME_ACTION_DONE) {
+                    submitPin()
+                    true
+                } else {
+                    false
+                }
+            }
+
+            input.requestFocus()
+            val imm = getSystemService(INPUT_METHOD_SERVICE) as InputMethodManager
+            imm.showSoftInput(input, InputMethodManager.SHOW_IMPLICIT)
+        }
+
+        dialog.show()
+    }
+
+    private fun performProfileSelection(profile: Profile) {
         showLoading()
 
         val weakActivity = WeakReference(this)
@@ -497,7 +563,7 @@ class ProfileSelectionActivity : AppCompatActivity() {
      */
     inner class ProfileAdapter(
         private val profiles: List<Profile>,
-        private val colors: List<String>,
+        private val colors: List<Int>,
         private val onProfileClick: (Profile) -> Unit,
         private val onProfileLongClick: (Profile) -> Unit,
         private val onCreateProfileClick: () -> Unit
@@ -544,12 +610,12 @@ class ProfileSelectionActivity : AppCompatActivity() {
             private val txtRatingLimit: TextView = itemView.findViewById(R.id.txtRatingLimit)
             private val imgLock: View = itemView.findViewById(R.id.imgLock)
 
-            fun bind(profile: Profile, colorHex: String) {
+            fun bind(profile: Profile, color: Int) {
                 txtInitial.text = profile.getInitial()
                 txtProfileName.text = profile.name
 
                 // Set avatar background color
-                viewAvatarBg.background.setTint(colorHex.toColorInt())
+                viewAvatarBg.background.setTint(color)
 
                 // Show rating limit if parental controls enabled
                 if (profile.hasParentalControls()) {

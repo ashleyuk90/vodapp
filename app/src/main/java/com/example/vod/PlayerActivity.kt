@@ -51,7 +51,7 @@ class PlayerActivity : AppCompatActivity() {
     private var player: ExoPlayer? = null
 
     companion object {
-        private const val TAG = "VOD_DEBUG"
+        private const val TAG = "PlayerActivity"
         private const val MAX_RETRY_ATTEMPTS = 3
         private const val INITIAL_RETRY_DELAY_MS = 2000L
         private const val MAX_RETRY_DELAY_MS = 16000L
@@ -432,13 +432,12 @@ class PlayerActivity : AppCompatActivity() {
                 Log.d(TAG, "Final Markers - Intro: ${finalIntro?.let { "${it.startSeconds}-${it.endSeconds}s" } ?: "none"}, Credits: ${finalCredits?.let { "${it.startSeconds}s" } ?: "none"}")
 
                 val cookies = NetworkClient.cookieManager.cookieStore.cookies
-                val sb = StringBuilder()
-                for (cookie in cookies) {
-                    if (cookie.name == "PHPSESSID") {
-                        sb.append(cookie.name).append("=").append(cookie.value).append(";")
+                val cookieString = cookies
+                    .filter { it.name == "PHPSESSID" }
+                    .joinToString(";") { cookie ->
+                        val sanitizedValue = cookie.value.replace(Regex("[\\r\\n\\u0000]"), "")
+                        "${cookie.name}=$sanitizedValue"
                     }
-                }
-                val cookieString = sb.toString()
 
                 withContext(Dispatchers.Main) {
                     weakActivity.get()?.setupExoPlayer(
