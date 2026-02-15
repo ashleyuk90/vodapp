@@ -184,9 +184,6 @@ class DetailsActivity : AppCompatActivity() {
 
     private fun startPlayback(startTime: Long, enableSubtitles: Boolean = false) {
         if (::video.isInitialized) {
-            if (enableSubtitles && video.subtitleUrl.isNullOrBlank()) {
-                Log.w(TAG, "Subtitle playback requested but no subtitleUrl available for videoId=${video.id}")
-            }
             val intent = Intent(this, PlayerActivity::class.java)
             intent.putExtra("VIDEO_ID", video.id)
             intent.putExtra("RESUME_TIME", startTime)
@@ -379,10 +376,9 @@ class DetailsActivity : AppCompatActivity() {
                             activity.txtRottenTomatoes.visibility = View.GONE
                         }
 
-                        val hasStandaloneSubtitles =
-                            activity.video.hasSubtitles && !activity.video.subtitleUrl.isNullOrBlank()
+                        val hasSubtitles = activity.video.hasSubtitles || !activity.video.subtitleUrl.isNullOrBlank()
                         activity.btnSubtitles.visibility =
-                            if (hasStandaloneSubtitles) View.VISIBLE else View.GONE
+                            if (hasSubtitles) View.VISIBLE else View.GONE
 
                         if (activity.video.runtime > 0) {
                             val hours = activity.video.runtime / 60
@@ -494,6 +490,11 @@ class DetailsActivity : AppCompatActivity() {
                             activity.layoutActionButtons.visibility = View.VISIBLE
                             activity.layoutEpisodes.visibility = View.GONE
                             activity.displayProgress(activity.video)
+
+                            // If details endpoint didn't report subtitles, check via play endpoint
+                            if (!activity.video.hasSubtitles && activity.video.subtitleUrl.isNullOrBlank()) {
+                                activity.checkSubtitleAvailability(activity.video.id)
+                            }
                         }
                     } else {
                         ErrorHandler.showError(activity, "Failed to load details")
@@ -514,6 +515,23 @@ class DetailsActivity : AppCompatActivity() {
                         activity.finish()
                     }
                 }
+            }
+        }
+    }
+
+    private fun checkSubtitleAvailability(videoId: Int) {
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val profileId = ProfileManager.getActiveProfileId()
+                val response = NetworkClient.api.getStreamInfo(videoId, profileId)
+                val data = response.data
+                if (data != null && (data.hasSubtitles || !data.subtitleUrl.isNullOrBlank())) {
+                    withContext(Dispatchers.Main) {
+                        btnSubtitles.visibility = View.VISIBLE
+                    }
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to check subtitle availability for videoId=$videoId", e)
             }
         }
     }
