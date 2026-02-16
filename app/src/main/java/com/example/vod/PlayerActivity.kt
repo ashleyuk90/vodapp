@@ -10,6 +10,7 @@ import android.os.SystemClock
 import android.util.Log
 import android.widget.Toast
 import androidx.annotation.OptIn
+import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.net.toUri
 import androidx.core.view.isVisible
@@ -90,6 +91,7 @@ class PlayerActivity : AppCompatActivity() {
     private var hasTerminatedForPlaybackLimit = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         OrientationUtils.applyPreferredOrientation(this)
         setContentView(R.layout.activity_player)

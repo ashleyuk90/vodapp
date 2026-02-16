@@ -9,8 +9,6 @@
         <item name="colorSecondaryVariant">@color/background_secondary</item>
         <item name="colorOnSecondary">@color/text_primary</item>
 
-        <item name="android:statusBarColor">@color/black</item>
-
         <item name="android:windowBackground">@color/background_secondary</item>
         <item name="android:textColor">@color/text_primary</item>
     </style>

@@ -8,8 +8,11 @@ import android.widget.Button
 import android.widget.EditText
 import android.widget.LinearLayout
 import android.widget.Toast
+import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.content.edit
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.lifecycle.lifecycleScope
 import com.example.vod.utils.Constants
 import com.example.vod.utils.ErrorHandler
@@ -32,10 +35,20 @@ class LoginActivity : AppCompatActivity() {
     private lateinit var etUser: EditText
     private lateinit var etPass: EditText
 
+    // Login rate limiting: exponential backoff after repeated failures
+    private var consecutiveFailures = 0
+    private var nextAllowedAttemptMs = 0L
+
     override fun onCreate(savedInstanceState: Bundle?) {
+        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         OrientationUtils.applyPreferredOrientation(this)
         setContentView(R.layout.activity_login)
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(android.R.id.content)) { view, insets ->
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            view.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
+            insets
+        }
 
         // 1. Init Views
         layoutForm = findViewById(R.id.layoutLoginForm)
@@ -60,9 +73,16 @@ class LoginActivity : AppCompatActivity() {
 
         // 4. Handle Manual Login Click
         btnLogin.setOnClickListener {
+            val now = System.currentTimeMillis()
+            if (now < nextAllowedAttemptMs) {
+                val waitSeconds = ((nextAllowedAttemptMs - now) / 1000 + 1).toInt()
+                Toast.makeText(this, getString(R.string.error_login_rate_limited, waitSeconds), Toast.LENGTH_SHORT).show()
+                return@setOnClickListener
+            }
+
             val user = etUser.text.toString().trim()
             val pass = etPass.text.toString().trim()
-            
+
             if (validateInput(user, pass)) {
                 performLogin(user, pass)
             }
@@ -130,6 +150,8 @@ class LoginActivity : AppCompatActivity() {
                     val activity = weakActivity.get() ?: return@withContext
                     
                     if (response.status == "success") {
+                        activity.consecutiveFailures = 0
+                        activity.nextAllowedAttemptMs = 0L
                         val csrfToken = response.csrfToken?.takeIf { it.isNotBlank() }
                         val accountExpiry = response.accountExpiry?.takeIf { it.isNotBlank() }
                             ?: response.user?.expiryDate?.takeIf { it.isNotBlank() }
@@ -208,6 +230,17 @@ class LoginActivity : AppCompatActivity() {
                 remove(Constants.KEY_PASS)
                 remove(Constants.KEY_CSRF_TOKEN)
                 remove(Constants.KEY_ACCOUNT_EXPIRY)
+            }
+
+            // Apply exponential backoff after auth failures (401/403)
+            consecutiveFailures++
+            if (consecutiveFailures >= 3) {
+                val delaySeconds = when {
+                    consecutiveFailures <= 3 -> 5L
+                    consecutiveFailures <= 4 -> 15L
+                    else -> 30L
+                }
+                nextAllowedAttemptMs = System.currentTimeMillis() + (delaySeconds * 1000)
             }
         }
 

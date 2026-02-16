@@ -15,19 +15,29 @@
 
 # Keep all model classes for JSON parsing
 -keep class com.example.vod.ApiResponse { *; }
+-keep class com.example.vod.ApiErrorResponse { *; }
 -keep class com.example.vod.User { *; }
 -keep class com.example.vod.VideoItem { *; }
 -keep class com.example.vod.EpisodeItem { *; }
 -keep class com.example.vod.NextEpisode { *; }
+-keep class com.example.vod.ContentMarker { *; }
 -keep class com.example.vod.LibraryResponse { *; }
 -keep class com.example.vod.LibraryListResponse { *; }
 -keep class com.example.vod.LibraryItem { *; }
 -keep class com.example.vod.DetailsResponse { *; }
 -keep class com.example.vod.PlayResponse { *; }
 -keep class com.example.vod.ProgressResponse { *; }
+-keep class com.example.vod.PlaybackStatusResponse { *; }
 -keep class com.example.vod.WatchStatusResponse { *; }
 -keep class com.example.vod.WatchListResponse { *; }
 -keep class com.example.vod.DashboardResponse { *; }
+-keep class com.example.vod.Profile { *; }
+-keep class com.example.vod.ProfilesResponse { *; }
+-keep class com.example.vod.ProfileSelectResponse { *; }
+-keep class com.example.vod.ProfileAddResponse { *; }
+-keep class com.example.vod.ProfileRemoveResponse { *; }
+-keep class com.example.vod.SessionResponse { *; }
+-keep class com.example.vod.SearchFilters { *; }
 
 # Keep fields annotated with @SerializedName
 -keepclassmembers,allowobfuscation class * {

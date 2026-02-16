@@ -107,6 +107,7 @@
     <string name="error_title">Something Went Wrong</string>
     <string name="error_generic">We couldn\'t load the content. Please check your connection and try again.</string>
     <string name="error_network">No internet connection. Please check your network settings.</string>
+    <string name="error_login_rate_limited">Too many failed attempts. Please wait %1$d seconds.</string>
     <string name="error_server">Our servers are having issues. Please try again later.</string>
     <string name="error_loading_video">Error loading video.</string>
     <string name="error_stream_unavailable">Video stream unavailable.</string>

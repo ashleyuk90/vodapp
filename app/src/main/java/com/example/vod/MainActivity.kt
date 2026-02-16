@@ -23,7 +23,10 @@ import android.widget.TextView
 import android.widget.Toast
 import android.util.TypedValue
 import androidx.activity.OnBackPressedCallback
+import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.core.content.ContextCompat
 import androidx.core.graphics.toColorInt
 import androidx.core.view.children
@@ -160,9 +163,15 @@ class MainActivity : AppCompatActivity() {
     private var hasTriggeredInitialUpdateCheck = false
 
     override fun onCreate(savedInstanceState: Bundle?) {
+        enableEdgeToEdge()
         super.onCreate(savedInstanceState)
         OrientationUtils.applyPreferredOrientation(this)
         setContentView(R.layout.activity_main)
+        ViewCompat.setOnApplyWindowInsetsListener(findViewById(android.R.id.content)) { view, insets ->
+            val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
+            view.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
+            insets
+        }
         isPhone = ResponsiveUtils.getScreenSize(this) == ResponsiveUtils.ScreenSize.PHONE
         Log.i(
             TAG,
