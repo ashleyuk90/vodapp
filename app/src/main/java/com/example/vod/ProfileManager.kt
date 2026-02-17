@@ -32,6 +32,7 @@ object ProfileManager {
     private const val KEY_MAX_CONTENT_RATING = "max_content_rating"
     private const val KEY_HAS_PIN = "has_pin"
     private const val KEY_DEFAULT_PROFILE_ID = "default_profile_id"
+    private const val KEY_PINNED_LIBRARIES = "pinned_libraries"
 
     private var prefs: SharedPreferences? = null
     private var activeProfile: Profile? = null
@@ -202,5 +203,37 @@ object ProfileManager {
      */
     fun clearDefaultProfile() {
         prefs?.edit { remove(KEY_DEFAULT_PROFILE_ID) }
+    }
+
+    /**
+     * Get the set of pinned library IDs for the current profile.
+     */
+    fun getPinnedLibraryIds(): Set<String> {
+        return prefs?.getStringSet(KEY_PINNED_LIBRARIES, emptySet()) ?: emptySet()
+    }
+
+    /**
+     * Toggle a library's pinned state.
+     * @return true if the library is now pinned, false if unpinned.
+     */
+    fun togglePinnedLibrary(libraryId: Int): Boolean {
+        val current = getPinnedLibraryIds().toMutableSet()
+        val idStr = libraryId.toString()
+        val nowPinned = if (current.contains(idStr)) {
+            current.remove(idStr)
+            false
+        } else {
+            current.add(idStr)
+            true
+        }
+        prefs?.edit { putStringSet(KEY_PINNED_LIBRARIES, current) }
+        return nowPinned
+    }
+
+    /**
+     * Check if a library is pinned for the current profile.
+     */
+    fun isLibraryPinned(libraryId: Int): Boolean {
+        return libraryId.toString() in getPinnedLibraryIds()
     }
 }

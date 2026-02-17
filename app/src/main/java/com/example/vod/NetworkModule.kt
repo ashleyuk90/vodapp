@@ -52,7 +52,8 @@ interface ApiService {
         @Field("time") time: Long,
         @Field("paused") paused: Int,
         @Field("buffer_seconds") bufferSeconds: Int? = null,
-        @Field("profile_id") profileId: Int? = null
+        @Field("profile_id") profileId: Int? = null,
+        @Field("device_name") deviceName: String? = null
     ): ProgressResponse
 
     @GET("api/playback_status")

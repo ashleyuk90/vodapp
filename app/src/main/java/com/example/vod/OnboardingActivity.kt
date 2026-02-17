@@ -47,6 +47,11 @@ class OnboardingActivity : AppCompatActivity() {
             descriptionRes = R.string.onboarding_navigation_desc
         ),
         OnboardingPage(
+            iconRes = R.drawable.ic_pin,
+            titleRes = R.string.onboarding_pinning_title,
+            descriptionRes = R.string.onboarding_pinning_desc
+        ),
+        OnboardingPage(
             iconRes = R.drawable.ic_movie,
             titleRes = R.string.onboarding_browsing_title,
             descriptionRes = R.string.onboarding_browsing_desc

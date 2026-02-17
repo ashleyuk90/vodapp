@@ -244,7 +244,8 @@ class PlayerActivity : AppCompatActivity() {
                                         time = currentPosSec.toLong(),
                                         paused = paused,
                                         bufferSeconds = bufferSeconds,
-                                        profileId = profileId
+                                        profileId = profileId,
+                                        deviceName = "${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}"
                                     )
                                 }
 
@@ -526,9 +527,6 @@ class PlayerActivity : AppCompatActivity() {
 
         val mediaSourceFactory = DefaultMediaSourceFactory(dataSourceFactory)
         val trackSelector = DefaultTrackSelector(this)
-        trackSelector.parameters = trackSelector.buildUponParameters()
-            .setTunnelingEnabled(true)
-            .build()
 
         player = ExoPlayer.Builder(this)
             .setMediaSourceFactory(mediaSourceFactory)

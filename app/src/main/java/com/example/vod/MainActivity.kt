@@ -149,6 +149,7 @@ class MainActivity : AppCompatActivity() {
     private var lastGridFirstVisibleOffset: Int = 0
 
     // --- Menu Wrap State ---
+    private var cachedLibraries: List<LibraryItem> = emptyList()
     private var firstLibraryButton: View? = null
     private var isSideMenuCollapsed = false
     private var isPhone = false
@@ -1205,15 +1206,8 @@ class MainActivity : AppCompatActivity() {
                     val activity = weakActivity.get() ?: return@withContext
                     
                     if (response.status == "success") {
-                        activity.sideMenuContainer.removeAllViews()
-                        activity.firstLibraryButton = null
-
-                        response.data?.forEach { lib ->
-                            if (lib.id != 0) {
-                                activity.addButtonToSidebar(lib.name, lib.id)
-                            }
-                        }
-                        activity.applyLibraryDownWrap()
+                        activity.cachedLibraries = response.data?.filter { it.id != 0 } ?: emptyList()
+                        activity.buildLibrarySidebar()
                         if (activity.currentLibId == -1) activity.highlightMenu(activity.btnMenuHome)
                     }
                 }
@@ -1233,11 +1227,11 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun addButtonToSidebar(title: String, id: Int) {
+    private fun addButtonToSidebar(title: String, id: Int, isPinned: Boolean = false) {
         val paddingH = resources.getDimensionPixelSize(R.dimen.side_menu_item_padding_horizontal)
         val paddingV = resources.getDimensionPixelSize(R.dimen.side_menu_item_padding_vertical)
         val marginV = resources.getDimensionPixelSize(R.dimen.side_menu_item_margin_vertical)
-        
+
         val btnLayout = LinearLayout(this@MainActivity).apply {
             layoutParams = LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
@@ -1246,11 +1240,26 @@ class MainActivity : AppCompatActivity() {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
             setPadding(paddingH, paddingV, paddingH, paddingV)
-            setBackgroundResource(R.drawable.sel_menu_item_pill)
+            setBackgroundResource(R.drawable.focus_menu_item_enhanced)
             isFocusable = true
             isFocusableInTouchMode = true
             tag = id
             if (this.id == View.NO_ID) this.id = View.generateViewId()
+        }
+
+        if (isPinned) {
+            val iconSize = resources.getDimensionPixelSize(R.dimen.side_menu_icon_size)
+            val iconMargin = resources.getDimensionPixelSize(R.dimen.side_menu_icon_margin)
+            val pinIcon = ImageView(this@MainActivity).apply {
+                layoutParams = LinearLayout.LayoutParams(iconSize / 2, iconSize / 2).apply {
+                    marginEnd = iconMargin / 2
+                }
+                setImageResource(R.drawable.ic_pin)
+                imageTintList = ContextCompat.getColorStateList(context, R.color.sel_menu_text_color)
+                isDuplicateParentStateEnabled = true
+                visibility = if (isPhone && isSideMenuCollapsed) View.GONE else View.VISIBLE
+            }
+            btnLayout.addView(pinIcon)
         }
 
         val textView = TextView(this@MainActivity).apply {
@@ -1270,6 +1279,17 @@ class MainActivity : AppCompatActivity() {
         }
 
         btnLayout.addView(textView)
+
+        btnLayout.setOnLongClickListener {
+            val nowPinned = ProfileManager.togglePinnedLibrary(id)
+            Toast.makeText(
+                this@MainActivity,
+                if (nowPinned) R.string.pin_library_toast else R.string.unpin_library_toast,
+                Toast.LENGTH_SHORT
+            ).show()
+            rebuildLibrarySidebar()
+            true
+        }
 
         btnLayout.setOnClickListener {
             if (currentLibId == id) {
@@ -1320,6 +1340,45 @@ class MainActivity : AppCompatActivity() {
         if (firstLibraryButton == null) firstLibraryButton = btnLayout
     }
 
+    private fun buildLibrarySidebar() {
+        sideMenuContainer.removeAllViews()
+        firstLibraryButton = null
+        val pinnedIds = ProfileManager.getPinnedLibraryIds()
+        val sorted = cachedLibraries.sortedByDescending { it.id.toString() in pinnedIds }
+        sorted.forEach { lib ->
+            addButtonToSidebar(lib.name, lib.id, lib.id.toString() in pinnedIds)
+        }
+        applyLibraryDownWrap()
+    }
+
+    private fun rebuildLibrarySidebar() {
+        val focusedTag = sideMenuContainer.children.firstOrNull { it.hasFocus() }?.tag as? Int
+        val selectedTag = currentLibId
+
+        buildLibrarySidebar()
+
+        // Restore highlight on the currently selected library
+        if (selectedTag > 0) {
+            for (view in sideMenuContainer.children) {
+                if (view.tag == selectedTag) {
+                    highlightMenu(view)
+                    break
+                }
+            }
+        }
+
+        // Restore focus to the library that was focused before rebuild
+        val tagToFocus = focusedTag ?: selectedTag
+        if (tagToFocus != null && tagToFocus > 0) {
+            for (view in sideMenuContainer.children) {
+                if (view.tag == tagToFocus) {
+                    view.requestFocus()
+                    break
+                }
+            }
+        }
+    }
+
     private fun setupPhoneSideMenu() {
         if (!isPhone) {
             btnMenuToggle.visibility = View.GONE
@@ -1363,10 +1422,12 @@ class MainActivity : AppCompatActivity() {
         btnMenuWatchLater.setPadding(paddingH, paddingV, paddingH, paddingV)
         btnMenuProfile.setPadding(paddingH, paddingV, paddingH, paddingV)
 
-        // Hide/show dynamic library item labels
+        // Hide/show dynamic library item children (pin icon + text)
         for (view in sideMenuContainer.children) {
-            val textView = (view as? ViewGroup)?.getChildAt(0)
-            textView?.visibility = textVisibility
+            val group = view as? ViewGroup ?: continue
+            for (i in 0 until group.childCount) {
+                group.getChildAt(i).visibility = textVisibility
+            }
             view.setPadding(paddingH, paddingV, paddingH, paddingV)
         }
 

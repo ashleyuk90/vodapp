@@ -23,7 +23,7 @@
     <integer name="grid_span_count">2</integer>
     
     <!-- Side menu -->
-    <dimen name="side_menu_width">128dp</dimen>
+    <dimen name="side_menu_width">170dp</dimen>
     <dimen name="side_menu_width_collapsed">72dp</dimen>
     <dimen name="side_menu_padding">10dp</dimen>
     <dimen name="side_menu_icon_size">22dp</dimen>

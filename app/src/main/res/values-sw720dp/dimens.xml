@@ -24,7 +24,7 @@
     <integer name="grid_span_count">6</integer>
     
     <!-- Side menu (TV) - wider for easier reading -->
-    <dimen name="side_menu_width">200dp</dimen>
+    <dimen name="side_menu_width">240dp</dimen>
     <dimen name="side_menu_padding">16dp</dimen>
     <dimen name="side_menu_icon_size">32dp</dimen>
     <dimen name="side_menu_icon_margin">14dp</dimen>

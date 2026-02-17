@@ -585,6 +585,7 @@ player?.setPlaybackSpeed(1.5f)
 | Data Saver Mode | Low | Low | P3 | Pending |
 | Stream Error Recovery | Medium | Medium | P2 | ✅ Done |
 | Playback Preferences UI | Low | Low | P3 | ✅ Done |
+| Pin Library to Top | Low | Low | P3 | ✅ Done |
 
 ---
 
@@ -638,3 +639,23 @@ player?.setPlaybackSpeed(1.5f)
 - Conflict handling (latest-write-wins for progress).
 
 **Complexity**: Medium-High
+
+---
+
+### 36. Pin Library to Top of Side Menu ✅ IMPLEMENTED
+
+**Description**: Long-press a library in the side menu to pin it to the top of the list for quick access.
+
+**Status**: ✅ **IMPLEMENTED**
+
+**Implementation Details**:
+- Long-press library item to toggle pinned state
+- Pinned libraries sort to top of library list (preserving relative order)
+- Visual pin icon indicator on pinned libraries
+- Toast feedback on pin/unpin action
+- Profile-specific pins via `ProfileManager` (encrypted SharedPreferences)
+- Persists across app restarts
+- Sidebar rebuilds in-place with focus restoration
+- Documented in onboarding guide (new page after Navigation)
+
+**Complexity**: Low
