@@ -77,4 +77,13 @@
             android:layout_marginTop="16dp"/>
     </LinearLayout>
 
+    <TextView
+        android:id="@+id/txtVersion"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom|center_horizontal"
+        android:layout_marginBottom="16dp"
+        android:textColor="@color/text_tertiary"
+        android:textSize="12sp" />
+
 </FrameLayout>

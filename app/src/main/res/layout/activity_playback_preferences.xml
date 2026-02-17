@@ -322,5 +322,25 @@
                 android:clickable="false" />
         </LinearLayout>
     </LinearLayout>
+
+    <!-- Logout Button -->
+    <com.google.android.material.button.MaterialButton
+        android:id="@+id/btnLogout"
+        style="@style/Widget.MaterialComponents.Button.OutlinedButton"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="@dimen/spacing_xl"
+        android:padding="@dimen/spacing_lg"
+        android:text="@string/logout_button"
+        android:textColor="@color/sel_logout_text"
+        android:textSize="@dimen/episode_title_text_size"
+        android:textStyle="bold"
+        android:focusable="true"
+        android:focusableInTouchMode="true"
+        app:strokeColor="@color/status_error"
+        app:strokeWidth="1dp"
+        app:cornerRadius="12dp"
+        app:rippleColor="@color/status_error" />
+
 </LinearLayout>
 </ScrollView>

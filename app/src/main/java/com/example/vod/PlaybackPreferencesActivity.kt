@@ -1,5 +1,6 @@
 package com.example.vod
 
+import android.content.Intent
 import android.os.Bundle
 import android.view.View
 import android.widget.ImageButton
@@ -7,7 +8,9 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
 import androidx.activity.enableEdgeToEdge
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.edit
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowInsetsCompat
 import com.example.vod.utils.AnimationHelper
@@ -16,6 +19,7 @@ import androidx.appcompat.widget.SwitchCompat
 import com.example.vod.update.SelfHostedUpdateManager
 import com.example.vod.utils.OrientationUtils
 import com.example.vod.utils.SecurePrefs
+import com.google.android.material.button.MaterialButton
 import java.text.SimpleDateFormat
 import java.util.Locale
 import android.os.Build
@@ -34,6 +38,7 @@ class PlaybackPreferencesActivity : AppCompatActivity() {
     private lateinit var txtAccountExpiryValue: TextView
     private lateinit var txtInstalledVersionValue: TextView
     private lateinit var rowCheckForUpdates: LinearLayout
+    private lateinit var btnLogout: MaterialButton
     private lateinit var updateManager: SelfHostedUpdateManager
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -63,6 +68,7 @@ class PlaybackPreferencesActivity : AppCompatActivity() {
         txtAccountExpiryValue = findViewById(R.id.txtAccountExpiryValue)
         txtInstalledVersionValue = findViewById(R.id.txtInstalledVersionValue)
         rowCheckForUpdates = findViewById(R.id.rowCheckForUpdates)
+        btnLogout = findViewById(R.id.btnLogout)
 
         val profile = ProfileManager.getActiveProfile()
         if (profile == null) {
@@ -87,6 +93,15 @@ class PlaybackPreferencesActivity : AppCompatActivity() {
         btnBack.setOnClickListener {
             finish()
             AnimationHelper.applyCloseTransition(this)
+        }
+
+        btnLogout.setOnClickListener { showLogoutConfirmation() }
+        btnLogout.setOnFocusChangeListener { v, hasFocus ->
+            if (hasFocus) {
+                AnimationHelper.scaleUp(v, Constants.FOCUS_SCALE_SMALL)
+            } else {
+                AnimationHelper.scaleDown(v)
+            }
         }
 
         rowCheckForUpdates.post { rowCheckForUpdates.requestFocus() }
@@ -197,5 +212,50 @@ class PlaybackPreferencesActivity : AppCompatActivity() {
             autoplayNext = switchAutoplayNext.isChecked
         )
         Toast.makeText(this, R.string.playback_prefs_saved, Toast.LENGTH_SHORT).show()
+    }
+
+    private fun showLogoutConfirmation() {
+        val dialogView = layoutInflater.inflate(R.layout.dialog_logout_confirm, null)
+        val dialog = AlertDialog.Builder(this)
+            .setView(dialogView)
+            .create()
+
+        dialogView.findViewById<View>(R.id.btnDialogCancel).setOnClickListener {
+            dialog.dismiss()
+        }
+        dialogView.findViewById<View>(R.id.btnDialogLogout).setOnClickListener {
+            dialog.dismiss()
+            performLogout()
+        }
+
+        dialog.window?.setBackgroundDrawableResource(android.R.color.transparent)
+        dialog.show()
+    }
+
+    private fun performLogout() {
+        // Clear CSRF token
+        NetworkClient.updateCsrfToken(null)
+
+        // Clear saved credentials
+        val prefs = SecurePrefs.get(this, Constants.PREFS_NAME)
+        prefs.edit {
+            remove(Constants.KEY_USER)
+            remove(Constants.KEY_PASS)
+            remove(Constants.KEY_CSRF_TOKEN)
+            remove(Constants.KEY_ACCOUNT_EXPIRY)
+        }
+
+        // Clear active profile and default profile
+        ProfileManager.clearActiveProfile()
+        ProfileManager.clearDefaultProfile()
+
+        // Clear persisted cookies
+        NetworkClient.cookieJar.clear()
+
+        // Navigate to LoginActivity and clear the back stack
+        val intent = Intent(this, LoginActivity::class.java)
+        intent.flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TASK
+        startActivity(intent)
+        finish()
     }
 }

@@ -44,7 +44,7 @@
     <string name="update_badge_symbol">!</string>
 
     <!-- Login -->
-    <string name="login_title">VOD Login</string>
+    <string name="login_title">Login</string>
     <string name="login_username_hint">Username</string>
     <string name="login_password_hint">Password</string>
     <string name="login_sign_in">Sign In</string>
@@ -199,7 +199,14 @@
     <string name="playback_prefs_check_updates_desc">Check the update feed now and prompt if a new version is available.</string>
     <string name="playback_prefs_checking_updates">Checking for updates…</string>
     <string name="playback_prefs_saved">Playback preferences updated</string>
-    
+
+    <!-- Logout -->
+    <string name="logout_button">Log Out</string>
+    <string name="logout_confirm_title">Log Out</string>
+    <string name="logout_confirm_message">Are you sure you want to log out? You will need to sign in again.</string>
+    <string name="logout_confirm_yes">Log Out</string>
+    <string name="logout_confirm_no">Cancel</string>
+
     <!-- Accessibility -->
     <string name="a11y_play_button">Play %1$s</string>
     <string name="a11y_back_button">Go back</string>

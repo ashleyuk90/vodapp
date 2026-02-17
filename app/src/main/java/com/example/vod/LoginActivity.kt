@@ -57,6 +57,10 @@ class LoginActivity : AppCompatActivity() {
         etPass = findViewById(R.id.etPassword)
         val btnLogin = findViewById<Button>(R.id.btnLogin)
 
+        // Version label
+        findViewById<android.widget.TextView>(R.id.txtVersion).text =
+            BuildConfig.VERSION_NAME.ifBlank { "N/A" }
+
         // 2. Init network client and secure storage
         NetworkClient.init(applicationContext)
         prefs = SecurePrefs.get(this, Constants.PREFS_NAME)
