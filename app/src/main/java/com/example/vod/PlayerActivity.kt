@@ -434,13 +434,12 @@ class PlayerActivity : AppCompatActivity() {
                 val finalCredits = weakActivity.get()?.creditsMarker
                 Log.d(TAG, "Final Markers - Intro: ${finalIntro?.let { "${it.startSeconds}-${it.endSeconds}s" } ?: "none"}, Credits: ${finalCredits?.let { "${it.startSeconds}s" } ?: "none"}")
 
-                val cookies = NetworkClient.cookieManager.cookieStore.cookies
-                val cookieString = cookies
-                    .filter { it.name == "PHPSESSID" }
-                    .joinToString(";") { cookie ->
-                        val sanitizedValue = cookie.value.replace(Regex("[\\r\\n\\u0000]"), "")
-                        "${cookie.name}=$sanitizedValue"
-                    }
+                val sessionId = NetworkClient.cookieJar.getCookieValue("PHPSESSID")
+                val cookieString = if (sessionId != null) {
+                    "PHPSESSID=${sessionId.replace(Regex("[\\r\\n\\u0000]"), "")}"
+                } else {
+                    ""
+                }
 
                 withContext(Dispatchers.Main) {
                     weakActivity.get()?.setupExoPlayer(

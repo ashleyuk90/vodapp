@@ -57,7 +57,8 @@ class LoginActivity : AppCompatActivity() {
         etPass = findViewById(R.id.etPassword)
         val btnLogin = findViewById<Button>(R.id.btnLogin)
 
-        // 2. Init secure storage with crash-safe fallback.
+        // 2. Init network client and secure storage
+        NetworkClient.init(applicationContext)
         prefs = SecurePrefs.get(this, Constants.PREFS_NAME)
 
         // 3. CHECK FOR SAVED CREDENTIALS

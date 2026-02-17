@@ -1,13 +1,12 @@
 package com.example.vod
 
-import okhttp3.JavaNetCookieJar
+import android.content.Context
+import com.example.vod.utils.PersistentCookieJar
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import retrofit2.http.*
-import java.net.CookieManager
-import java.net.CookiePolicy
 
 // 1. The API Interface
 interface ApiService {
@@ -142,54 +141,67 @@ object NetworkClient {
     @Volatile
     private var csrfToken: String? = null
 
-    // Global Cookie Manager to hold the PHP Session
-    val cookieManager = CookieManager().apply {
-        setCookiePolicy(CookiePolicy.ACCEPT_ALL)
+    // Persistent cookie jar — survives app backgrounding, idle, and process death
+    lateinit var cookieJar: PersistentCookieJar
+        private set
+
+    private lateinit var okHttpClient: OkHttpClient
+    lateinit var api: ApiService
+        private set
+
+    /**
+     * Initialize the network client with application context.
+     * Must be called before any API calls (e.g., in LoginActivity.onCreate).
+     */
+    fun init(context: Context) {
+        if (::cookieJar.isInitialized) return
+
+        cookieJar = PersistentCookieJar(context)
+
+        okHttpClient = OkHttpClient.Builder()
+            .cookieJar(cookieJar)
+            .addInterceptor { chain ->
+                val request = chain.request()
+                val endpoint = request.url.pathSegments.lastOrNull()
+                val isPathLoginRequest = endpoint?.equals("login", ignoreCase = true) == true
+                val isLegacyQueryLoginRequest =
+                    request.url.queryParameter("action")?.equals("login", ignoreCase = true) == true
+                val isLoginRequest = isPathLoginRequest || isLegacyQueryLoginRequest
+                val shouldAttachCsrf = request.method.equals("POST", ignoreCase = true) && !isLoginRequest
+                val token = csrfToken?.takeIf { it.isNotBlank() }
+                val requestBuilder = request.newBuilder()
+                    .header("X-Client-Platform", "android")
+                    .header("X-App-Package", BuildConfig.APPLICATION_ID)
+                    .header("X-App-Version-Name", BuildConfig.VERSION_NAME.ifBlank { "unknown" })
+                    .header("X-App-Version-Code", BuildConfig.VERSION_CODE.toString())
+
+                if (shouldAttachCsrf && token != null) {
+                    requestBuilder.header("X-CSRF-Token", token)
+                }
+
+                chain.proceed(requestBuilder.build())
+            }
+            // Only log in debug builds to prevent credential exposure
+            .addInterceptor(HttpLoggingInterceptor().apply {
+                level = if (BuildConfig.DEBUG) {
+                    HttpLoggingInterceptor.Level.BODY
+                } else {
+                    HttpLoggingInterceptor.Level.NONE
+                }
+            })
+            // Add timeouts for network resilience
+            .connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+            .readTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+            .writeTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+            .build()
+
+        api = Retrofit.Builder()
+            .baseUrl(BASE_URL)
+            .client(okHttpClient)
+            .addConverterFactory(GsonConverterFactory.create())
+            .build()
+            .create(ApiService::class.java)
     }
-
-    private val okHttpClient = OkHttpClient.Builder()
-        .cookieJar(JavaNetCookieJar(cookieManager))
-        .addInterceptor { chain ->
-            val request = chain.request()
-            val endpoint = request.url.pathSegments.lastOrNull()
-            val isPathLoginRequest = endpoint?.equals("login", ignoreCase = true) == true
-            val isLegacyQueryLoginRequest =
-                request.url.queryParameter("action")?.equals("login", ignoreCase = true) == true
-            val isLoginRequest = isPathLoginRequest || isLegacyQueryLoginRequest
-            val shouldAttachCsrf = request.method.equals("POST", ignoreCase = true) && !isLoginRequest
-            val token = csrfToken?.takeIf { it.isNotBlank() }
-            val requestBuilder = request.newBuilder()
-                .header("X-Client-Platform", "android")
-                .header("X-App-Package", BuildConfig.APPLICATION_ID)
-                .header("X-App-Version-Name", BuildConfig.VERSION_NAME.ifBlank { "unknown" })
-                .header("X-App-Version-Code", BuildConfig.VERSION_CODE.toString())
-
-            if (shouldAttachCsrf && token != null) {
-                requestBuilder.header("X-CSRF-Token", token)
-            }
-
-            chain.proceed(requestBuilder.build())
-        }
-        // Only log in debug builds to prevent credential exposure
-        .addInterceptor(HttpLoggingInterceptor().apply {
-            level = if (BuildConfig.DEBUG) {
-                HttpLoggingInterceptor.Level.BODY
-            } else {
-                HttpLoggingInterceptor.Level.NONE
-            }
-        })
-        // Add timeouts for network resilience
-        .connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
-        .readTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
-        .writeTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
-        .build()
-
-    val api: ApiService = Retrofit.Builder()
-        .baseUrl(BASE_URL)
-        .client(okHttpClient)
-        .addConverterFactory(GsonConverterFactory.create())
-        .build()
-        .create(ApiService::class.java)
 
     fun updateCsrfToken(token: String?) {
         csrfToken = token?.takeIf { it.isNotBlank() }

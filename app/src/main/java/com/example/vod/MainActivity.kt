@@ -306,6 +306,8 @@ class MainActivity : AppCompatActivity() {
     /**
      * Call /api/session on resume to refresh the stored update feed URL.
      * Admin may have changed the user's update channel since last login.
+     * If the session has expired (idle/sleep), silently re-authenticates
+     * using saved credentials so the user doesn't have to restart the app.
      */
     private fun refreshSessionFeedUrl() {
         lifecycleScope.launch(Dispatchers.IO) {
@@ -319,8 +321,6 @@ class MainActivity : AppCompatActivity() {
                     }
                     val prefs = SecurePrefs.get(applicationContext, Constants.PREFS_NAME)
                     prefs.edit {
-                        // Only update feed URL if session provides one;
-                        // preserve the login-stored URL otherwise.
                         if (feedUrl != null) {
                             putString(Constants.KEY_UPDATE_FEED_URL, feedUrl)
                         }
@@ -328,10 +328,55 @@ class MainActivity : AppCompatActivity() {
                             putString(Constants.KEY_CSRF_TOKEN, csrfToken)
                         }
                     }
+                } else {
+                    Log.w(TAG, "Session invalid (status=${session.status}), re-authenticating")
+                    reAuthenticateSession()
                 }
             } catch (e: Exception) {
-                Log.w(TAG, "Failed to refresh session feed URL", e)
+                Log.w(TAG, "Session refresh failed, attempting re-auth", e)
+                reAuthenticateSession()
             }
+        }
+    }
+
+    /**
+     * Silently re-authenticate using saved credentials when the session has expired.
+     * Handles the case where the in-memory PHPSESSID cookie is lost after
+     * device idle, sleep, or the app being backgrounded for a long time.
+     */
+    private suspend fun reAuthenticateSession() {
+        try {
+            val prefs = SecurePrefs.get(applicationContext, Constants.PREFS_NAME)
+            val savedUser = prefs.getString(Constants.KEY_USER, null)
+            val savedPass = prefs.getString(Constants.KEY_PASS, null)
+
+            if (savedUser.isNullOrEmpty() || savedPass.isNullOrEmpty()) {
+                Log.w(TAG, "No saved credentials for re-auth")
+                return
+            }
+
+            Log.d(TAG, "Re-authenticating session...")
+            val response = NetworkClient.api.login(
+                user = savedUser,
+                pass = savedPass,
+                appVersionName = BuildConfig.VERSION_NAME.ifBlank { "unknown" },
+                appVersionCode = BuildConfig.VERSION_CODE
+            )
+
+            if (response.status == "success") {
+                Log.d(TAG, "Session re-authenticated successfully")
+                val csrfToken = response.csrfToken?.takeIf { it.isNotBlank() }
+                val updateFeedUrl = response.updateFeedUrl?.takeIf { it.isNotBlank() }
+                NetworkClient.updateCsrfToken(csrfToken)
+                prefs.edit {
+                    if (csrfToken != null) putString(Constants.KEY_CSRF_TOKEN, csrfToken)
+                    if (updateFeedUrl != null) putString(Constants.KEY_UPDATE_FEED_URL, updateFeedUrl)
+                }
+            } else {
+                Log.w(TAG, "Re-auth failed: ${response.status}")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Re-auth error", e)
         }
     }
 
