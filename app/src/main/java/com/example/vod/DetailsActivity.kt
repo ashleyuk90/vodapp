@@ -32,7 +32,6 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.IOException
 import java.lang.ref.WeakReference
-import java.text.NumberFormat
 
 class DetailsActivity : AppCompatActivity() {
     companion object {
@@ -363,7 +362,7 @@ class DetailsActivity : AppCompatActivity() {
 
                         activity.txtTitle.text = activity.video.title
                         activity.txtPlot.text = activity.video.plot
-                        activity.txtYear.text = NumberFormat.getIntegerInstance().format(activity.video.year)
+                        activity.txtYear.text = activity.video.year.toString()
 
                         val formattedRating = RatingUtils.formatImdbRating(activity.video.rating) ?: "N/A"
                         activity.txtRating.text = activity.getString(R.string.rating_format, formattedRating)

@@ -57,7 +57,6 @@ import kotlinx.coroutines.withContext
 import kotlinx.coroutines.isActive
 import java.io.IOException
 import java.lang.ref.WeakReference
-import java.text.NumberFormat
 import androidx.core.content.edit
 import com.google.android.material.chip.Chip
 import com.google.android.material.chip.ChipGroup
@@ -1810,7 +1809,7 @@ class LibraryAdapter(
         fun bind(video: VideoItem, onClick: (VideoItem) -> Unit) {
             val displayTitle = if (!video.seriesTitle.isNullOrEmpty()) video.seriesTitle else video.title
             txtTitle.text = displayTitle
-            txtYear.text = NumberFormat.getIntegerInstance().format(video.year)
+            txtYear.text = video.year.toString()
             txtQuality.text = video.quality ?: "HD"
             val formattedRating = RatingUtils.formatImdbRating(video.rating) ?: "5.0"
             txtRating.text = itemView.context.getString(R.string.rating_format, formattedRating)
