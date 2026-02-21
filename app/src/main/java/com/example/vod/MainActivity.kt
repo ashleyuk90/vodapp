@@ -167,12 +167,25 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         OrientationUtils.applyPreferredOrientation(this)
         setContentView(R.layout.activity_main)
+        isPhone = ResponsiveUtils.getScreenSize(this) == ResponsiveUtils.ScreenSize.PHONE
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(android.R.id.content)) { view, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
-            view.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
+            if (isPhone) {
+                view.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
+            } else {
+                // Apply overscan-safe padding on TV (Google recommends 48dp horizontal, 27dp vertical)
+                val dp = resources.displayMetrics.density
+                val overscanH = (48 * dp).toInt()
+                val overscanV = (27 * dp).toInt()
+                view.setPadding(
+                    maxOf(systemBars.left, overscanH),
+                    maxOf(systemBars.top, overscanV),
+                    maxOf(systemBars.right, overscanH),
+                    maxOf(systemBars.bottom, overscanV)
+                )
+            }
             insets
         }
-        isPhone = ResponsiveUtils.getScreenSize(this) == ResponsiveUtils.ScreenSize.PHONE
         Log.i(
             TAG,
             "onCreate formFactor=${formFactorLabel()} screen=${ResponsiveUtils.getScreenSize(this)} isPhone=$isPhone"
