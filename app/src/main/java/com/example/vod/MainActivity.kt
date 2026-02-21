@@ -173,10 +173,10 @@ class MainActivity : AppCompatActivity() {
             if (isPhone) {
                 view.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)
             } else {
-                // Apply overscan-safe padding on TV (Google recommends 48dp horizontal, 27dp vertical)
+                // Apply overscan-safe padding on TV
                 val dp = resources.displayMetrics.density
-                val overscanH = (48 * dp).toInt()
-                val overscanV = (27 * dp).toInt()
+                val overscanH = (24 * dp).toInt()
+                val overscanV = (14 * dp).toInt()
                 view.setPadding(
                     maxOf(systemBars.left, overscanH),
                     maxOf(systemBars.top, overscanV),

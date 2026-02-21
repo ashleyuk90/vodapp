@@ -52,7 +52,8 @@ class PlaybackPreferencesActivity : AppCompatActivity() {
             insets
         }
 
-        // Ensure ProfileManager is initialized
+        // Ensure singletons are initialized
+        NetworkClient.init(applicationContext)
         ProfileManager.init(this)
         updateManager = SelfHostedUpdateManager(this)
 

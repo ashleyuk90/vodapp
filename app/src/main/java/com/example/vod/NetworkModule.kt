@@ -153,6 +153,7 @@ object NetworkClient {
      * Initialize the network client with application context.
      * Must be called before any API calls (e.g., in LoginActivity.onCreate).
      */
+    @Synchronized
     fun init(context: Context) {
         if (::cookieJar.isInitialized) return
 

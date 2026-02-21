@@ -5,26 +5,28 @@ import android.content.SharedPreferences
 import okhttp3.Cookie
 import okhttp3.CookieJar
 import okhttp3.HttpUrl
+import java.util.concurrent.ConcurrentHashMap
 
 /**
  * A CookieJar that persists cookies to SharedPreferences.
  * Survives app backgrounding, device idle/sleep, and process death.
  *
  * Cookies are kept in memory for fast access and synced to disk on every change.
+ * Thread-safe for concurrent OkHttp access.
  */
 class PersistentCookieJar(context: Context) : CookieJar {
 
     private val prefs: SharedPreferences =
         context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
 
-    private val cache = mutableMapOf<String, MutableMap<String, Cookie>>()
+    private val cache = ConcurrentHashMap<String, ConcurrentHashMap<String, Cookie>>()
 
     init {
         loadFromDisk()
     }
 
     override fun saveFromResponse(url: HttpUrl, cookies: List<Cookie>) {
-        val domainCookies = cache.getOrPut(url.host) { mutableMapOf() }
+        val domainCookies = cache.getOrPut(url.host) { ConcurrentHashMap() }
         for (cookie in cookies) {
             if (cookie.expiresAt < System.currentTimeMillis()) {
                 domainCookies.remove(cookie.name)
@@ -94,7 +96,7 @@ class PersistentCookieJar(context: Context) : CookieJar {
             val domain = parts[0]
             val cookie = deserializeCookie(value) ?: continue
             if (cookie.expiresAt < now) continue
-            cache.getOrPut(domain) { mutableMapOf() }[cookie.name] = cookie
+            cache.getOrPut(domain) { ConcurrentHashMap() }[cookie.name] = cookie
         }
     }
 
