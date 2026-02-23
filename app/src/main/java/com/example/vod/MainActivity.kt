@@ -113,6 +113,11 @@ class MainActivity : AppCompatActivity() {
     private lateinit var chipClearFilters: Chip
     private var currentFilters = SearchFilters()
 
+    // Sort
+    private enum class SortMode { AZ, NEWEST, RATING, RUNTIME }
+    private var currentSortMode: SortMode = SortMode.AZ
+    private lateinit var chipGroupSort: ChipGroup
+
     // Container Switching
     private lateinit var dashboardView: View
     private lateinit var layoutGridContainer: LinearLayout
@@ -248,6 +253,7 @@ class MainActivity : AppCompatActivity() {
         scrollAlphabet = findViewById(R.id.scrollAlphabet)
         containerAlphabet = findViewById(R.id.containerAlphabet)
         libraryGridView = findViewById(R.id.recycler_view)
+        chipGroupSort = findViewById(R.id.chipGroupSort)
 
         // Hero Section
         layoutHero = findViewById(R.id.layoutHero)
@@ -269,6 +275,7 @@ class MainActivity : AppCompatActivity() {
         setupPhoneSideMenu()
         setupSideMenuToggle()
         setupAlphabetBar()
+        setupSortChips()
         setupSearchFocusNavigation()
 
         // Keep scroll snapshot up-to-date while scrolling
@@ -528,6 +535,27 @@ class MainActivity : AppCompatActivity() {
     }
 
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        // DPAD_UP from first row of grid -> focus sort chips
+        if (event.action == KeyEvent.ACTION_DOWN && event.keyCode == KeyEvent.KEYCODE_DPAD_UP) {
+            if (!isPhone && sideMenu.isGone && layoutGridContainer.isVisible) {
+                val focusedView = currentFocus
+                val containing = focusedView?.let { libraryGridView.findContainingItemView(it) }
+                if (containing != null) {
+                    val position = libraryGridView.getChildAdapterPosition(containing)
+                    val spanCount = ResponsiveUtils.getGridSpanCountFromResources(this)
+                    if (position != RecyclerView.NO_POSITION && position < spanCount) {
+                        val checkedId = chipGroupSort.checkedChipId
+                        if (checkedId != View.NO_ID) {
+                            findViewById<Chip>(checkedId)?.requestFocus()
+                        } else {
+                            findViewById<Chip>(R.id.chipSortAZ)?.requestFocus()
+                        }
+                        return true
+                    }
+                }
+            }
+        }
+
         if (event.action == KeyEvent.ACTION_DOWN && event.keyCode == KeyEvent.KEYCODE_DPAD_LEFT) {
             if (sideMenu.isGone) {
                 val focusedView = currentFocus
@@ -730,6 +758,55 @@ class MainActivity : AppCompatActivity() {
                 viewHolder?.itemView?.requestFocus()
             }
         }
+    }
+
+    private fun setupSortChips() {
+        if (isPhone) {
+            chipGroupSort.visibility = View.GONE
+            return
+        }
+
+        chipGroupSort.setOnCheckedStateChangeListener { _, checkedIds ->
+            val newMode = when {
+                checkedIds.contains(R.id.chipSortNewest) -> SortMode.NEWEST
+                checkedIds.contains(R.id.chipSortRating) -> SortMode.RATING
+                checkedIds.contains(R.id.chipSortRuntime) -> SortMode.RUNTIME
+                else -> SortMode.AZ
+            }
+            if (newMode != currentSortMode) {
+                currentSortMode = newMode
+                applySortAndRefresh()
+            }
+        }
+
+        // Focus navigation: DOWN from any sort chip -> grid
+        listOf(R.id.chipSortAZ, R.id.chipSortNewest, R.id.chipSortRating, R.id.chipSortRuntime).forEach {
+            findViewById<Chip>(it)?.nextFocusDownId = R.id.recycler_view
+        }
+    }
+
+    private fun applySortAndRefresh() {
+        if (videoList.isEmpty()) return
+
+        val sorted = when (currentSortMode) {
+            SortMode.AZ -> videoList.sortedBy { (it.seriesTitle ?: it.title).uppercase() }
+            SortMode.NEWEST -> videoList.sortedByDescending { it.year }
+            SortMode.RATING -> videoList.sortedByDescending { it.rating?.toFloatOrNull() ?: 0f }
+            SortMode.RUNTIME -> videoList.sortedByDescending { it.runtime }
+        }
+
+        gridAdapter.updateData(sorted)
+        libraryGridView.scrollToPosition(0)
+        lastGridFocusedPos = RecyclerView.NO_POSITION
+        lastGridFirstVisiblePos = 0
+        lastGridFirstVisibleOffset = 0
+
+        updateAlphabetBarVisibility()
+    }
+
+    private fun updateAlphabetBarVisibility() {
+        if (isPhone) return
+        scrollAlphabet.visibility = if (currentSortMode == SortMode.AZ) View.VISIBLE else View.GONE
     }
 
     private fun toggleSearch() {
@@ -1004,6 +1081,9 @@ class MainActivity : AppCompatActivity() {
         val intent = Intent(this, DetailsActivity::class.java)
         intent.putExtra("VIDEO_ID", video.id)
         intent.putExtra("RESUME_TIME", video.resume_time)
+        if (currentLibId > 0) {
+            intent.putExtra("LIB_ID", currentLibId)
+        }
         startActivity(intent)
         AnimationHelper.applyOpenTransition(this)
     }
@@ -1726,6 +1806,13 @@ class MainActivity : AppCompatActivity() {
         removeCurrentFragmentIfPresent(immediateWhenPossible = true)
         currentLibId = libId
 
+        // Reset sort to A-Z when switching libraries
+        if (currentSortMode != SortMode.AZ) {
+            currentSortMode = SortMode.AZ
+            findViewById<Chip>(R.id.chipSortAZ)?.isChecked = true
+        }
+        updateAlphabetBarVisibility()
+
         dashboardView.isGone = true
         layoutGridContainer.isVisible = true
         sideMenu.importantForAccessibility = View.IMPORTANT_FOR_ACCESSIBILITY_YES
@@ -1760,7 +1847,12 @@ class MainActivity : AppCompatActivity() {
                         if (newData.isEmpty()) {
                             hasMorePages = false
                         } else {
-                            val sortedData = newData.sortedBy { it.title }
+                            val sortedData = when (activity.currentSortMode) {
+                                SortMode.AZ -> newData.sortedBy { (it.seriesTitle ?: it.title).uppercase() }
+                                SortMode.NEWEST -> newData.sortedByDescending { it.year }
+                                SortMode.RATING -> newData.sortedByDescending { it.rating?.toFloatOrNull() ?: 0f }
+                                SortMode.RUNTIME -> newData.sortedByDescending { it.runtime }
+                            }
 
                             if (pageToLoad == 1) {
                                 activity.gridAdapter.setLoadingState(false)
@@ -1798,6 +1890,10 @@ class MainActivity : AppCompatActivity() {
                 weakActivity.get()?.let { activity ->
                     activity.isLoading = false
                     activity.gridAdapter.setLoadingState(false)
+                    // Re-sort entire list after all pages loaded if sort changed during pagination
+                    if (activity.currentSortMode != SortMode.AZ && activity.videoList.isNotEmpty()) {
+                        activity.applySortAndRefresh()
+                    }
                 }
             }
         }
@@ -1928,7 +2024,12 @@ class LibraryAdapter(
         fun bind(video: VideoItem, onClick: (VideoItem) -> Unit) {
             val displayTitle = if (!video.seriesTitle.isNullOrEmpty()) video.seriesTitle else video.title
             txtTitle.text = displayTitle
-            txtYear.text = video.year.toString()
+            if (video.year > 0) {
+                txtYear.text = video.year.toString()
+                txtYear.visibility = View.VISIBLE
+            } else {
+                txtYear.visibility = View.GONE
+            }
             txtQuality.text = video.quality ?: "HD"
             val formattedRating = RatingUtils.formatImdbRating(video.rating) ?: "5.0"
             txtRating.text = itemView.context.getString(R.string.rating_format, formattedRating)

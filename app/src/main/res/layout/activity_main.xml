@@ -723,18 +723,29 @@
                         android:clickable="false"/>
                 </RelativeLayout>
 
-                <TextView
-                    android:id="@+id/lblContinue"
+                <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="@string/home_continue_watching"
-                    android:textColor="@color/brand_accent"
-                    android:textSize="@dimen/home_section_title_text"
-                    android:textStyle="bold"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
                     android:layout_marginTop="@dimen/home_section_margin_top"
                     android:layout_marginBottom="@dimen/home_section_margin_bottom"
-                    android:layout_marginStart="@dimen/home_section_margin_start"
-                    android:accessibilityHeading="true"/>
+                    android:layout_marginStart="@dimen/home_section_margin_start">
+                    <View
+                        android:layout_width="4dp"
+                        android:layout_height="20dp"
+                        android:background="@color/brand_primary"/>
+                    <TextView
+                        android:id="@+id/lblContinue"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/home_continue_watching"
+                        android:textColor="@color/brand_accent"
+                        android:textSize="@dimen/home_section_title_text"
+                        android:textStyle="bold"
+                        android:layout_marginStart="@dimen/spacing_sm"
+                        android:accessibilityHeading="true"/>
+                </LinearLayout>
                 <androidx.recyclerview.widget.RecyclerView
                     android:id="@+id/rvContinueWatching"
                     android:layout_width="match_parent"
@@ -745,17 +756,28 @@
                     android:paddingEnd="@dimen/home_list_side_padding"
                     android:layout_marginBottom="@dimen/home_list_bottom_margin"
                     android:contentDescription="@string/a11y_continue_watching_list"/>
-                <TextView
-                    android:id="@+id/lblRecentMovies"
+                <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="@string/home_recent_movies"
-                    android:textColor="@color/text_primary"
-                    android:textSize="@dimen/home_section_title_text"
-                    android:textStyle="bold"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
                     android:layout_marginBottom="@dimen/home_section_margin_bottom"
-                    android:layout_marginStart="@dimen/home_section_margin_start"
-                    android:accessibilityHeading="true"/>
+                    android:layout_marginStart="@dimen/home_section_margin_start">
+                    <View
+                        android:layout_width="4dp"
+                        android:layout_height="20dp"
+                        android:background="@color/brand_primary"/>
+                    <TextView
+                        android:id="@+id/lblRecentMovies"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/home_recent_movies"
+                        android:textColor="@color/text_primary"
+                        android:textSize="@dimen/home_section_title_text"
+                        android:textStyle="bold"
+                        android:layout_marginStart="@dimen/spacing_sm"
+                        android:accessibilityHeading="true"/>
+                </LinearLayout>
                 <androidx.recyclerview.widget.RecyclerView
                     android:id="@+id/rvRecentMovies"
                     android:layout_width="match_parent"
@@ -766,17 +788,28 @@
                     android:paddingEnd="@dimen/home_list_side_padding"
                     android:layout_marginBottom="@dimen/home_list_bottom_margin"
                     android:contentDescription="@string/a11y_recent_movies_list"/>
-                <TextView
-                    android:id="@+id/lblRecentShows"
+                <LinearLayout
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="@string/home_recent_tv"
-                    android:textColor="@color/text_primary"
-                    android:textSize="@dimen/home_section_title_text"
-                    android:textStyle="bold"
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
                     android:layout_marginBottom="@dimen/home_section_margin_bottom"
-                    android:layout_marginStart="@dimen/home_section_margin_start"
-                    android:accessibilityHeading="true"/>
+                    android:layout_marginStart="@dimen/home_section_margin_start">
+                    <View
+                        android:layout_width="4dp"
+                        android:layout_height="20dp"
+                        android:background="@color/brand_primary"/>
+                    <TextView
+                        android:id="@+id/lblRecentShows"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="@string/home_recent_tv"
+                        android:textColor="@color/text_primary"
+                        android:textSize="@dimen/home_section_title_text"
+                        android:textStyle="bold"
+                        android:layout_marginStart="@dimen/spacing_sm"
+                        android:accessibilityHeading="true"/>
+                </LinearLayout>
                 <androidx.recyclerview.widget.RecyclerView
                     android:id="@+id/rvRecentShows"
                     android:layout_width="match_parent"
@@ -796,15 +829,91 @@
             android:orientation="horizontal"
             android:visibility="gone"
             android:baselineAligned="false">
-            <androidx.recyclerview.widget.RecyclerView
-                android:id="@+id/recycler_view"
+
+            <LinearLayout
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
-                android:descendantFocusability="afterDescendants"
-                android:clipToPadding="false"
-                android:padding="@dimen/spacing_lg"
-                android:saveEnabled="true"/>
+                android:orientation="vertical">
+
+                <com.google.android.material.chip.ChipGroup
+                    android:id="@+id/chipGroupSort"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:paddingHorizontal="@dimen/spacing_lg"
+                    android:paddingTop="@dimen/spacing_sm"
+                    android:paddingBottom="@dimen/spacing_xs"
+                    app:singleLine="true"
+                    app:singleSelection="true"
+                    app:selectionRequired="true">
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chipSortAZ"
+                        style="@style/Widget.MaterialComponents.Chip.Choice"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:checked="true"
+                        android:focusable="true"
+                        android:text="@string/sort_az"
+                        android:textColor="@color/selector_sort_chip_text"
+                        android:textStyle="bold"
+                        app:chipBackgroundColor="@color/selector_sort_chip_bg"
+                        app:chipStrokeWidth="0dp"
+                        app:chipMinHeight="32dp" />
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chipSortNewest"
+                        style="@style/Widget.MaterialComponents.Chip.Choice"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:focusable="true"
+                        android:text="@string/sort_newest"
+                        android:textColor="@color/selector_sort_chip_text"
+                        android:textStyle="bold"
+                        app:chipBackgroundColor="@color/selector_sort_chip_bg"
+                        app:chipStrokeWidth="0dp"
+                        app:chipMinHeight="32dp" />
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chipSortRating"
+                        style="@style/Widget.MaterialComponents.Chip.Choice"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:focusable="true"
+                        android:text="@string/sort_rating"
+                        android:textColor="@color/selector_sort_chip_text"
+                        android:textStyle="bold"
+                        app:chipBackgroundColor="@color/selector_sort_chip_bg"
+                        app:chipStrokeWidth="0dp"
+                        app:chipMinHeight="32dp" />
+
+                    <com.google.android.material.chip.Chip
+                        android:id="@+id/chipSortRuntime"
+                        style="@style/Widget.MaterialComponents.Chip.Choice"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:focusable="true"
+                        android:text="@string/sort_runtime"
+                        android:textColor="@color/selector_sort_chip_text"
+                        android:textStyle="bold"
+                        app:chipBackgroundColor="@color/selector_sort_chip_bg"
+                        app:chipStrokeWidth="0dp"
+                        app:chipMinHeight="32dp" />
+
+                </com.google.android.material.chip.ChipGroup>
+
+                <androidx.recyclerview.widget.RecyclerView
+                    android:id="@+id/recycler_view"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dp"
+                    android:layout_weight="1"
+                    android:descendantFocusability="afterDescendants"
+                    android:clipToPadding="false"
+                    android:padding="@dimen/spacing_lg"
+                    android:saveEnabled="true"/>
+
+            </LinearLayout>
+
             <ScrollView
                 android:id="@+id/scrollAlphabet"
                 android:layout_width="wrap_content"

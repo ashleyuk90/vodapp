@@ -7,6 +7,7 @@ import android.widget.ImageButton
 import android.widget.LinearLayout
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -95,6 +96,14 @@ class PlaybackPreferencesActivity : AppCompatActivity() {
             finish()
             AnimationHelper.applyCloseTransition(this)
         }
+
+        // Smooth transition when pressing the remote/system back button
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                finish()
+                AnimationHelper.applyCloseTransition(this@PlaybackPreferencesActivity)
+            }
+        })
 
         btnLogout.setOnClickListener { showLogoutConfirmation() }
         btnLogout.setOnFocusChangeListener { v, hasFocus ->

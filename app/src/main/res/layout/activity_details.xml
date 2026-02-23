@@ -46,7 +46,7 @@
                 android:layout_height="@dimen/details_poster_height"
                 app:cardBackgroundColor="#000000"
                 app:cardCornerRadius="12dp"
-                app:cardElevation="20dp"
+                app:cardElevation="8dp"
                 app:layout_constraintStart_toStartOf="parent"
                 app:layout_constraintTop_toTopOf="parent">
 
@@ -297,6 +297,45 @@
                         android:layout_height="wrap_content"
                         android:nestedScrollingEnabled="false"
                         android:contentDescription="@string/a11y_episode_list"/>
+                </LinearLayout>
+
+                <!-- More Like This -->
+                <LinearLayout
+                    android:id="@+id/layoutMoreLikeThis"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:visibility="gone"
+                    android:layout_marginTop="32dp">
+
+                    <LinearLayout
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:gravity="center_vertical"
+                        android:layout_marginBottom="12dp">
+                        <View
+                            android:layout_width="4dp"
+                            android:layout_height="20dp"
+                            android:background="@color/brand_primary"/>
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="@string/details_more_like_this"
+                            android:textColor="@color/text_primary"
+                            android:textSize="20sp"
+                            android:textStyle="bold"
+                            android:layout_marginStart="@dimen/spacing_sm"
+                            android:accessibilityHeading="true"/>
+                    </LinearLayout>
+
+                    <androidx.recyclerview.widget.RecyclerView
+                        android:id="@+id/rvMoreLikeThis"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:orientation="horizontal"
+                        android:clipToPadding="false"
+                        android:nestedScrollingEnabled="false"/>
                 </LinearLayout>
 
             </LinearLayout>

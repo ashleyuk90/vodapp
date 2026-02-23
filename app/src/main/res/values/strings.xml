@@ -14,6 +14,7 @@
     <string name="a11y_resume_playback">Resume playback from where you left off</string>
     <string name="a11y_play_from_start">Play video from the beginning</string>
     <string name="details_episodes_title">Episodes</string>
+    <string name="details_more_like_this">More Like This</string>
     <string name="a11y_episode_list">List of episodes</string>
     <string name="toast_added_watchlist">Added to Watch List</string>
     <string name="toast_removed_watchlist">Removed from Watch List</string>
@@ -98,6 +99,12 @@
     <string name="filter_clear">Clear</string>
     <string name="search_results_filtered">Showing %1$d results with filters</string>
     
+    <!-- Library Sort -->
+    <string name="sort_az">A-Z</string>
+    <string name="sort_newest">Newest</string>
+    <string name="sort_rating">Rating</string>
+    <string name="sort_runtime">Runtime</string>
+
     <!-- Search Empty/Error States -->
     <string name="search_empty_title">No Results Found</string>
     <string name="search_empty_message">Try different keywords or adjust your filters to find what you\'re looking for.</string>

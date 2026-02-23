@@ -12,6 +12,7 @@ import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.TextView
 import android.widget.Toast
+import androidx.activity.OnBackPressedCallback
 import androidx.activity.enableEdgeToEdge
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.graphics.toColorInt
@@ -67,6 +68,10 @@ class DetailsActivity : AppCompatActivity() {
     private lateinit var layoutEpisodes: LinearLayout
     private lateinit var rvEpisodes: RecyclerView
 
+    // More Like This
+    private lateinit var layoutMoreLikeThis: LinearLayout
+    private lateinit var rvMoreLikeThis: RecyclerView
+
     private lateinit var video: VideoItem
     private var isInWatchList = false
     private var isWatchLaterProcessing = false
@@ -109,20 +114,36 @@ class DetailsActivity : AppCompatActivity() {
         rvEpisodes = findViewById(R.id.rvEpisodes)
         rvEpisodes.layoutManager = LinearLayoutManager(this)
 
+        layoutMoreLikeThis = findViewById(R.id.layoutMoreLikeThis)
+        rvMoreLikeThis = findViewById(R.id.rvMoreLikeThis)
+        rvMoreLikeThis.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
+
         // Initialize ProfileManager
         ProfileManager.init(this)
 
         val videoId = intent.getIntExtra("VIDEO_ID", -1)
+        val libId = intent.getIntExtra("LIB_ID", -1)
 
         if (videoId != -1) {
             loadDetails(videoId)
             checkWatchListStatus(videoId)
             setupWatchLaterButton(videoId)
+            if (libId > 0) {
+                loadMoreLikeThis(videoId, libId)
+            }
         } else {
             finish()
         }
 
         setupNavigation()
+
+        // Smooth transition when pressing the remote/system back button
+        onBackPressedDispatcher.addCallback(this, object : OnBackPressedCallback(true) {
+            override fun handleOnBackPressed() {
+                finish()
+                AnimationHelper.applyCloseTransition(this@DetailsActivity)
+            }
+        })
     }
 
     private fun checkWatchListStatus(id: Int) {
@@ -535,5 +556,36 @@ class DetailsActivity : AppCompatActivity() {
         }
         // Keep the dimming animation
         imgBackdrop.animate().alpha(Constants.BACKDROP_DIM_ALPHA).setDuration(Constants.BACKDROP_FADE_DURATION_MS).start()
+    }
+
+    private fun loadMoreLikeThis(currentVideoId: Int, libId: Int) {
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val profileId = ProfileManager.getActiveProfileId()
+                val response = NetworkClient.api.getLibrary(libId, page = 1, profileId = profileId)
+                val items = response.data
+                    ?.filter { it.id != currentVideoId }
+                    ?.shuffled()
+                    ?.take(15)
+                    ?: return@launch
+
+                if (items.isEmpty()) return@launch
+
+                withContext(Dispatchers.Main) {
+                    if (isFinishing) return@withContext
+                    val adapter = LibraryAdapter(items.toMutableList(), isHorizontal = true) { video ->
+                        val intent = Intent(this@DetailsActivity, DetailsActivity::class.java)
+                        intent.putExtra("VIDEO_ID", video.id)
+                        intent.putExtra("LIB_ID", libId)
+                        startActivity(intent)
+                        AnimationHelper.applyOpenTransition(this@DetailsActivity)
+                    }
+                    rvMoreLikeThis.adapter = adapter
+                    layoutMoreLikeThis.visibility = View.VISIBLE
+                }
+            } catch (e: Exception) {
+                Log.w(TAG, "Failed to load more like this for libId=$libId", e)
+            }
+        }
     }
 }

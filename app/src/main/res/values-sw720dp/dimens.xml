@@ -5,7 +5,7 @@
 <!-- ========================================= -->
 <resources>
     <!-- Home (Dashboard) scale for large tablets/TV -->
-    <dimen name="home_hero_height">400dp</dimen>
+    <dimen name="home_hero_height">480dp</dimen>
     <dimen name="home_hero_padding">32dp</dimen>
 
     <dimen name="home_title_text">52sp</dimen>
