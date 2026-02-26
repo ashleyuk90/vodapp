@@ -97,7 +97,7 @@ object Constants {
     const val MIN_USERNAME_LENGTH = 3
     
     /** Minimum password length */
-    const val MIN_PASSWORD_LENGTH = 4
+    const val MIN_PASSWORD_LENGTH = 3
 
     // ===== Blur Effect =====
     /** Default blur radius for backdrop images */
