@@ -50,6 +50,9 @@ object Constants {
     
     /** Time before end to show "Next Episode" button (ms) */
     const val NEXT_EPISODE_THRESHOLD_MS = 30_000L
+
+    /** Seek increment for D-pad / media keys (ms) */
+    const val SEEK_INCREMENT_MS = 10_000L
     
     /** Network request timeout (ms) */
     const val NETWORK_TIMEOUT_MS = 5000L

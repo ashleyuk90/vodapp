@@ -8,6 +8,7 @@ import android.os.Handler
 import android.os.Looper
 import android.os.SystemClock
 import android.util.Log
+import android.view.KeyEvent
 import android.widget.Toast
 import androidx.annotation.OptIn
 import androidx.activity.enableEdgeToEdge
@@ -104,6 +105,7 @@ class PlayerActivity : AppCompatActivity() {
         // Hide player controls by default - user must tap/click to show them
         playerView.controllerAutoShow = false
         playerView.controllerShowTimeoutMs = 5000  // Hide controls after 5 seconds of no interaction
+        playerView.requestFocus()
 
         btnNextEpisode.setOnClickListener {
             loadNextEpisode()
@@ -138,6 +140,52 @@ class PlayerActivity : AppCompatActivity() {
             Toast.makeText(this, "Error: No Video ID passed", Toast.LENGTH_SHORT).show()
             finish()
         }
+    }
+
+    override fun dispatchKeyEvent(event: KeyEvent): Boolean {
+        val p = player
+        if (p != null && event.action == KeyEvent.ACTION_DOWN) {
+            when (event.keyCode) {
+                KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE,
+                KeyEvent.KEYCODE_MEDIA_PLAY,
+                KeyEvent.KEYCODE_MEDIA_PAUSE -> {
+                    if (p.isPlaying) p.pause() else p.play()
+                    return true
+                }
+                KeyEvent.KEYCODE_MEDIA_REWIND,
+                KeyEvent.KEYCODE_MEDIA_STEP_BACKWARD -> {
+                    p.seekTo((p.currentPosition - Constants.SEEK_INCREMENT_MS).coerceAtLeast(0))
+                    return true
+                }
+                KeyEvent.KEYCODE_MEDIA_FAST_FORWARD,
+                KeyEvent.KEYCODE_MEDIA_STEP_FORWARD -> {
+                    p.seekTo((p.currentPosition + Constants.SEEK_INCREMENT_MS).coerceAtMost(p.duration))
+                    return true
+                }
+                KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER -> {
+                    // If controller is not visible, show it; otherwise toggle play/pause
+                    if (!playerView.isControllerFullyVisible) {
+                        playerView.showController()
+                    } else {
+                        if (p.isPlaying) p.pause() else p.play()
+                    }
+                    return true
+                }
+                KeyEvent.KEYCODE_DPAD_LEFT -> {
+                    if (!playerView.isControllerFullyVisible) {
+                        p.seekTo((p.currentPosition - Constants.SEEK_INCREMENT_MS).coerceAtLeast(0))
+                        return true
+                    }
+                }
+                KeyEvent.KEYCODE_DPAD_RIGHT -> {
+                    if (!playerView.isControllerFullyVisible) {
+                        p.seekTo((p.currentPosition + Constants.SEEK_INCREMENT_MS).coerceAtMost(p.duration))
+                        return true
+                    }
+                }
+            }
+        }
+        return super.dispatchKeyEvent(event)
     }
 
     /**
