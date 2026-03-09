@@ -1,5 +1,6 @@
 package com.example.vod
 
+import com.example.vod.utils.UrlUtils
 import com.google.gson.annotations.SerializedName
 
 // Generic API Response wrapper with safe defaults
@@ -87,42 +88,14 @@ data class VideoItem(
     @SerializedName("credits_marker") val creditsMarker: ContentMarker? = null
 ) {
     companion object {
-        private const val IMAGES_PATH_SEGMENT = "images/"
-
-        private fun normalizedSecureBaseUrl(): String {
-            val rawBaseUrl = BuildConfig.BASE_URL.trim().ifEmpty { "https://localhost/" }
-            val schemeSeparatorIndex = rawBaseUrl.indexOf("://")
-            val withoutScheme = if (schemeSeparatorIndex >= 0) {
-                rawBaseUrl.substring(schemeSeparatorIndex + 3)
-            } else {
-                rawBaseUrl
-            }
-            val withScheme = when {
-                rawBaseUrl.startsWith("https://", ignoreCase = true) -> rawBaseUrl
-                else -> "https://$withoutScheme"
-            }
-            return if (withScheme.endsWith("/")) withScheme else "$withScheme/"
-        }
+        private const val IMAGES_PATH_SEGMENT = "images"
 
         private fun resolveImageUrl(raw: String?, treatAsPath: Boolean = false): String? {
-            val trimmed = raw?.trim()?.takeIf { it.isNotEmpty() } ?: return null
-
-            return when {
-                trimmed.startsWith("https://", ignoreCase = true) -> trimmed
-                trimmed.startsWith("http://", ignoreCase = true) -> {
-                    val schemeSeparatorIndex = trimmed.indexOf("://")
-                    val withoutScheme = if (schemeSeparatorIndex >= 0) {
-                        trimmed.substring(schemeSeparatorIndex + 3)
-                    } else {
-                        trimmed
-                    }
-                    "https://$withoutScheme"
-                }
-                treatAsPath -> "${normalizedSecureBaseUrl()}$IMAGES_PATH_SEGMENT${trimmed.trimStart('/')}"
-                trimmed.startsWith("/") ->
-                    "${normalizedSecureBaseUrl()}${trimmed.trimStart('/')}"
-                else -> null
-            }
+            return UrlUtils.resolve(
+                rawUrl = raw,
+                pathPrefix = if (treatAsPath) IMAGES_PATH_SEGMENT else null,
+                upgradeHttpToHttps = true
+            )
         }
     }
 
@@ -220,7 +193,7 @@ data class ContentMarker(
     fun getCreditsStartSeconds(videoDurationSeconds: Int): Int? {
         val duration = creditsDurationSeconds ?: return null
         val offset = creditsEndOffsetSeconds ?: 0
-        return videoDurationSeconds - offset - duration
+        return (videoDurationSeconds - offset - duration).coerceAtLeast(0)
     }
 }
 

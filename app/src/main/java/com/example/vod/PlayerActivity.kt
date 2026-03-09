@@ -32,6 +32,7 @@ import com.example.vod.utils.ErrorHandler
 import com.example.vod.utils.AnimationHelper
 import com.example.vod.utils.NetworkUtils
 import com.example.vod.utils.OrientationUtils
+import com.example.vod.utils.UrlUtils
 import com.google.gson.Gson
 import com.google.android.material.button.MaterialButton
 import kotlinx.coroutines.Dispatchers
@@ -54,10 +55,6 @@ class PlayerActivity : AppCompatActivity() {
 
     companion object {
         private const val TAG = "PlayerActivity"
-        private const val MAX_RETRY_ATTEMPTS = 3
-        private const val INITIAL_RETRY_DELAY_MS = 2000L
-        private const val MAX_RETRY_DELAY_MS = 16000L
-        private const val PLAYBACK_STATUS_CHECK_TICK_INTERVAL = 10
         private const val PLAYBACK_LIMIT_EXCEEDED_CODE = "playback_limit_exceeded"
     }
 
@@ -83,7 +80,7 @@ class PlayerActivity : AppCompatActivity() {
 
     // Stream error recovery state
     private var retryAttempt = 0
-    private var currentRetryDelay = INITIAL_RETRY_DELAY_MS
+    private var currentRetryDelay = Constants.INITIAL_PLAYER_RETRY_DELAY_MS
     private var lastStreamUrl: String? = null
     private var lastCookieHeader: String? = null
     private var lastSubUrl: String? = null
@@ -104,18 +101,21 @@ class PlayerActivity : AppCompatActivity() {
 
         // Hide player controls by default - user must tap/click to show them
         playerView.controllerAutoShow = false
-        playerView.controllerShowTimeoutMs = 5000  // Hide controls after 5 seconds of no interaction
+        playerView.controllerShowTimeoutMs = Constants.CONTROLLER_SHOW_TIMEOUT_MS
         playerView.requestFocus()
 
         btnNextEpisode.setOnClickListener {
+            if (isFinishing || isDestroyed) return@setOnClickListener
             loadNextEpisode()
         }
 
         btnSkipIntro.setOnClickListener {
+            if (isFinishing || isDestroyed) return@setOnClickListener
             skipIntro()
         }
 
         btnSkipCredits.setOnClickListener {
+            if (isFinishing || isDestroyed) return@setOnClickListener
             skipCredits()
         }
 
@@ -145,6 +145,8 @@ class PlayerActivity : AppCompatActivity() {
     override fun dispatchKeyEvent(event: KeyEvent): Boolean {
         val p = player
         if (p != null && event.action == KeyEvent.ACTION_DOWN) {
+            val duration = p.duration
+            val hasDuration = duration > 0 && duration != C.TIME_UNSET
             when (event.keyCode) {
                 KeyEvent.KEYCODE_MEDIA_PLAY_PAUSE,
                 KeyEvent.KEYCODE_MEDIA_PLAY,
@@ -154,12 +156,16 @@ class PlayerActivity : AppCompatActivity() {
                 }
                 KeyEvent.KEYCODE_MEDIA_REWIND,
                 KeyEvent.KEYCODE_MEDIA_STEP_BACKWARD -> {
-                    p.seekTo((p.currentPosition - Constants.SEEK_INCREMENT_MS).coerceAtLeast(0))
+                    if (hasDuration) {
+                        p.seekTo((p.currentPosition - Constants.SEEK_INCREMENT_MS).coerceAtLeast(0))
+                    }
                     return true
                 }
                 KeyEvent.KEYCODE_MEDIA_FAST_FORWARD,
                 KeyEvent.KEYCODE_MEDIA_STEP_FORWARD -> {
-                    p.seekTo((p.currentPosition + Constants.SEEK_INCREMENT_MS).coerceAtMost(p.duration))
+                    if (hasDuration) {
+                        p.seekTo((p.currentPosition + Constants.SEEK_INCREMENT_MS).coerceAtMost(duration))
+                    }
                     return true
                 }
                 KeyEvent.KEYCODE_DPAD_CENTER, KeyEvent.KEYCODE_ENTER -> {
@@ -172,14 +178,14 @@ class PlayerActivity : AppCompatActivity() {
                     return true
                 }
                 KeyEvent.KEYCODE_DPAD_LEFT -> {
-                    if (!playerView.isControllerFullyVisible) {
+                    if (!playerView.isControllerFullyVisible && hasDuration) {
                         p.seekTo((p.currentPosition - Constants.SEEK_INCREMENT_MS).coerceAtLeast(0))
                         return true
                     }
                 }
                 KeyEvent.KEYCODE_DPAD_RIGHT -> {
-                    if (!playerView.isControllerFullyVisible) {
-                        p.seekTo((p.currentPosition + Constants.SEEK_INCREMENT_MS).coerceAtMost(p.duration))
+                    if (!playerView.isControllerFullyVisible && hasDuration) {
+                        p.seekTo((p.currentPosition + Constants.SEEK_INCREMENT_MS).coerceAtMost(duration))
                         return true
                     }
                 }
@@ -264,7 +270,7 @@ class PlayerActivity : AppCompatActivity() {
             }
 
             val shouldCheckPlaybackStatus = isPlaying &&
-                tickCount % PLAYBACK_STATUS_CHECK_TICK_INTERVAL == 0
+                tickCount % Constants.PLAYBACK_STATUS_CHECK_TICK_INTERVAL == 0
             val shouldRunProgressSync = tickCount % Constants.PROGRESS_SYNC_TICK_INTERVAL == 0
 
             if (shouldRunProgressSync || shouldCheckPlaybackStatus) {
@@ -635,18 +641,7 @@ class PlayerActivity : AppCompatActivity() {
         player?.play()
     }
 
-    private fun resolveSubtitleUrl(rawUrl: String?): String? {
-        val trimmed = rawUrl?.trim()?.takeIf { it.isNotEmpty() } ?: return null
-        val baseUrl = BuildConfig.BASE_URL.trim().trimEnd('/')
-
-        return when {
-            trimmed.startsWith("https://", ignoreCase = true) -> trimmed
-            trimmed.startsWith("http://", ignoreCase = true) -> trimmed
-            trimmed.startsWith("//") -> "https:$trimmed"
-            trimmed.startsWith("/") -> "$baseUrl$trimmed"
-            else -> "$baseUrl/${trimmed.trimStart('/')}"
-        }
-    }
+    private fun resolveSubtitleUrl(rawUrl: String?): String? = UrlUtils.resolve(rawUrl)
 
     /**
      * Handle playback errors with automatic retry logic.
@@ -687,11 +682,11 @@ class PlayerActivity : AppCompatActivity() {
         }
 
         // Check if we should retry
-        if (retryAttempt < MAX_RETRY_ATTEMPTS && !isRetrying) {
+        if (retryAttempt < Constants.MAX_PLAYER_RETRY_ATTEMPTS && !isRetrying) {
             retryAttempt++
             isRetrying = true
 
-            val retryMessage = "Connection issue. Retrying ($retryAttempt/$MAX_RETRY_ATTEMPTS)..."
+            val retryMessage = "Connection issue. Retrying ($retryAttempt/$Constants.MAX_PLAYER_RETRY_ATTEMPTS)..."
             Toast.makeText(this, retryMessage, Toast.LENGTH_SHORT).show()
 
             Log.d(TAG, "Scheduling retry attempt $retryAttempt in ${currentRetryDelay}ms")
@@ -701,7 +696,7 @@ class PlayerActivity : AppCompatActivity() {
             }, currentRetryDelay)
 
             // Exponential backoff: double the delay for next attempt
-            currentRetryDelay = (currentRetryDelay * 2).coerceAtMost(MAX_RETRY_DELAY_MS)
+            currentRetryDelay = (currentRetryDelay * 2).coerceAtMost(Constants.MAX_PLAYER_RETRY_DELAY_MS)
         } else {
             // Max retries exceeded - show final error with manual retry option
             showFinalError(errorMessage)
@@ -728,11 +723,11 @@ class PlayerActivity : AppCompatActivity() {
 
         // Check network before retry
         if (!NetworkUtils.isNetworkAvailable(this)) {
-            if (retryAttempt < MAX_RETRY_ATTEMPTS) {
+            if (retryAttempt < Constants.MAX_PLAYER_RETRY_ATTEMPTS) {
                 retryAttempt++
-                Toast.makeText(this, "Waiting for network ($retryAttempt/$MAX_RETRY_ATTEMPTS)...", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this, "Waiting for network ($retryAttempt/$Constants.MAX_PLAYER_RETRY_ATTEMPTS)...", Toast.LENGTH_SHORT).show()
                 progressHandler.postDelayed({ retryPlayback() }, currentRetryDelay)
-                currentRetryDelay = (currentRetryDelay * 2).coerceAtMost(MAX_RETRY_DELAY_MS)
+                currentRetryDelay = (currentRetryDelay * 2).coerceAtMost(Constants.MAX_PLAYER_RETRY_DELAY_MS)
             } else {
                 showFinalError("No internet connection")
             }
@@ -769,6 +764,7 @@ class PlayerActivity : AppCompatActivity() {
 
         // Allow tap on player view to retry
         playerView.setOnClickListener {
+            if (isFinishing || isDestroyed) return@setOnClickListener
             resetRetryState()
             playerView.setOnClickListener(null)
             initializePlayer(videoId)
@@ -780,7 +776,7 @@ class PlayerActivity : AppCompatActivity() {
      */
     private fun resetRetryState() {
         retryAttempt = 0
-        currentRetryDelay = INITIAL_RETRY_DELAY_MS
+        currentRetryDelay = Constants.INITIAL_PLAYER_RETRY_DELAY_MS
         isRetrying = false
     }
 
@@ -899,15 +895,13 @@ class PlayerActivity : AppCompatActivity() {
 
     override fun onStop() {
         super.onStop()
-        Log.d(TAG, "onStop releasing player for videoId=$videoId")
-        player?.release()
-        player = null
+        Log.d(TAG, "onStop stopping progress handler for videoId=$videoId")
+        progressHandler.removeCallbacks(progressRunnable)
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        Log.d(TAG, "onDestroy clearing callbacks and releasing player for videoId=$videoId")
-        // Ensure all handler callbacks are removed to prevent leaks
+        Log.d(TAG, "onDestroy releasing player for videoId=$videoId")
         progressHandler.removeCallbacksAndMessages(null)
         player?.release()
         player = null

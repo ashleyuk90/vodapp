@@ -147,15 +147,18 @@ class DetailsActivity : AppCompatActivity() {
     }
 
     private fun checkWatchListStatus(id: Int) {
+        btnWatchLater.isEnabled = false
         lifecycleScope.launch(Dispatchers.IO) {
             try {
                 val response = NetworkClient.api.getWatchListStatus(id)
                 withContext(Dispatchers.Main) {
                     isInWatchList = response.inWatchList
                     updateWatchLaterUI()
+                    btnWatchLater.isEnabled = true
                 }
             } catch (e: Exception) {
                 Log.w(TAG, "Failed to load watch list status for videoId=$id", e)
+                withContext(Dispatchers.Main) { btnWatchLater.isEnabled = true }
             }
         }
     }

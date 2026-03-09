@@ -34,6 +34,7 @@ object ProfileManager {
     private const val KEY_DEFAULT_PROFILE_ID = "default_profile_id"
     private const val KEY_PINNED_LIBRARIES = "pinned_libraries"
 
+    @Volatile
     private var prefs: SharedPreferences? = null
     private var activeProfile: Profile? = null
 
@@ -41,6 +42,7 @@ object ProfileManager {
      * Initialize the ProfileManager with application context.
      * Should be called early in app lifecycle (e.g., onCreate of first Activity).
      */
+    @Synchronized
     fun init(context: Context) {
         if (prefs != null) return
 

@@ -239,12 +239,10 @@ class LoginActivity : AppCompatActivity() {
 
             // Apply exponential backoff after auth failures (401/403)
             consecutiveFailures++
-            if (consecutiveFailures >= 3) {
-                val delaySeconds = when {
-                    consecutiveFailures <= 3 -> 5L
-                    consecutiveFailures <= 4 -> 15L
-                    else -> 30L
-                }
+            if (consecutiveFailures >= Constants.LOGIN_BACKOFF_THRESHOLD) {
+                val exponent = consecutiveFailures - Constants.LOGIN_BACKOFF_THRESHOLD
+                val delaySeconds = (Constants.LOGIN_BACKOFF_BASE_DELAY_S * (1L shl exponent.coerceAtMost(5)))
+                    .coerceAtMost(Constants.LOGIN_BACKOFF_MAX_DELAY_S)
                 nextAllowedAttemptMs = System.currentTimeMillis() + (delaySeconds * 1000)
             }
         }

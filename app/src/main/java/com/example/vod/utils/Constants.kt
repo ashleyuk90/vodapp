@@ -57,6 +57,42 @@ object Constants {
     /** Network request timeout (ms) */
     const val NETWORK_TIMEOUT_MS = 5000L
 
+    // ===== Player UI =====
+    /** Controller auto-hide timeout (ms) */
+    const val CONTROLLER_SHOW_TIMEOUT_MS = 5000
+
+    /** Maximum player stream retry attempts */
+    const val MAX_PLAYER_RETRY_ATTEMPTS = 3
+
+    /** Initial delay before first retry (ms) */
+    const val INITIAL_PLAYER_RETRY_DELAY_MS = 2000L
+
+    /** Maximum retry delay cap (ms) */
+    const val MAX_PLAYER_RETRY_DELAY_MS = 16000L
+
+    /** How often to check playback status (every N ticks) */
+    const val PLAYBACK_STATUS_CHECK_TICK_INTERVAL = 10
+
+    // ===== Network Timeouts =====
+    /** OkHttp connect timeout (seconds) */
+    const val NETWORK_CONNECT_TIMEOUT_S = 30L
+
+    /** OkHttp read timeout (seconds) */
+    const val NETWORK_READ_TIMEOUT_S = 30L
+
+    /** OkHttp write timeout (seconds) */
+    const val NETWORK_WRITE_TIMEOUT_S = 30L
+
+    // ===== Login Rate Limiting =====
+    /** Consecutive failures before backoff kicks in */
+    const val LOGIN_BACKOFF_THRESHOLD = 3
+
+    /** Base delay for login backoff (seconds) */
+    const val LOGIN_BACKOFF_BASE_DELAY_S = 5L
+
+    /** Maximum login backoff delay cap (seconds) */
+    const val LOGIN_BACKOFF_MAX_DELAY_S = 30L
+
     // ===== UI Sizing =====
     /** Alphabet bar letter button width in dp */
     const val ALPHABET_BUTTON_WIDTH_DP = 60

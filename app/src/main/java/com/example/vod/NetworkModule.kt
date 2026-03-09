@@ -1,6 +1,7 @@
 package com.example.vod
 
 import android.content.Context
+import com.example.vod.utils.Constants
 import com.example.vod.utils.PersistentCookieJar
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
@@ -111,7 +112,8 @@ interface ApiService {
     @FormUrlEncoded
     @POST("api/profiles_select")
     suspend fun selectProfile(
-        @Field("profile_id") profileId: Int
+        @Field("profile_id") profileId: Int,
+        @Field("pin") pin: String? = null
     ): ProfileSelectResponse
 
     /**
@@ -191,9 +193,9 @@ object NetworkClient {
                 }
             })
             // Add timeouts for network resilience
-            .connectTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
-            .readTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
-            .writeTimeout(30, java.util.concurrent.TimeUnit.SECONDS)
+            .connectTimeout(Constants.NETWORK_CONNECT_TIMEOUT_S, java.util.concurrent.TimeUnit.SECONDS)
+            .readTimeout(Constants.NETWORK_READ_TIMEOUT_S, java.util.concurrent.TimeUnit.SECONDS)
+            .writeTimeout(Constants.NETWORK_WRITE_TIMEOUT_S, java.util.concurrent.TimeUnit.SECONDS)
             .build()
 
         api = Retrofit.Builder()

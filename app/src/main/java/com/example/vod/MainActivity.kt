@@ -1828,6 +1828,7 @@ class MainActivity : AppCompatActivity() {
         // Use WeakReference to prevent activity leak
         val weakActivity = WeakReference(this)
 
+        fetchJob?.cancel()  // Defensive: cancel any stale job
         fetchJob = lifecycleScope.launch {
             var pageToLoad = 1
             var hasMorePages = true

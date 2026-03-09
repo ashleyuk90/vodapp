@@ -500,7 +500,7 @@ class ProfileSelectionActivity : AppCompatActivity() {
                     input.requestFocus()
                 } else {
                     dialog.dismiss()
-                    performProfileSelection(profile)
+                    performProfileSelection(profile, pin)
                 }
             }
 
@@ -523,14 +523,14 @@ class ProfileSelectionActivity : AppCompatActivity() {
         dialog.show()
     }
 
-    private fun performProfileSelection(profile: Profile) {
+    private fun performProfileSelection(profile: Profile, pin: String? = null) {
         showLoading()
 
         val weakActivity = WeakReference(this)
 
         lifecycleScope.launch(Dispatchers.IO) {
             try {
-                val response = NetworkClient.api.selectProfile(profile.id)
+                val response = NetworkClient.api.selectProfile(profile.id, pin)
 
                 withContext(Dispatchers.Main) {
                     val activity = weakActivity.get() ?: return@withContext

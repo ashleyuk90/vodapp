@@ -119,7 +119,9 @@ class PlaybackPreferencesActivity : AppCompatActivity() {
 
     override fun onResume() {
         super.onResume()
-        updateManager.resumePendingInstallIfPermitted()
+        if (::updateManager.isInitialized) {
+            updateManager.resumePendingInstallIfPermitted()
+        }
     }
 
     private fun bindAccountExpiry() {
@@ -174,6 +176,8 @@ class PlaybackPreferencesActivity : AppCompatActivity() {
         }
     }
 
+    // SimpleDateFormat used instead of java.time because minSdk 24 < API 26.
+    // Thread-safe here: instances are local and only called on the main thread.
     private fun formatAccountExpiry(rawExpiry: String): String {
         val inputFormats = listOf(
             SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.US),
