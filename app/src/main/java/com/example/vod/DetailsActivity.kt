@@ -80,6 +80,7 @@ class DetailsActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         OrientationUtils.applyPreferredOrientation(this)
         setContentView(R.layout.activity_details)
+        NetworkClient.init(applicationContext)
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(android.R.id.content)) { view, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())
             view.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom)

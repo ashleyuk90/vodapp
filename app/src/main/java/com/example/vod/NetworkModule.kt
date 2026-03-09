@@ -3,6 +3,7 @@ package com.example.vod
 import android.content.Context
 import com.example.vod.utils.Constants
 import com.example.vod.utils.PersistentCookieJar
+import com.example.vod.utils.SecurePrefs
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
@@ -153,11 +154,16 @@ object NetworkClient {
 
     /**
      * Initialize the network client with application context.
-     * Must be called before any API calls (e.g., in LoginActivity.onCreate).
+     * Safe to call multiple times — only initializes once, but always restores
+     * the CSRF token from disk in case the process was killed and restarted.
      */
     @Synchronized
     fun init(context: Context) {
-        if (::cookieJar.isInitialized) return
+        if (::cookieJar.isInitialized) {
+            // Already initialized — just restore CSRF token in case process was restarted
+            restoreCsrfToken(context)
+            return
+        }
 
         cookieJar = PersistentCookieJar(context)
 
@@ -204,6 +210,18 @@ object NetworkClient {
             .addConverterFactory(GsonConverterFactory.create())
             .build()
             .create(ApiService::class.java)
+
+        // Restore CSRF token from disk after fresh initialization
+        restoreCsrfToken(context)
+    }
+
+    private fun restoreCsrfToken(context: Context) {
+        if (csrfToken != null) return
+        val prefs = SecurePrefs.get(context, Constants.PREFS_NAME)
+        val savedToken = prefs.getString(Constants.KEY_CSRF_TOKEN, null)
+        if (!savedToken.isNullOrBlank()) {
+            csrfToken = savedToken
+        }
     }
 
     fun updateCsrfToken(token: String?) {

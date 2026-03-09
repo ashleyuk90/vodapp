@@ -172,6 +172,7 @@ class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         OrientationUtils.applyPreferredOrientation(this)
         setContentView(R.layout.activity_main)
+        NetworkClient.init(applicationContext)
         isPhone = ResponsiveUtils.getScreenSize(this) == ResponsiveUtils.ScreenSize.PHONE
         ViewCompat.setOnApplyWindowInsetsListener(findViewById(android.R.id.content)) { view, insets ->
             val systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars())

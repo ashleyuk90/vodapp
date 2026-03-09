@@ -42,8 +42,8 @@ android {
         applicationId = "com.example.vod"
         minSdk = 24
         targetSdk = 36
-        versionCode = 20600
-        versionName = "2.6"
+        versionCode = 20700
+        versionName = "2.7"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         buildConfigField(

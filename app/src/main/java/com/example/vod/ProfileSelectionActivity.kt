@@ -77,7 +77,8 @@ class ProfileSelectionActivity : AppCompatActivity() {
             insets
         }
 
-        // Initialize ProfileManager
+        // Initialize singletons (safe after process death — idempotent)
+        NetworkClient.init(applicationContext)
         ProfileManager.init(this)
 
         // Check if we should skip auto-login (e.g., user explicitly switching profiles)

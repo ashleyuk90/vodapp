@@ -93,6 +93,7 @@ class PlayerActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         OrientationUtils.applyPreferredOrientation(this)
         setContentView(R.layout.activity_player)
+        NetworkClient.init(applicationContext)
         window.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         playerView = findViewById(R.id.player_view)
         btnNextEpisode = findViewById(R.id.btnNextEpisode)
