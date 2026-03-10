@@ -68,9 +68,9 @@ class DetailsActivity : AppCompatActivity() {
     private lateinit var layoutEpisodes: LinearLayout
     private lateinit var rvEpisodes: RecyclerView
 
-    // More Like This
-    private lateinit var layoutMoreLikeThis: LinearLayout
-    private lateinit var rvMoreLikeThis: RecyclerView
+    // More Like This (absent in portrait layout)
+    private var layoutMoreLikeThis: LinearLayout? = null
+    private var rvMoreLikeThis: RecyclerView? = null
 
     private lateinit var video: VideoItem
     private var isInWatchList = false
@@ -117,7 +117,7 @@ class DetailsActivity : AppCompatActivity() {
 
         layoutMoreLikeThis = findViewById(R.id.layoutMoreLikeThis)
         rvMoreLikeThis = findViewById(R.id.rvMoreLikeThis)
-        rvMoreLikeThis.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
+        rvMoreLikeThis?.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
 
         // Initialize ProfileManager
         ProfileManager.init(this)
@@ -129,7 +129,7 @@ class DetailsActivity : AppCompatActivity() {
             loadDetails(videoId)
             checkWatchListStatus(videoId)
             setupWatchLaterButton(videoId)
-            if (libId > 0) {
+            if (libId > 0 && rvMoreLikeThis != null) {
                 loadMoreLikeThis(videoId, libId)
             }
         } else {
@@ -584,8 +584,8 @@ class DetailsActivity : AppCompatActivity() {
                         startActivity(intent)
                         AnimationHelper.applyOpenTransition(this@DetailsActivity)
                     }
-                    rvMoreLikeThis.adapter = adapter
-                    layoutMoreLikeThis.visibility = View.VISIBLE
+                    rvMoreLikeThis?.adapter = adapter
+                    layoutMoreLikeThis?.visibility = View.VISIBLE
                 }
             } catch (e: Exception) {
                 Log.w(TAG, "Failed to load more like this for libId=$libId", e)
