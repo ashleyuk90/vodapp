@@ -2,6 +2,7 @@ package com.example.vod.utils
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.util.Log
 import okhttp3.Cookie
 import okhttp3.CookieJar
 import okhttp3.HttpUrl
@@ -89,14 +90,21 @@ class PersistentCookieJar(context: Context) : CookieJar {
     }
 
     private fun loadFromDisk() {
-        val now = System.currentTimeMillis()
-        for ((key, value) in prefs.all) {
-            val parts = key.split("|", limit = 2)
-            if (parts.size != 2 || value !is String) continue
-            val domain = parts[0]
-            val cookie = deserializeCookie(value) ?: continue
-            if (cookie.expiresAt < now) continue
-            cache.getOrPut(domain) { ConcurrentHashMap() }[cookie.name] = cookie
+        try {
+            val all = prefs.all
+            val now = System.currentTimeMillis()
+            for ((key, value) in all) {
+                val parts = key.split("|", limit = 2)
+                if (parts.size != 2 || value !is String) continue
+                val domain = parts[0]
+                val cookie = deserializeCookie(value) ?: continue
+                if (cookie.expiresAt < now) continue
+                cache.getOrPut(domain) { ConcurrentHashMap() }[cookie.name] = cookie
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to load cookies from disk, clearing corrupted cache", e)
+            cache.clear()
+            try { prefs.edit().clear().apply() } catch (_: Exception) {}
         }
     }
 
@@ -133,6 +141,7 @@ class PersistentCookieJar(context: Context) : CookieJar {
     }
 
     companion object {
+        private const val TAG = "PersistentCookieJar"
         private const val PREFS_NAME = "vod_cookies"
     }
 }

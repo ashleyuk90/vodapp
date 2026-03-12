@@ -1074,13 +1074,18 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun openDetails(video: VideoItem) {
-        if (video.id <= 0) {
+        if (video.id <= 0 && !video.isSeriesCard()) {
             Log.w(TAG, "Ignoring details navigation for invalid videoId=${video.id}")
             return
         }
-        Log.d(TAG, "Opening details videoId=${video.id} title=${video.title}")
         val intent = Intent(this, DetailsActivity::class.java)
-        intent.putExtra("VIDEO_ID", video.id)
+        if (video.isSeriesCard()) {
+            Log.d(TAG, "Opening series details seriesId=${video.seriesId} title=${video.title}")
+            intent.putExtra("SERIES_ID", video.seriesId!!)
+        } else {
+            Log.d(TAG, "Opening details videoId=${video.id} title=${video.title}")
+            intent.putExtra("VIDEO_ID", video.id)
+        }
         intent.putExtra("RESUME_TIME", video.resume_time)
         if (currentLibId > 0) {
             intent.putExtra("LIB_ID", currentLibId)
@@ -1112,6 +1117,12 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun openContinueWatchingItem(video: VideoItem) {
+        // Series cards from continue_watching route to series details
+        if (video.isSeriesCard()) {
+            openDetails(video)
+            return
+        }
+
         val isEpisodeFromContinueRow =
             video.isEpisodeType() ||
                 (video.resumeEpisodeId ?: 0) > 0 ||

@@ -6,6 +6,7 @@
     <string name="rotten_tomatoes_format">%1$s%%</string>
     <string name="runtime_format">%1$dh %2$dm</string>
     <string name="runtime_minutes_format">%1$dm</string>
+    <string name="finishes_at_format">Finishes at %1$s</string>
     <string name="btn_play">Play</string>
     <string name="btn_resume">Resume</string>
     <string name="btn_restart">Restart</string>

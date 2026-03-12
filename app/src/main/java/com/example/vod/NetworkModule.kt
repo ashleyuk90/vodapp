@@ -135,6 +135,22 @@ interface ApiService {
     suspend fun removeProfile(
         @Field("profile_id") profileId: Int
     ): ProfileRemoveResponse
+
+    // ===== Series Endpoints =====
+
+    @GET("api/series_details")
+    suspend fun getSeriesDetails(
+        @Query("id") seriesId: Int,
+        @Query("profile_id") profileId: Int? = null
+    ): SeriesDetailsResponse
+
+    @GET("api/series_episodes")
+    suspend fun getSeriesEpisodes(
+        @Query("id") seriesId: Int,
+        @Query("page") page: Int = 1,
+        @Query("per_page") perPage: Int = 50,
+        @Query("profile_id") profileId: Int? = null
+    ): SeriesEpisodesResponse
 }
 
 // 2. The Client Builder

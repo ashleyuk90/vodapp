@@ -66,14 +66,20 @@ class LoginActivity : AppCompatActivity() {
         prefs = SecurePrefs.get(this, Constants.PREFS_NAME)
 
         // 3. CHECK FOR SAVED CREDENTIALS
-        val savedUser = prefs.getString(Constants.KEY_USER, null)
-        val savedPass = prefs.getString(Constants.KEY_PASS, null)
-        val savedCsrfToken = prefs.getString(Constants.KEY_CSRF_TOKEN, null)
+        // Protected: EncryptedSharedPreferences can throw on corrupted keystore/prefs
+        try {
+            val savedUser = prefs.getString(Constants.KEY_USER, null)
+            val savedPass = prefs.getString(Constants.KEY_PASS, null)
+            val savedCsrfToken = prefs.getString(Constants.KEY_CSRF_TOKEN, null)
 
-        NetworkClient.updateCsrfToken(savedCsrfToken)
+            NetworkClient.updateCsrfToken(savedCsrfToken)
 
-        if (savedUser != null && savedPass != null) {
-            performLogin(savedUser, savedPass)
+            if (savedUser != null && savedPass != null) {
+                performLogin(savedUser, savedPass)
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("LoginActivity", "Failed to read saved credentials, clearing corrupted prefs", e)
+            try { prefs.edit().clear().apply() } catch (_: Exception) {}
         }
 
         // 4. Handle Manual Login Click

@@ -2,6 +2,7 @@ package com.example.vod
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.util.Log
 import androidx.core.content.edit
 import com.example.vod.utils.SecurePrefs
 
@@ -23,6 +24,7 @@ import com.example.vod.utils.SecurePrefs
  */
 object ProfileManager {
 
+    private const val TAG = "ProfileManager"
     private const val PREFS_NAME = "VOD_PROFILE_PREFS"
     private const val KEY_ACTIVE_PROFILE_ID = "active_profile_id"
     private const val KEY_ACTIVE_PROFILE_NAME = "active_profile_name"
@@ -54,19 +56,26 @@ object ProfileManager {
 
     /**
      * Load the cached profile from SharedPreferences.
+     * Protected against corrupted prefs (e.g., EncryptedSharedPreferences keystore issues).
      */
     private fun loadCachedProfile() {
-        val id = prefs?.getInt(KEY_ACTIVE_PROFILE_ID, -1) ?: -1
-        if (id > 0) {
-            activeProfile = Profile(
-                id = id,
-                name = prefs?.getString(KEY_ACTIVE_PROFILE_NAME, "Default") ?: "Default",
-                autoSkipIntro = prefs?.getBoolean(KEY_AUTO_SKIP_INTRO, false) ?: false,
-                autoSkipCredits = prefs?.getBoolean(KEY_AUTO_SKIP_CREDITS, false) ?: false,
-                autoplayNext = prefs?.getBoolean(KEY_AUTOPLAY_NEXT, true) ?: true,
-                maxContentRating = prefs?.getString(KEY_MAX_CONTENT_RATING, null),
-                hasPin = prefs?.getBoolean(KEY_HAS_PIN, false) ?: false
-            )
+        try {
+            val id = prefs?.getInt(KEY_ACTIVE_PROFILE_ID, -1) ?: -1
+            if (id > 0) {
+                activeProfile = Profile(
+                    id = id,
+                    name = prefs?.getString(KEY_ACTIVE_PROFILE_NAME, "Default") ?: "Default",
+                    autoSkipIntro = prefs?.getBoolean(KEY_AUTO_SKIP_INTRO, false) ?: false,
+                    autoSkipCredits = prefs?.getBoolean(KEY_AUTO_SKIP_CREDITS, false) ?: false,
+                    autoplayNext = prefs?.getBoolean(KEY_AUTOPLAY_NEXT, true) ?: true,
+                    maxContentRating = prefs?.getString(KEY_MAX_CONTENT_RATING, null),
+                    hasPin = prefs?.getBoolean(KEY_HAS_PIN, false) ?: false
+                )
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to load cached profile, clearing corrupted data", e)
+            activeProfile = null
+            try { prefs?.edit()?.clear()?.apply() } catch (_: Exception) {}
         }
     }
 

@@ -68,6 +68,9 @@ class DetailsActivity : AppCompatActivity() {
     private lateinit var layoutEpisodes: LinearLayout
     private lateinit var rvEpisodes: RecyclerView
 
+    // "Finishes at" pill (may be absent in some layouts)
+    private var txtFinishesAt: TextView? = null
+
     // More Like This (absent in portrait layout)
     private var layoutMoreLikeThis: LinearLayout? = null
     private var rvMoreLikeThis: RecyclerView? = null
@@ -115,6 +118,7 @@ class DetailsActivity : AppCompatActivity() {
         rvEpisodes = findViewById(R.id.rvEpisodes)
         rvEpisodes.layoutManager = LinearLayoutManager(this)
 
+        txtFinishesAt = findViewById(R.id.txtFinishesAt)
         layoutMoreLikeThis = findViewById(R.id.layoutMoreLikeThis)
         rvMoreLikeThis = findViewById(R.id.rvMoreLikeThis)
         rvMoreLikeThis?.layoutManager = LinearLayoutManager(this, LinearLayoutManager.HORIZONTAL, false)
@@ -123,9 +127,15 @@ class DetailsActivity : AppCompatActivity() {
         ProfileManager.init(this)
 
         val videoId = intent.getIntExtra("VIDEO_ID", -1)
+        val seriesId = intent.getIntExtra("SERIES_ID", -1)
         val libId = intent.getIntExtra("LIB_ID", -1)
 
-        if (videoId != -1) {
+        if (seriesId > 0) {
+            loadSeriesDetails(seriesId)
+            if (libId > 0 && rvMoreLikeThis != null) {
+                loadMoreLikeThis(-1, libId)
+            }
+        } else if (videoId != -1) {
             loadDetails(videoId)
             checkWatchListStatus(videoId)
             setupWatchLaterButton(videoId)
@@ -428,6 +438,15 @@ class DetailsActivity : AppCompatActivity() {
                             activity.txtRuntime.visibility = View.GONE
                         }
 
+                        // "Finishes at" pill
+                        val finishesAt = activity.video.finishesAtLabel?.trim()
+                        if (!finishesAt.isNullOrEmpty()) {
+                            activity.txtFinishesAt?.text = activity.getString(R.string.finishes_at_format, finishesAt)
+                            activity.txtFinishesAt?.visibility = View.VISIBLE
+                        } else {
+                            activity.txtFinishesAt?.visibility = View.GONE
+                        }
+
                         // --- CREDITS LOGIC ---
                         val directorText = activity.video.director
                         val hasDirector = !directorText.isNullOrBlank() && directorText != "N/A"
@@ -545,6 +564,143 @@ class DetailsActivity : AppCompatActivity() {
                 withContext(Dispatchers.Main) {
                     weakActivity.get()?.let { activity ->
                         ErrorHandler.handleNetworkError(activity, e, "Error loading details")
+                        activity.finish()
+                    }
+                }
+            }
+        }
+    }
+
+    private fun loadSeriesDetails(seriesId: Int) {
+        if (!NetworkUtils.isNetworkAvailable(this)) {
+            ErrorHandler.showError(this, "No internet connection")
+            finish()
+            return
+        }
+
+        val weakActivity = WeakReference(this)
+
+        lifecycleScope.launch(Dispatchers.IO) {
+            try {
+                val profileId = ProfileManager.getActiveProfileId()
+                val response = NetworkClient.api.getSeriesDetails(seriesId, profileId)
+                withContext(Dispatchers.Main) {
+                    val activity = weakActivity.get() ?: return@withContext
+                    val series = response.series
+
+                    if (response.status == "success" && series != null) {
+                        activity.txtTitle.text = series.title
+                        activity.txtPlot.text = series.plot
+                        activity.txtYear.text = if (series.year > 0) series.year.toString() else ""
+
+                        val formattedRating = RatingUtils.formatImdbRating(series.rating) ?: "N/A"
+                        activity.txtRating.text = activity.getString(R.string.rating_format, formattedRating)
+                        activity.txtDetailGenre.text = series.genre ?: "N/A"
+
+                        val contentRating = series.contentRating?.trim()
+                        if (!contentRating.isNullOrEmpty() && contentRating != "N/A") {
+                            activity.txtContentRating.text = contentRating
+                            activity.txtContentRating.visibility = View.VISIBLE
+                        } else {
+                            activity.txtContentRating.visibility = View.GONE
+                        }
+
+                        // Rotten Tomatoes
+                        val rawScore = series.rottenTomatoes?.replace("%", "")?.trim()
+                        val scoreInt = rawScore?.toIntOrNull()
+                        if (scoreInt != null && scoreInt > 0) {
+                            activity.txtRottenTomatoes.text = activity.getString(R.string.rotten_tomatoes_format, scoreInt.toString())
+                            activity.txtRottenTomatoes.visibility = View.VISIBLE
+                        } else {
+                            activity.txtRottenTomatoes.visibility = View.GONE
+                        }
+
+                        // Runtime — hide for series (shown per-episode)
+                        activity.txtRuntime.visibility = View.GONE
+                        activity.txtFinishesAt?.visibility = View.GONE
+
+                        // Director / credits
+                        val directorText = series.director
+                        val hasDirector = !directorText.isNullOrBlank() && directorText != "N/A"
+                        if (hasDirector) {
+                            activity.txtDirector.text = activity.getString(R.string.director_label, directorText)
+                            activity.txtDirector.visibility = View.VISIBLE
+                        } else {
+                            activity.txtDirector.visibility = View.GONE
+                        }
+                        // Series don't have starring at this level — hide
+                        activity.txtStarring.visibility = View.GONE
+                        if (hasDirector) {
+                            activity.layoutCredits.visibility = View.VISIBLE
+                            activity.dividerCredits.visibility = View.VISIBLE
+                        } else {
+                            activity.layoutCredits.visibility = View.GONE
+                            activity.dividerCredits.visibility = View.GONE
+                        }
+
+                        // Image loading
+                        val imageUrl = series.posterUrl ?: ""
+                        activity.imgPoster.load(imageUrl) {
+                            crossfade(true)
+                            placeholder(R.drawable.ic_movie)
+                            error(R.drawable.ic_movie)
+                        }
+                        if (imageUrl.isNotEmpty()) {
+                            activity.loadBlurredBackdrop(imageUrl)
+                        }
+
+                        // Series view: hide play/resume, show episodes
+                        activity.layoutActionButtons.visibility = View.VISIBLE
+                        activity.btnPlay.visibility = View.GONE
+                        activity.btnResume.visibility = View.GONE
+                        activity.btnSubtitles.visibility = View.GONE
+                        activity.btnWatchLater.visibility = View.GONE
+                        activity.layoutEpisodes.visibility = View.VISIBLE
+
+                        val seriesPosterUrl = imageUrl
+                        response.episodes?.let { episodes ->
+                            if (episodes.isNotEmpty()) {
+                                Log.d(TAG, "Binding episodes list count=${episodes.size} for seriesId=$seriesId")
+                                activity.rvEpisodes.adapter = EpisodeAdapter(
+                                    allEpisodes = episodes,
+                                    onEpisodeClick = { episode ->
+                                        val intent = Intent(activity, DetailsActivity::class.java)
+                                        intent.putExtra("VIDEO_ID", episode.id)
+                                        intent.putExtra("IS_EPISODE_VIEW", true)
+                                        intent.putExtra("FALLBACK_POSTER", seriesPosterUrl)
+                                        activity.startActivity(intent)
+                                        AnimationHelper.applyOpenTransition(activity)
+                                    },
+                                    onEpisodePlayClick = { episode ->
+                                        activity.startEpisodePlayback(episode.id, enableSubtitles = false)
+                                    },
+                                    onEpisodePlayWithSubtitlesClick = { episode ->
+                                        if (episode.hasSubtitles && !episode.subtitleUrl.isNullOrBlank()) {
+                                            activity.startEpisodePlayback(episode.id, enableSubtitles = true)
+                                        } else {
+                                            activity.startEpisodePlayback(episode.id, enableSubtitles = false)
+                                        }
+                                    }
+                                )
+                                activity.rvEpisodes.post { activity.rvEpisodes.requestFocus() }
+                            }
+                        }
+                    } else {
+                        ErrorHandler.showError(activity, "Failed to load series details")
+                        activity.finish()
+                    }
+                }
+            } catch (e: IOException) {
+                withContext(Dispatchers.Main) {
+                    weakActivity.get()?.let { activity ->
+                        ErrorHandler.handleNetworkError(activity, e)
+                        activity.finish()
+                    }
+                }
+            } catch (e: Exception) {
+                withContext(Dispatchers.Main) {
+                    weakActivity.get()?.let { activity ->
+                        ErrorHandler.handleNetworkError(activity, e, "Error loading series details")
                         activity.finish()
                     }
                 }

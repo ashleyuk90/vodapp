@@ -36,6 +36,14 @@ data class VideoItem(
     // Series title for episodes
     @SerializedName("series_title") val seriesTitle: String? = null,
 
+    // Series navigation fields (card_type discriminator from library/dashboard/search)
+    @SerializedName("card_type") val cardType: String? = null,
+    @SerializedName("series_id") val seriesId: Int? = null,
+    @SerializedName("finishes_at_label") val finishesAtLabel: String? = null,
+    @SerializedName("total_episodes") val totalEpisodes: Int? = null,
+    @SerializedName("episode_count") val episodeCount: Int? = null,
+    @SerializedName("resume_episode") val resumeEpisode: ResumeEpisode? = null,
+
     val type: String? = null,
     val plot: String? = null,
 
@@ -123,6 +131,8 @@ data class VideoItem(
             normalized.contains("show")
     }
 
+    fun isSeriesCard(): Boolean = cardType == "series" && (seriesId ?: 0) > 0
+
     fun getPlaybackTargetId(): Int = resumeEpisodeId ?: id
 
     fun getDisplayImage(): String {
@@ -154,6 +164,7 @@ data class EpisodeItem(
     @SerializedName("has_subtitles") val hasSubtitles: Boolean = false,
     @SerializedName("subtitle_url") val subtitleUrl: String? = null,
     @SerializedName("subtitle_language") val subtitleLanguage: String? = null,
+    @SerializedName("finishes_at_label") val finishesAtLabel: String? = null,
     @SerializedName("poster_path") val posterPath: String? = null,
     val next_episode: NextEpisode? = null
 )
@@ -333,12 +344,53 @@ data class ProfileRemoveResponse(
     val message: String? = null
 )
 
+// ===== Series Models =====
+
+data class ResumeEpisode(
+    val id: Int = 0,
+    val title: String = "",
+    val season: Int = 1,
+    val episode: Int = 1
+)
+
+data class SeriesInfo(
+    val id: Int = 0,
+    val title: String = "",
+    val plot: String? = null,
+    @SerializedName("poster_url") val posterUrl: String? = null,
+    @SerializedName("backdrop_path") val backdropPath: String? = null,
+    val genre: String? = null,
+    val year: Int = 0,
+    val rating: String? = null,
+    @SerializedName("content_rating") val contentRating: String? = null,
+    @SerializedName("rotten_tomatoes") val rottenTomatoes: String? = null,
+    @SerializedName("imdb_id") val imdbId: String? = null,
+    val director: String? = null,
+    val writer: String? = null,
+    @SerializedName("total_episodes") val totalEpisodes: Int = 0,
+    @SerializedName("episodes_watched") val episodesWatched: Int = 0,
+    @SerializedName("overall_progress_percent") val overallProgressPercent: Int = 0,
+    @SerializedName("next_episode") val nextEpisode: ResumeEpisode? = null
+)
+
+data class SeriesDetailsResponse(
+    val status: String = "",
+    val series: SeriesInfo? = null,
+    val episodes: List<EpisodeItem>? = null,
+    @SerializedName("intro_marker") val introMarker: ContentMarker? = null,
+    @SerializedName("credits_marker") val creditsMarker: ContentMarker? = null
+)
+
+data class SeriesEpisodesResponse(
+    val status: String = "",
+    val data: List<EpisodeItem>? = null,
+    val total: Int? = null,
+    val page: Int? = null,
+    val pages: Int? = null
+)
+
 // ===== Search Filters =====
 
-/**
- * Filters for enhanced search functionality.
- * All filters are optional and combine with AND logic.
- */
 data class SessionResponse(
     val status: String = "",
     val user: User? = null,

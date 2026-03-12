@@ -87,6 +87,8 @@ For these POST endpoints, include CSRF token:
 - `/api/profiles_remove`
 - `/api/verify_pin`
 - `/api/logout`
+- `/api/series_edit` (admin only)
+- `/api/series_rescan` (admin only)
 
 Preferred header:
 - `X-CSRF-Token: <token>`
@@ -136,6 +138,159 @@ Success response:
 
 Rate limited to 5 attempts per 60 seconds. Use this when accessing PIN-protected content.
 
+## Series Navigation (New)
+
+The server now manages series as first-class entities. Library, dashboard, and search responses include new fields to support series-based navigation alongside backward-compatible video-based navigation.
+
+### New Fields in Existing Endpoints
+
+**`GET /api/library`**, **`GET /api/search`**, **`GET /api/dashboard`** responses now include:
+
+| Field | Type | Description |
+|---|---|---|
+| `card_type` | `"series"` or `"video"` | Discriminator for navigation. Old clients can ignore this field. |
+| `series_id` | `int` or `null` | Series table ID. Present when `card_type === "series"`. |
+| `content_rating` | `string` or `null` | Content rating (e.g. `"TV-MA"`, `"PG-13"`). |
+
+**Dashboard `continue_watching`** items for episodes now include:
+| Field | Type | Description |
+|---|---|---|
+| `card_type` | `"series"` | Always `"series"` for grouped episode entries. |
+| `series_id` | `int` | Series ID for navigation. |
+| `resume_episode` | `object` | `{ id, title, season, episode }` — the most recently watched episode. |
+| `total_episodes` | `int` | Total episode count in the series. |
+
+**Dashboard `recent_shows`** items now come from the series table directly (one row per series) and include `card_type: "series"` and `series_id`.
+
+### Migration Strategy
+
+1. Check for `card_type` field presence in library/dashboard/search responses.
+2. When `card_type === "series"` and `series_id` is present:
+   - Use `series_id` to call `GET /api/series_details?id={series_id}` for the detail view.
+3. When `card_type === "video"` or `card_type` is missing:
+   - Use `id` to call `GET /api/details?id={video_id}` (existing flow, unchanged).
+4. The `id` field on series cards is a `representative_video_id` (MIN episode id) — old clients that ignore `card_type` and call `/api/details?id={id}` will still work.
+
+### New Dedicated Endpoints
+
+#### `GET /api/series_details`
+Full series metadata with all episodes and per-episode watch progress.
+
+Query:
+- `id` required (series id)
+- `profile_id` optional
+
+Response:
+```json
+{
+  "status": "success",
+  "series": {
+    "id": 45,
+    "title": "Breaking Bad",
+    "plot": "A chemistry teacher diagnosed with cancer...",
+    "poster_url": "https://...",
+    "genre": "Crime, Drama",
+    "year": 2008,
+    "rating": "9.5",
+    "content_rating": "18",
+    "rotten_tomatoes": "96%",
+    "imdb_id": "tt0903747",
+    "language": "English",
+    "country": "USA",
+    "director": "Vince Gilligan",
+    "writer": "Vince Gilligan",
+    "total_episodes": 62,
+    "episodes_watched": 45,
+    "next_episode": { "id": 456, "title": "Ozymandias", "season": 5, "episode": 14 },
+    "overall_progress_percent": 72
+  },
+  "episodes": [
+    {
+      "id": 100, "title": "Pilot", "season": 1, "episode": 1,
+      "plot": "...", "runtime": 58, "poster_url": "...",
+      "resume_time": 1200, "total_duration": 3480,
+      "progress_percent": 34, "can_resume": true,
+      "finishes_at": "2026-03-11T21:45:00+00:00", "finishes_at_label": "9:45pm",
+      "has_subtitles": true, "subtitle_url": "...", "subtitle_language": "en"
+    }
+  ],
+  "intro_marker": null,
+  "credits_marker": { "type": "credits", "credits_duration_seconds": 45 }
+}
+```
+
+#### `GET /api/series_episodes`
+Paginated episode list (useful for series with many episodes).
+
+Query:
+- `id` required (series id)
+- `page` optional (default `1`)
+- `per_page` optional (default `50`)
+- `profile_id` optional
+
+Response:
+```json
+{
+  "status": "success",
+  "data": [ /* same episode shape as series_details */ ],
+  "total": 62,
+  "page": 1,
+  "pages": 2
+}
+```
+
+#### `POST /api/series_edit` (admin only)
+Update series-level metadata.
+
+Body:
+- `series_id` required
+- Optional: `title`, `plot`, `poster_url`, `genre`, `content_rating`, `imdb_rating`, `release_year`, `director`, `writer`, `language`, `country`, `awards`, `metascore`, `rotten_tomatoes`, `imdb_id`
+
+#### `POST /api/series_rescan` (admin only)
+Re-fetch series metadata from OMDb, optionally cascading to all episodes.
+
+Body:
+- `series_id` required
+- `cascade` optional (`0`/`1`)
+
+### Kotlin Patterns for Series Endpoints
+
+```kotlin
+// Series details
+val request = Request.Builder()
+    .url("$apiBaseUrl/series_details?id=$seriesId&profile_id=$profileId")
+    .addHeader("X-Client-Platform", "android")
+    .get()
+    .build()
+
+val response = client.newCall(request).execute()
+```
+
+```kotlin
+// Series episodes (paginated)
+val request = Request.Builder()
+    .url("$apiBaseUrl/series_episodes?id=$seriesId&page=$page&per_page=50&profile_id=$profileId")
+    .addHeader("X-Client-Platform", "android")
+    .get()
+    .build()
+```
+
+```kotlin
+// Navigation decision based on card_type
+fun onCardClicked(item: LibraryItem) {
+    val seriesId = item.optInt("series_id", 0)
+    val cardType = item.optString("card_type", "video")
+
+    if (cardType == "series" && seriesId > 0) {
+        // New path: load series detail view
+        loadSeriesDetails(seriesId)
+    } else {
+        // Existing path: load video detail view
+        loadVideoDetails(item.getInt("id"))
+    }
+}
+```
+
 ## Playback and Discovery Endpoints
 
 ### Library Listing
@@ -158,7 +313,7 @@ Notes:
 ### Video Details
 `GET /api/details?id=123`
 
-Returns metadata, resume state, subtitle metadata, and optional skip markers (`intro_marker`, `credits_marker`).
+Returns metadata, resume state, subtitle metadata, optional skip markers (`intro_marker`, `credits_marker`), and estimated finish time (`finishes_at`, `finishes_at_label`).
 
 The response includes an `available` boolean field. When `false`, the underlying video file is missing from disk (moved, renamed, or deleted). Use this to grey out or disable the play button before the user attempts playback.
 
@@ -381,11 +536,12 @@ When receiving `429`, implement exponential backoff.
 1. Login and store cookies + CSRF token.
 2. Call `/api/session` on app resume to restore state.
 3. Call `/api/profiles`; let user pick profile.
-4. Use `/api/library`, `/api/search`, `/api/details` for browsing.
-5. Use `/api/play` to get stream/subtitle URLs.
-6. Send periodic `/api/progress` updates.
-7. Use watch-later endpoints for user bookmarks.
-8. Call `/api/logout` when user explicitly logs out.
+4. Use `/api/library`, `/api/search`, `/api/dashboard` for browsing.
+5. For card navigation: check `card_type` — use `/api/series_details` for series cards, `/api/details` for video cards.
+6. Use `/api/play` to get stream/subtitle URLs.
+7. Send periodic `/api/progress` updates.
+8. Use watch-later endpoints for user bookmarks.
+9. Call `/api/logout` when user explicitly logs out.
 
 ## Quick Endpoint Checklist
 
@@ -398,9 +554,13 @@ When receiving `429`, implement exponential backoff.
 - `GET /api/get_libraries`
 - `GET /api/library`
 - `GET /api/details`
+- `GET /api/series_details`
+- `GET /api/series_episodes`
 - `GET /api/play`
 - `GET /api/playback_status`
 - `POST /api/progress`
 - `POST /api/watch_list_add`
 - `POST /api/watch_list_remove`
 - `GET /api/watch_list`
+- `POST /api/series_edit` (admin)
+- `POST /api/series_rescan` (admin)

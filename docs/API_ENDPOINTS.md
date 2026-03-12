@@ -35,11 +35,15 @@ Login also includes optional form fields:
 ## Security Controls
 
 ### Rate Limits
-- Authenticated API actions: `120` requests / `60` seconds / user / action.
-- Login brute-force protection uses:
-  - `RATE_LIMIT_MAX_ATTEMPTS` (default `5`)
-  - `RATE_LIMIT_WINDOW_MINUTES` (default `15`)
-- PIN verification: `5` attempts / `60` seconds / user
+- **Nginx layer** (before PHP):
+  - Login endpoints: `5` requests/minute per IP (burst=3, delay=2)
+  - General API: `30` requests/second per IP (burst=50, nodelay)
+- **PHP layer:**
+  - Authenticated API actions: `120` requests / `60` seconds / user / action
+  - Login brute-force protection (per-IP): `RATE_LIMIT_MAX_ATTEMPTS` (default `5`) / `RATE_LIMIT_WINDOW_MINUTES` (default `15`)
+  - Login brute-force protection (per-username): `RATE_LIMIT_MAX_ATTEMPTS_PER_USER` (default `10`) within same window
+  - Password max length: `256` characters (bcrypt DoS prevention)
+  - PIN verification: `5` attempts / `60` seconds / user
 
 ### Mutation Protection
 These actions require:
@@ -55,6 +59,8 @@ Protected actions:
 - `profiles_remove`
 - `verify_pin`
 - `logout`
+- `series_edit`
+- `series_rescan`
 
 Token can be sent as:
 - Header: `X-CSRF-Token: <token>`
@@ -99,6 +105,10 @@ All API responses include:
 | `library_info` | GET | Yes | Yes |
 | `get_server_stats` | GET | Yes | Yes |
 | `diagnostics` | GET | Yes | Yes |
+| `series_details` | GET | Yes | No |
+| `series_episodes` | GET | Yes | No |
+| `series_edit` | POST | Yes | Yes |
+| `series_rescan` | POST | Yes | Yes |
 
 ## Endpoint Details
 
@@ -111,13 +121,14 @@ Body:
 
 Success:
 - `status: success`
-- `user` object (without `password_hash`)
+- `user` object (without `password_hash`; includes `update_channel`)
 - `csrf_token`
 - `account_expiry` when configured
+- `update_feed_url` (URL to the update XML feed for this user's channel)
 
 Errors:
-- `401` invalid credentials / expired account
-- `429` too many failed attempts from same IP
+- `401` invalid credentials / expired account / password exceeds 256 chars
+- `429` too many failed attempts from same IP or same username
 
 ### `POST /api/logout`
 Terminates the current session.
@@ -130,12 +141,13 @@ Success:
 Returns current session information for the authenticated user.
 
 Returns:
-- `user` object (without `password_hash`)
+- `user` object (without `password_hash`; includes `update_channel`)
 - `active_profile` object with `id` and `name`
 - `csrf_token` (refreshed token)
 - `login_time` (Unix timestamp)
 - `client_platform` (detected platform)
 - `app_version_name` (if provided during login)
+- `update_feed_url` (URL to the update XML feed for this user's channel)
 
 ### `GET /api/library`
 Query:
@@ -147,6 +159,12 @@ Query:
 
 Returns paginated library/search results under `data` with `pages`.
 
+Each item in `data` includes:
+- `card_type` — `"series"` or `"video"`. Series cards represent a full series; video cards represent standalone movies.
+- `series_id` — present on series cards; the `series.id` for navigating to series detail views.
+- `id` — for series cards this is the `representative_video_id` (MIN episode id). Old clients can still use this with `/api/details`.
+- `content_rating` — content rating string (e.g. `"TV-MA"`, `"PG-13"`).
+
 ### `GET /api/details`
 Query:
 - `id` required
@@ -156,13 +174,16 @@ Returns `video` payload including:
 - `available` (boolean — `false` when the underlying file is missing from disk)
 - metadata fields
 - `resume_time`
+- `finishes_at` (ISO 8601 timestamp — estimated finish time if started/resumed now, `null` if runtime unknown)
+- `finishes_at_label` (human-readable time e.g. `"9:45pm"`, `null` if runtime unknown)
 - subtitle availability (`has_subtitles`, `subtitle_url`, `subtitle_language`)
 - optional `intro_marker` / `credits_marker`
 - for episodes: `episodes[]` and `next_episode`
+- for movies with multiple file versions: `versions[]` array with `id`, `resolution`, `video_codec`, `audio_codec`, `file_size`
 
 `video.episodes[]` items include:
 - `id`, `title`, `season`, `episode`, `plot`, `runtime`, `poster_url`
-- resume/progress fields (`resume_time`, `total_duration`, `progress_percent`, `can_resume`)
+- resume/progress fields (`resume_time`, `total_duration`, `progress_percent`, `can_resume`, `finishes_at`, `finishes_at_label`)
 - subtitle availability fields:
   - `has_subtitles` (`true` when subtitles are ready to use)
   - `subtitle_url` (absolute URL when available, otherwise `null`)
@@ -205,6 +226,7 @@ Body:
 - `rebuffer_seconds` optional
 - `rebuffered` optional (`0`/`1`)
 - `profile_id` optional
+- `device_name` optional (max 100 chars, e.g. "Pixel 8 Pro", "Samsung Galaxy S24")
 
 Success:
 - `{ "status": "saved", "stop_playback": <bool>, "limit": <int>, "active_playbacks": <int> }`
@@ -229,9 +251,13 @@ Query:
 - `profile_id` optional
 
 Returns:
-- `continue_watching`
+- `continue_watching` — episodes are grouped by series (one entry per series, most recently watched episode). Series entries include:
+  - `card_type: "series"`
+  - `series_id`
+  - `resume_episode` object (`id`, `title`, `season`, `episode`)
+  - `total_episodes`
 - `recent_movies`
-- `recent_shows`
+- `recent_shows` — queries from the `series` table directly. Each item includes `card_type: "series"` and `series_id`.
 
 ### `GET /api/search`
 Query:
@@ -239,6 +265,11 @@ Query:
 - `profile_id` optional
 
 Empty query returns empty `data` array.
+
+Each result item includes:
+- `card_type` — `"series"` or `"video"`
+- `series_id` — present on series cards
+- `episode_count` — number of episodes for series cards
 
 ### `POST /api/watch_list_add`
 Body:
@@ -316,6 +347,54 @@ Errors:
 - `404` profile not found
 
 Rate limited to 5 attempts per 60 seconds per user.
+
+### `GET /api/series_details`
+Query:
+- `id` required (series id)
+- `profile_id` optional
+
+Returns full series metadata with all episodes and watch progress:
+- `series` object:
+  - `id`, `title`, `plot`, `poster_url`, `genre`, `year`, `rating`, `content_rating`
+  - `rotten_tomatoes`, `imdb_id`, `language`, `country`, `director`, `writer`
+  - `total_episodes`, `episodes_watched`, `overall_progress_percent`
+  - `next_episode` object (`id`, `title`, `season`, `episode`) — first unwatched or in-progress episode
+- `episodes[]` — all episodes ordered by season/episode:
+  - `id`, `title`, `season`, `episode`, `plot`, `runtime`, `poster_url`
+  - `resume_time`, `total_duration`, `progress_percent`, `can_resume`
+  - `finishes_at` (ISO 8601), `finishes_at_label` (e.g. `"9:45pm"`) — estimated finish time if started/resumed now
+  - `has_subtitles`, `subtitle_url`, `subtitle_language`
+- `intro_marker` / `credits_marker` — skip markers for the series (if any)
+
+### `GET /api/series_episodes`
+Query:
+- `id` required (series id)
+- `page` optional (default `1`)
+- `per_page` optional (default `50`)
+- `profile_id` optional
+
+Returns paginated episode list:
+- `data[]` — episodes with progress fields (same shape as `series_details` episodes)
+- `total`, `page`, `pages`
+
+### `POST /api/series_edit` (admin only)
+Body:
+- `series_id` required
+- Editable fields (all optional): `title`, `plot`, `poster_url`, `genre`, `content_rating`, `imdb_rating`, `release_year`, `director`, `writer`, `language`, `country`, `awards`, `metascore`, `rotten_tomatoes`, `imdb_id`
+
+Requires CSRF token. Updates series-level metadata.
+
+### `POST /api/series_rescan` (admin only)
+Body:
+- `series_id` required
+- `cascade` optional (`0`/`1`, default `0`) — when `1`, also re-fetches metadata for all episodes
+
+Requires CSRF token. Re-fetches series metadata from OMDb.
+
+Returns:
+- `status: success`
+- `series_updated: true`
+- `episodes_updated: N` (when cascade enabled)
 
 ### Admin-only Actions
 

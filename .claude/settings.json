@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find /Users/ashleymerrick/VODApp/vodapp -type f \\\\\\(-name *.js -o -name *.py -o -name *.php -o -name *.json \\\\\\))",
+      "Read(//Users/ashleymerrick/VODApp/**)"
+    ]
+  }
+}
